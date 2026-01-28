@@ -23,7 +23,7 @@ public class RegisterRequest {
     String password;
 
     @NotBlank(message = "Email is required")
-    @Email(message = "Email invalid")
+    @jakarta.validation.constraints.Pattern(regexp = "^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$", message = "Email invalid format")
     String email;
 
     String firstName;

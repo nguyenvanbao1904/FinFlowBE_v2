@@ -53,10 +53,11 @@ public class AuthController {
      * @return Success message
      */
     @PostMapping("/register")
-    public ResponseEntity<String> register(@RequestBody @Valid RegisterRequest request) {
+    public ResponseEntity<RegisterResponse> register(@RequestBody @Valid RegisterRequest request) {
         log.info("Register request received for username: {}", request.getUsername());
         registerUseCase.execute(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body("User registered successfully!");
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new RegisterResponse("User registered successfully!"));
     }
 
     /**
