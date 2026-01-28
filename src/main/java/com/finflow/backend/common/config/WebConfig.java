@@ -1,0 +1,21 @@
+package com.finflow.backend.common.config;
+
+import com.finflow.backend.common.versioning.ApiVersionInterceptor;
+import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+@Configuration
+@RequiredArgsConstructor
+public class WebConfig implements WebMvcConfigurer {
+
+    private final ApiVersionInterceptor apiVersionInterceptor;
+
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(apiVersionInterceptor)
+                .addPathPatterns("/api/**");
+    }
+}
+
