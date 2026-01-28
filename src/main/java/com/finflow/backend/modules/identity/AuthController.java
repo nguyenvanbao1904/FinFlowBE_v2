@@ -1,6 +1,8 @@
 package com.finflow.backend.modules.identity;
 
 import com.finflow.backend.modules.identity.dto.*;
+import com.finflow.backend.modules.identity.dto.SendOtpRequest;
+import com.finflow.backend.modules.identity.dto.VerifyOtpRequest;
 import com.finflow.backend.modules.identity.usecase.LoginUseCase;
 import com.finflow.backend.modules.identity.usecase.LogoutUseCase;
 import com.finflow.backend.modules.identity.usecase.RefreshTokenUseCase;
@@ -45,6 +47,8 @@ public class AuthController {
     private final LogoutUseCase logoutUseCase;
     private final RefreshTokenUseCase refreshTokenUseCase;
     private final com.finflow.backend.modules.identity.usecase.GoogleLoginUseCase googleLoginUseCase;
+    private final com.finflow.backend.modules.identity.usecase.SendOtpUseCase sendOtpUseCase;
+    private final com.finflow.backend.modules.identity.usecase.VerifyOtpUseCase verifyOtpUseCase;
 
     /**
      * Register new user account
@@ -91,6 +95,26 @@ public class AuthController {
         log.info("Google login request received");
         AuthResponse response = googleLoginUseCase.execute(request);
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/send-otp")
+    public ResponseEntity<java.util.Map<String, String>> sendOtp(@RequestBody @Valid SendOtpRequest request) {
+        log.info("Send OTP request for: {}", request.getEmail());
+        sendOtpUseCase.execute(request.getEmail());
+        return ResponseEntity.ok(java.util.Collections.singletonMap("message", "OTP sent successfully"));
+    }
+
+    @PostMapping("/verify-otp")
+    public ResponseEntity<java.util.Map<String, String>> verifyOtp(@RequestBody @Valid VerifyOtpRequest request) {
+        log.info("Verify OTP request for: {}", request.getEmail());
+        boolean isValid = verifyOtpUseCase.execute(request.getEmail(), request.getOtp());
+        
+        if (isValid) {
+            return ResponseEntity.ok(java.util.Collections.singletonMap("message", "OTP verified successfully"));
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(java.util.Collections.singletonMap("message", "Invalid or expired OTP"));
+        }
     }
 
     /**
