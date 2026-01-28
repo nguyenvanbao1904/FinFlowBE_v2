@@ -81,7 +81,6 @@ public class LoginUseCase {
         );
 
         // 3. Get user details from database
-        // 3. Get user details from database
         User user = userRepository.findByUsername(request.getUsername())
                 .or(() -> userRepository.findByEmail(request.getUsername()))
                 .orElseThrow(); // This should never throw since authentication succeeded
