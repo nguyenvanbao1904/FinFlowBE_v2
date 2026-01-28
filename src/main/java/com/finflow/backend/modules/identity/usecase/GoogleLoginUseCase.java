@@ -71,6 +71,7 @@ public class GoogleLoginUseCase {
         user.setUsername(email); // Use email as username for Google users
         user.setPassword(UUID.randomUUID().toString()); // strong random password
         user.setRoles(new HashSet<>(Collections.singletonList(userRole))); // Use Set<Role>
+        user.setAccountVerified(payload.getEmailVerified());
         
         // Populate names if available
         if (payload.get("given_name") != null) {
