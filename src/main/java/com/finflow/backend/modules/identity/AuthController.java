@@ -49,6 +49,8 @@ public class AuthController {
     private final com.finflow.backend.modules.identity.usecase.GoogleLoginUseCase googleLoginUseCase;
     private final com.finflow.backend.modules.identity.usecase.SendOtpUseCase sendOtpUseCase;
     private final com.finflow.backend.modules.identity.usecase.VerifyOtpUseCase verifyOtpUseCase;
+    private final com.finflow.backend.modules.identity.usecase.ResetPasswordUseCase resetPasswordUseCase;
+    private final com.finflow.backend.modules.identity.usecase.CheckUserExistenceUseCase checkUserExistenceUseCase;
 
     /**
      * Register new user account
@@ -56,15 +58,21 @@ public class AuthController {
      * @param request RegisterRequest with user details
      * @return Success message
      */
+    /**
+     * Register new user account
+     * 
+     * @param request RegisterRequest with user details
+     * @return Success message
+     */
     @PostMapping("/register")
-    public ResponseEntity<RegisterResponse> register(
+    public ResponseEntity<MessageResponse> register(
             @RequestBody @Valid RegisterRequest request,
             @RequestHeader("X-Registration-Token") String registrationToken
     ) {
         log.info("Register request received for username: {}", request.getUsername());
         registerUseCase.execute(request, registrationToken);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new RegisterResponse("User registered successfully!"));
+                .body(new MessageResponse("User registered successfully!"));
     }
 
     /**
@@ -101,17 +109,27 @@ public class AuthController {
     }
 
     @PostMapping("/send-otp")
-    public ResponseEntity<java.util.Map<String, String>> sendOtp(@RequestBody @Valid SendOtpRequest request) {
-        log.info("Send OTP request for: {}", request.getEmail());
-        sendOtpUseCase.execute(request.getEmail());
-        return ResponseEntity.ok(java.util.Collections.singletonMap("message", "OTP sent successfully"));
+    public ResponseEntity<MessageResponse> sendOtp(@RequestBody @Valid SendOtpRequest request) {
+        log.info("Send OTP request for: {} with purpose: {}", request.getEmail(), request.getPurpose());
+        sendOtpUseCase.execute(request.getEmail(), request.getPurpose());
+        return ResponseEntity.ok(new MessageResponse("OTP sent successfully"));
     }
 
     @PostMapping("/verify-otp")
     public ResponseEntity<VerifyOtpResponse> verifyOtp(@RequestBody @Valid VerifyOtpRequest request) {
-        log.info("Verify OTP request for: {}", request.getEmail());
-        VerifyOtpResponse response = verifyOtpUseCase.execute(request.getEmail(), request.getOtp());
+        log.info("Verify OTP request for: {} with purpose: {}", request.getEmail(), request.getPurpose());
+        VerifyOtpResponse response = verifyOtpUseCase.execute(request.getEmail(), request.getOtp(), request.getPurpose());
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<MessageResponse> resetPassword(
+            @RequestBody @Valid com.finflow.backend.modules.identity.dto.ResetPasswordRequest request,
+            @RequestHeader("X-Reset-Token") String token
+    ) {
+        log.info("Reset password request received");
+        resetPasswordUseCase.execute(request, token);
+        return ResponseEntity.ok(new MessageResponse("Password reset successfully"));
     }
 
     /**
@@ -123,7 +141,7 @@ public class AuthController {
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(HttpServletRequest request) {
         log.info("Logout request received");
-        
+
         // 1. Extract token from Authorization header
         String authHeader = request.getHeader("Authorization");
 
@@ -136,5 +154,12 @@ public class AuthController {
         }
 
         return ResponseEntity.ok().build();
+    }
+    
+    @PostMapping("/check-user-existence")
+    public ResponseEntity<CheckUserExistenceResponse> checkUserExistence(@RequestBody @Valid CheckUserExistenceRequest request) {
+        log.info("Check user existence request received for email: {}", request.getEmail());
+        CheckUserExistenceResponse response = checkUserExistenceUseCase.execute(request);
+        return ResponseEntity.ok(response);
     }
 }

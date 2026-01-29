@@ -16,4 +16,7 @@ public class VerifyOtpRequest {
 
     @NotBlank(message = "OTP is required")
     private String otp;
+
+    @jakarta.validation.constraints.NotNull(message = "Purpose is required")
+    private com.finflow.backend.modules.identity.domain.OtpPurpose purpose;
 }

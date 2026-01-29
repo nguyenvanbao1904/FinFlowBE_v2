@@ -72,17 +72,16 @@ public class RegisterUseCase {
                 .orElseThrow(() -> new AppException(IdentityErrorCode.ROLE_NOT_FOUND));
 
         // 5. Create user entity
-        User newUser = User.builder()
-                .username(request.getUsername())
-                .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .firstName(request.getFirstName())
-                .lastName(request.getLastName())
-                .dob(request.getDob())
-                .roles(new HashSet<>(Set.of(userRole)))
-                .isActive(true)
-                .accountVerified(true)
-                .build();
+        User newUser = new User();
+        newUser.setUsername(request.getUsername());
+        newUser.setEmail(request.getEmail());
+        newUser.setPassword(passwordEncoder.encode(request.getPassword()));
+        newUser.setFirstName(request.getFirstName());
+        newUser.setLastName(request.getLastName());
+        newUser.setDob(request.getDob());
+        newUser.setRoles(new HashSet<>(Set.of(userRole)));
+        newUser.setIsActive(true);
+        newUser.setAccountVerified(true);
 
         // 6. Save to database
         userRepository.save(newUser);

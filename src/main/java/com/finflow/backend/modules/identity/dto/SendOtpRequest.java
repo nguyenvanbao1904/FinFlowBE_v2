@@ -13,4 +13,7 @@ public class SendOtpRequest {
     @NotBlank(message = "Email is required")
     @Pattern(regexp = "^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$", message = "Email invalid format")
     private String email;
+
+    @jakarta.validation.constraints.NotNull(message = "Purpose is required")
+    private com.finflow.backend.modules.identity.domain.OtpPurpose purpose;
 }
