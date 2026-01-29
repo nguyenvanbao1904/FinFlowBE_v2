@@ -25,6 +25,8 @@ public class OtpService {
     private final SecureRandom random = new SecureRandom();
     private static final int EXPIRATION_MINUTES = 5;
 
+    private final org.springframework.security.oauth2.jwt.JwtEncoder jwtEncoder;
+
     public void generateAndSendOtp(String email) {
         // 1. Generate 6-digit code
         String otp = String.format("%06d", random.nextInt(999999));
@@ -37,9 +39,9 @@ public class OtpService {
         eventPublisher.publishEvent(new OtpRequestedEvent(email, otp));
     }
 
-    public boolean verifyOtp(String email, String code) {
+    public com.finflow.backend.modules.identity.dto.VerifyOtpResponse verifyOtp(String email, String code) {
         if (!otpStorage.containsKey(email)) {
-            return false;
+            throw new com.finflow.backend.common.exception.AppException(com.finflow.backend.modules.identity.exception.IdentityErrorCode.INVALID_CREDENTIALS);
         }
         
         OtpData data = otpStorage.get(email);
@@ -47,16 +49,36 @@ public class OtpService {
         // Check expiration
         if (data.expiryTime.isBefore(LocalDateTime.now())) {
             otpStorage.remove(email);
-            return false;
+            throw new com.finflow.backend.common.exception.AppException(com.finflow.backend.modules.identity.exception.IdentityErrorCode.INVALID_CREDENTIALS);
         }
         
         // Check match
         if (data.code.equals(code)) {
-            otpStorage.remove(email); // Invalidate after use
-            return true;
+            otpStorage.remove(email); // Invalidate OTP after use
+            
+            // Generate Registration Token (Stateless)
+            String registrationToken = generateRegistrationToken(email);
+            
+            return com.finflow.backend.modules.identity.dto.VerifyOtpResponse.builder()
+                .message("OTP Verified Successfully")
+                .registrationToken(registrationToken)
+                .build();
         }
         
-        return false;
+        throw new com.finflow.backend.common.exception.AppException(com.finflow.backend.modules.identity.exception.IdentityErrorCode.INVALID_CREDENTIALS);
+    }
+
+    private String generateRegistrationToken(String email) {
+        java.time.Instant now = java.time.Instant.now();
+        org.springframework.security.oauth2.jwt.JwtClaimsSet claims = org.springframework.security.oauth2.jwt.JwtClaimsSet.builder()
+                .issuer("FinFlow")
+                .issuedAt(now)
+                .expiresAt(now.plus(15, java.time.temporal.ChronoUnit.MINUTES))
+                .subject(email)
+                .id(java.util.UUID.randomUUID().toString())
+                .claim("type", "REGISTRATION_TOKEN")
+                .build();
+        return jwtEncoder.encode(org.springframework.security.oauth2.jwt.JwtEncoderParameters.from(claims)).getTokenValue();
     }
 
     private record OtpData(String code, LocalDateTime expiryTime) {}

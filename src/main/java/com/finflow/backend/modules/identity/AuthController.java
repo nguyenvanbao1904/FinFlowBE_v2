@@ -57,9 +57,12 @@ public class AuthController {
      * @return Success message
      */
     @PostMapping("/register")
-    public ResponseEntity<RegisterResponse> register(@RequestBody @Valid RegisterRequest request) {
+    public ResponseEntity<RegisterResponse> register(
+            @RequestBody @Valid RegisterRequest request,
+            @RequestHeader("X-Registration-Token") String registrationToken
+    ) {
         log.info("Register request received for username: {}", request.getUsername());
-        registerUseCase.execute(request);
+        registerUseCase.execute(request, registrationToken);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new RegisterResponse("User registered successfully!"));
     }
@@ -105,16 +108,10 @@ public class AuthController {
     }
 
     @PostMapping("/verify-otp")
-    public ResponseEntity<java.util.Map<String, String>> verifyOtp(@RequestBody @Valid VerifyOtpRequest request) {
+    public ResponseEntity<VerifyOtpResponse> verifyOtp(@RequestBody @Valid VerifyOtpRequest request) {
         log.info("Verify OTP request for: {}", request.getEmail());
-        boolean isValid = verifyOtpUseCase.execute(request.getEmail(), request.getOtp());
-        
-        if (isValid) {
-            return ResponseEntity.ok(java.util.Collections.singletonMap("message", "OTP verified successfully"));
-        } else {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(java.util.Collections.singletonMap("message", "Invalid or expired OTP"));
-        }
+        VerifyOtpResponse response = verifyOtpUseCase.execute(request.getEmail(), request.getOtp());
+        return ResponseEntity.ok(response);
     }
 
     /**

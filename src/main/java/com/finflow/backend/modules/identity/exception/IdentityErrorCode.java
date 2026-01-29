@@ -21,6 +21,7 @@ public enum IdentityErrorCode implements ErrorCode {
     EMAIL_ALREADY_EXISTS(1020, "Email is already in use", HttpStatus.BAD_REQUEST),
     USERNAME_ALREADY_EXISTS(1021, "Username is already taken", HttpStatus.BAD_REQUEST),
     ROLE_NOT_FOUND(1022, "Role not found", HttpStatus.NOT_FOUND),
+    EMAIL_NOT_VERIFIED(1023, "Email has not been verified", HttpStatus.BAD_REQUEST),
     ;
 
     private final int code;

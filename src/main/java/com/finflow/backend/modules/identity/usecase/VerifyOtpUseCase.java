@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 public class VerifyOtpUseCase {
     private final OtpService otpService;
 
-    public boolean execute(String email, String otp) {
+    public com.finflow.backend.modules.identity.dto.VerifyOtpResponse execute(String email, String otp) {
         return otpService.verifyOtp(email, otp);
     }
 }

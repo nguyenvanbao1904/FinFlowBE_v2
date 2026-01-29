@@ -40,6 +40,7 @@ public class RegisterUseCase {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
+    private final org.springframework.security.oauth2.jwt.JwtDecoder jwtDecoder;
 
     /**
      * Execute user registration
@@ -48,7 +49,7 @@ public class RegisterUseCase {
      * @throws AppException if username or email already exists
      */
     @Transactional
-    public void execute(RegisterRequest request) {
+    public void execute(RegisterRequest request, String registrationToken) {
         log.info("Executing register use case for user: {}", request.getUsername());
 
         // 1. Validate username is unique
@@ -63,11 +64,14 @@ public class RegisterUseCase {
             throw new AppException(IdentityErrorCode.EMAIL_ALREADY_EXISTS);
         }
 
-        // 3. Get or create default USER role
+        // 3. Verify Registration Token (Stateless)
+        validateRegistrationToken(registrationToken, request.getEmail());
+        
+        // 4. Get or create default USER role
         Role userRole = roleRepository.findById("ROLE_USER")
                 .orElseThrow(() -> new AppException(IdentityErrorCode.ROLE_NOT_FOUND));
 
-        // 4. Create user entity
+        // 5. Create user entity
         User newUser = User.builder()
                 .username(request.getUsername())
                 .email(request.getEmail())
@@ -77,12 +81,38 @@ public class RegisterUseCase {
                 .dob(request.getDob())
                 .roles(new HashSet<>(Set.of(userRole)))
                 .isActive(true)
-                .accountVerified(false)
+                .accountVerified(true)
                 .build();
 
-        // 5. Save to database
+        // 6. Save to database
         userRepository.save(newUser);
         
         log.info("User {} registered successfully", request.getUsername());
+    }
+
+    private void validateRegistrationToken(String token, String email) {
+        try {
+            org.springframework.security.oauth2.jwt.Jwt jwt = jwtDecoder.decode(token);
+            
+            // Validate Token Type
+            String type = jwt.getClaimAsString("type");
+            if (!"REGISTRATION_TOKEN".equals(type)) {
+                log.warn("Invalid token type: {}", type);
+                throw new AppException(IdentityErrorCode.INVALID_TOKEN);
+            }
+
+            // Validate Email (Subject)
+            String subject = jwt.getSubject();
+            if (!email.equals(subject)) {
+                log.warn("Token subject {} does not match email {}", subject, email);
+                throw new AppException(IdentityErrorCode.INVALID_TOKEN);
+            }
+            
+            // Expiry is checked automatically by jwtDecoder
+            
+        } catch (Exception e) {
+            log.warn("Token validation failed: {}", e.getMessage());
+            throw new AppException(IdentityErrorCode.INVALID_TOKEN);
+        }
     }
 }
