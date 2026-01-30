@@ -153,7 +153,7 @@ public class AuthController {
             logoutUseCase.execute(token);
         }
 
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
     
     @PostMapping("/check-user-existence")
