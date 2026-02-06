@@ -116,3 +116,5 @@ application-prod.properties
 *.temp
 tmp/
 temp/
+
+docs/

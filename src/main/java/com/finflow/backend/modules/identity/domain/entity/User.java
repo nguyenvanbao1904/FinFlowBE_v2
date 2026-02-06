@@ -17,7 +17,7 @@ import java.util.Set;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
-@Table(name = "users") // Quan trọng: Tránh xung đột từ khóa SQL
+@Table(name = "users")
 @EntityListeners(AuditingEntityListener.class) // Để tự động điền registerDate
 public class User {
     @Id
@@ -43,13 +43,16 @@ public class User {
     @Builder.Default
     Boolean accountVerified = false;
 
-    @CreatedDate // Tự động lấy giờ hiện tại khi insert
+    @Builder.Default
+    @Column(name = "is_biometric_enabled")
+    Boolean isBiometricEnabled = false;
+
+    @CreatedDate
     @Column(updatable = false)
     LocalDateTime registerDate;
 
     LocalDateTime lastLogin;
 
-    // Quan hệ Many-to-Many với Role
     @ManyToMany(fetch = FetchType.EAGER) // Load user là load luôn role để check quyền login
     @JoinTable(
             name = "user_roles",

@@ -20,7 +20,6 @@ public class Role {
 
     String description;
 
-    // Quan hệ Many-to-Many với Permission
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "role_permissions",
