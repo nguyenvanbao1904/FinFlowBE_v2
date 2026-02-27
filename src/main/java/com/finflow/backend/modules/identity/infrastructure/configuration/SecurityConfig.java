@@ -106,6 +106,17 @@ public class SecurityConfig {
         return config.getAuthenticationManager();
     }
 
+    private static final String[] PUBLIC_ENDPOINTS = {
+        "/api/auth/register",
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/google",
+        "/api/auth/send-otp",
+        "/api/auth/verify-otp",
+        "/api/auth/reset-password",
+        "/api/auth/check-user-existence"
+    };
+
     // --- 3. FILTER CHAIN (Quy định đường đi của Request) ---
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -114,8 +125,10 @@ public class SecurityConfig {
                 // Vì dùng Token nên không cần Session (Stateless)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll() // Cho phép Login/Register
-                        .anyRequest().authenticated() // Còn lại phải có Token
+                        // Public Endpoints
+                        .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
+                        // Any other request must be authenticated
+                        .anyRequest().authenticated()
                 )
                 // Kích hoạt tính năng OAuth2 Resource Server (Tự động check Token)
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> {}));
