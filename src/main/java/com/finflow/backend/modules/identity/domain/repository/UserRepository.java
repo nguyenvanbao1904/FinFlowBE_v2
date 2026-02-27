@@ -12,4 +12,8 @@ public interface UserRepository extends JpaRepository<User, String> {
     boolean existsByEmail(String email);
     Optional<User> findByUsername(String username);
     Optional<User> findByEmail(String email);
+
+    // For Cleanup Scheduler: Find users deleted before a certain date
+    // Query users where deletedAt is NOT NULL and < cutoffDate
+    java.util.List<User> findByDeletedAtBefore(java.time.LocalDateTime cutoffDate);
 }
