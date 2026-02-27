@@ -26,15 +26,44 @@ public class SendOtpUseCase {
     private static final SecureRandom random = new SecureRandom();
     private static final int EXPIRATION_MINUTES = 5;
     private static final String OTP_KEY_PREFIX = "otp:";
+    private static final String OTP_RATE_KEY_PREFIX = "otp:rate:";
+    private static final long RATE_LIMIT_SECONDS = 60;
 
     public void execute(String email, OtpPurpose purpose) {
-        boolean emailExists = userRepository.existsByEmail(email);
-        
-        if (purpose == OtpPurpose.REGISTER && emailExists) {
-            throw new AppException(IdentityErrorCode.EMAIL_ALREADY_EXISTS);
-        } else if (purpose == OtpPurpose.RESET_PASSWORD && !emailExists) {
-            throw new AppException(IdentityErrorCode.USER_NOT_FOUND); 
+        if (purpose == OtpPurpose.REGISTER) {
+            boolean emailExists = userRepository.existsByEmail(email);
+            if (emailExists) {
+                throw new AppException(IdentityErrorCode.EMAIL_ALREADY_EXISTS);
+            }
+        } else if (purpose == OtpPurpose.RESET_PASSWORD) {
+            // For password reset, validate user exists, is active, and has password
+            var user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException(IdentityErrorCode.USER_NOT_FOUND));
+            
+            // Check if account is soft-deleted
+            if (!user.getIsActive() || user.getDeletedAt() != null) {
+                throw new AppException(IdentityErrorCode.ACCOUNT_DELETED);
+            }
+            
+            // Check if user has a password (OAuth users don't have password)
+            if (user.getPassword() == null || user.getPassword().isEmpty()) {
+                throw new AppException(IdentityErrorCode.NO_PASSWORD_SET);
+            }
+        } else {
+            // For other purposes (DELETE_ACCOUNT, RESET_PIN), just check user exists
+            boolean emailExists = userRepository.existsByEmail(email);
+            if (!emailExists) {
+                throw new AppException(IdentityErrorCode.USER_NOT_FOUND);
+            }
         }
+
+        // Rate limit per email
+        String rateKey = OTP_RATE_KEY_PREFIX + email;
+        if (redisService.exists(rateKey)) {
+            throw new AppException(IdentityErrorCode.OTP_RATE_LIMITED);
+        }
+        // set rate-limit marker
+        redisService.set(rateKey, "1", RATE_LIMIT_SECONDS, TimeUnit.SECONDS);
 
         String otp = String.format("%06d", random.nextInt(999999));
         

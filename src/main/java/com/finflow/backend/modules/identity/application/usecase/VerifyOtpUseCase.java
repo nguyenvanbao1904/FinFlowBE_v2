@@ -34,27 +34,36 @@ public class VerifyOtpUseCase {
         
         if (data == null) {
             log.warn("OTP not found or expired for email: {}", email);
-            throw new AppException(IdentityErrorCode.INVALID_CREDENTIALS);
+            throw new AppException(IdentityErrorCode.INVALID_OTP);
         }
         
         if (data.purpose() != purpose) {
             log.warn("OTP purpose mismatch for email: {}", email);
-            throw new AppException(IdentityErrorCode.INVALID_CREDENTIALS);
+            throw new AppException(IdentityErrorCode.INVALID_OTP);
         }
 
         if (data.expiryTime().isBefore(LocalDateTime.now())) {
             redisService.delete(redisKey);
             log.warn("OTP expired for email: {}", email);
-            throw new AppException(IdentityErrorCode.INVALID_CREDENTIALS);
+            throw new AppException(IdentityErrorCode.INVALID_OTP);
         }
         
         if (data.code().equals(code)) {
             redisService.delete(redisKey);
             log.info("OTP verified successfully for email: {}", email);
             
-            String tokenType = purpose == OtpPurpose.REGISTER 
-                ? "REGISTRATION_TOKEN" 
-                : "RESET_PASSWORD_TOKEN";
+            String tokenType;
+            if (purpose == OtpPurpose.REGISTER) {
+                tokenType = "REGISTRATION_TOKEN";
+            } else if (purpose == OtpPurpose.RESET_PASSWORD) {
+                tokenType = "RESET_PASSWORD_TOKEN";
+            } else if (purpose == OtpPurpose.DELETE_ACCOUNT) {
+                tokenType = "DELETE_ACCOUNT_TOKEN";
+            } else if (purpose == OtpPurpose.RESET_PIN) {
+                tokenType = "RESET_PIN_TOKEN";
+            } else {
+                throw new AppException(IdentityErrorCode.INVALID_OTP);
+            }
                 
             String token = generateToken(email, tokenType);
             
@@ -64,7 +73,7 @@ public class VerifyOtpUseCase {
                 .build();
         }
         
-        throw new AppException(IdentityErrorCode.INVALID_CREDENTIALS);
+        throw new AppException(IdentityErrorCode.INVALID_OTP);
     }
 
     private String generateToken(String email, String type) {
