@@ -29,6 +29,8 @@ public class AuthController {
     private final ResetPasswordUseCase resetPasswordUseCase;
     private final CheckUserExistenceUseCase checkUserExistenceUseCase;
     private final ToggleBiometricUseCase toggleBiometricUseCase;
+    private final ChangePasswordUseCase changePasswordUseCase;
+    private final DeleteAccountUseCase deleteAccountUseCase;
 
     @PostMapping("/register")
     public ResponseEntity<MessageResponse> register(
@@ -114,8 +116,7 @@ public class AuthController {
 
     @PostMapping("/toggle-biometric")
     public ResponseEntity<MessageResponse> toggleBiometric(
-            @RequestBody @Valid ToggleBiometricRequest request,
-            @RequestHeader("Authorization") String authHeader
+            @RequestBody @Valid ToggleBiometricRequest request
     ) {
         String username = org.springframework.security.core.context.SecurityContextHolder
                 .getContext().getAuthentication().getName();
@@ -128,5 +129,33 @@ public class AuthController {
                 ? "Biometric authentication enabled successfully" 
                 : "Biometric authentication disabled successfully"
         ));
+    }
+    @PostMapping("/change-password")
+    public ResponseEntity<MessageResponse> changePassword(
+            @RequestBody @Valid ChangePasswordRequest request
+    ) {
+        String username = org.springframework.security.core.context.SecurityContextHolder
+                .getContext().getAuthentication().getName();
+        
+        log.info("Change password request for user: {}", username);
+        changePasswordUseCase.execute(username, request);
+        
+        return ResponseEntity.ok(new MessageResponse("Password changed successfully"));
+    }
+
+    @DeleteMapping("/delete-account")
+    public ResponseEntity<MessageResponse> deleteAccount(@RequestBody(required = false) DeleteAccountRequest request) {
+        String username = org.springframework.security.core.context.SecurityContextHolder
+                .getContext().getAuthentication().getName();
+        
+        // Handle null request body (if frontend sends nothing for google users, though standard is sending empty json)
+        if (request == null) {
+            request = new DeleteAccountRequest();
+        }
+
+        log.info("Delete account request for user: {}", username);
+        deleteAccountUseCase.execute(username, request);
+        
+        return ResponseEntity.ok(new MessageResponse("Account deleted successfully"));
     }
 }

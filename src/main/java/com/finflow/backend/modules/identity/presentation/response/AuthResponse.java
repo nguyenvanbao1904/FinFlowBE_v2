@@ -15,5 +15,9 @@ public class AuthResponse {
     Long refreshTokenExpiresIn;  // Refresh token expiry in seconds (e.g. 604800 = 7 days)
     String username;
     String email;
-    // Sau này có thể thêm role, avatar...
+    String firstName;
+    String lastName;
+    
+    @com.fasterxml.jackson.annotation.JsonProperty("isReactivated")
+    boolean isReactivated; // Flag to indicate if account was just restored from soft delete
 }

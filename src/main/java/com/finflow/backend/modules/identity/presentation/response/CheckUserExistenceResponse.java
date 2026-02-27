@@ -11,4 +11,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class CheckUserExistenceResponse {
     private boolean exists;
+    private Boolean isActive;  // null if user doesn't exist
+    private Boolean hasPassword;  // null if user doesn't exist
+    private Boolean isDeleted;  // true if deletedAt != null
 }

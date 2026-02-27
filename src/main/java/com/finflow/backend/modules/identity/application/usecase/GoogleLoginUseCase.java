@@ -41,8 +41,18 @@ public class GoogleLoginUseCase {
     // 2. Find or Create User
         User user = userRepository.findByEmail(email)
                 .orElseGet(() -> createNewUser(email, payload));
+        
+        // 3. Check if account was soft-deleted and restore it
+        boolean isReactivated = false;
+        if (user.getDeletedAt() != null) {
+            user.setIsActive(true);
+            user.setDeletedAt(null);
+            user.setLastLogin(java.time.LocalDateTime.now());
+            userRepository.save(user);
+            isReactivated = true;
+        }
 
-        // 3. Generate Tokens
+        // 4. Generate Tokens
         // Convert Set<Role> to space-separated String for scope
         String scope = user.getRoles().stream()
                 .map(Role::getName)
@@ -59,6 +69,7 @@ public class GoogleLoginUseCase {
                 .type("Bearer")
                 .username(user.getUsername())
                 .email(user.getEmail())
+                .isReactivated(isReactivated)
                 .build();
     }
 
@@ -70,7 +81,8 @@ public class GoogleLoginUseCase {
         User user = new User();
         user.setEmail(email);
         user.setUsername(email); // Use email as username for Google users
-        user.setPassword(UUID.randomUUID().toString()); // strong random password
+        user.setPassword(null); // OAuth2 users have no password
+        user.setProvider(com.finflow.backend.modules.identity.domain.enums.AuthProvider.GOOGLE);
         user.setRoles(new HashSet<>(Collections.singletonList(userRole))); // Use Set<Role>
         user.setAccountVerified(payload.getEmailVerified());
         

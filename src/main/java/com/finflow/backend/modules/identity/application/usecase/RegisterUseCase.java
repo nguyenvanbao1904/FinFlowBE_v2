@@ -7,6 +7,7 @@ import com.finflow.backend.modules.identity.domain.entity.Role;
 import com.finflow.backend.modules.identity.domain.entity.User;
 import com.finflow.backend.modules.identity.domain.repository.RoleRepository;
 import com.finflow.backend.modules.identity.domain.repository.UserRepository;
+import com.finflow.backend.modules.identity.domain.enums.AuthProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -58,6 +59,7 @@ public class RegisterUseCase {
         newUser.setLastName(request.getLastName());
         newUser.setDob(request.getDob());
         newUser.setRoles(new HashSet<>(Set.of(userRole)));
+        newUser.setProvider(AuthProvider.LOCAL);
         newUser.setIsActive(true);
         newUser.setAccountVerified(true);
 

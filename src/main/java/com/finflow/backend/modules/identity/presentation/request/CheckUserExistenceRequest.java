@@ -9,4 +9,5 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class CheckUserExistenceRequest {
     private String email;
+    private String username;
 }

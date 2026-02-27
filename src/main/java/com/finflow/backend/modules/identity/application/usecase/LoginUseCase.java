@@ -8,6 +8,7 @@ import com.finflow.backend.modules.identity.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -34,13 +35,42 @@ public class LoginUseCase {
     public AuthResponse execute(LoginRequest request) {
         log.info("Executing login use case for user: {}", request.getUsername());
 
-        // 1. Authenticate user (will throw AuthenticationException if invalid)
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.getUsername(), 
-                        request.getPassword()
-                )
-        );
+        Authentication authentication;
+        boolean isReactivated = false;
+        try {
+            // 1. Authenticate user (will throw AuthenticationException if invalid)
+            authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            request.getUsername(),
+                            request.getPassword()
+                    )
+            );
+        } catch (LockedException e) {
+            log.warn("Account is locked (possibly soft-deleted). Checking for reactivation...");
+            // Handle reactivation logic if user is soft-deleted
+            User user = userRepository.findByUsername(request.getUsername())
+                    .or(() -> userRepository.findByEmail(request.getUsername()))
+                    .orElseThrow(() -> e); // Should not happen if locked
+
+            if (user.getDeletedAt() != null) {
+                log.info("User {} is soft-deleted. Reactivating account...", user.getUsername());
+                user.setIsActive(true);
+                user.setDeletedAt(null);
+                user.setLastLogin(java.time.LocalDateTime.now());
+                userRepository.save(user);
+                isReactivated = true;
+
+                // Retry authentication
+                authentication = authenticationManager.authenticate(
+                        new UsernamePasswordAuthenticationToken(
+                                request.getUsername(),
+                                request.getPassword()
+                        )
+                );
+            } else {
+                throw e; // Locked for other reasons (e.g. admin ban)
+            }
+        }
 
         // 2. Generate Access & Refresh Tokens
         String accessToken = generateToken(
@@ -70,6 +100,9 @@ public class LoginUseCase {
                 .type("Bearer")
                 .username(user.getUsername())
                 .email(user.getEmail())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .isReactivated(isReactivated) // Set the flag
                 .build();
 
         log.info("Login successful for user: {}", request.getUsername());

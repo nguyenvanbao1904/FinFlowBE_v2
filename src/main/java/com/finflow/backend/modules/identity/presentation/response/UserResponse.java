@@ -16,5 +16,6 @@ public class UserResponse {
     private String lastName;
     private LocalDate dob;
     private Boolean isBiometricEnabled;
+    private Boolean hasPassword;
     private Set<String> roles;
 }
