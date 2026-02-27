@@ -6,6 +6,7 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import com.finflow.backend.modules.identity.domain.enums.AuthProvider;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Set;
@@ -27,7 +28,7 @@ public class User {
     @Column(unique = true, nullable = false)
     String username;
 
-    @Column(nullable = false)
+    @Column(nullable = true) // Allow null for OAuth2 users
     String password;
 
     String firstName;
@@ -36,6 +37,10 @@ public class User {
 
     @Column(unique = true, nullable = false)
     String email;
+
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    AuthProvider provider = AuthProvider.LOCAL;
 
     @Builder.Default
     Boolean isActive = true;
@@ -52,6 +57,9 @@ public class User {
     LocalDateTime registerDate;
 
     LocalDateTime lastLogin;
+    
+    @Column(name = "deleted_at")
+    LocalDateTime deletedAt;
 
     @ManyToMany(fetch = FetchType.EAGER) // Load user là load luôn role để check quyền login
     @JoinTable(
