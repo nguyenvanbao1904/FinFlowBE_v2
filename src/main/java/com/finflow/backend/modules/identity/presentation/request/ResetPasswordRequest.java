@@ -1,15 +1,16 @@
 package com.finflow.backend.modules.identity.presentation.request;
 
+import com.finflow.backend.common.constants.ValidationConstants;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
 public class ResetPasswordRequest {
-    @NotBlank(message = "Password is required")
-    @Size(min = 6, message = "Password must be at least 6 characters")
+    @NotBlank(message = "PASSWORD_INVALID")
+    @Size(min = ValidationConstants.PASSWORD_MIN_LENGTH, message = "PASSWORD_INVALID")
     private String password;
 
-    @NotBlank(message = "Confirm Password is required")
+    @NotBlank(message = "CONFIRM_PASSWORD_REQUIRED")
     private String confirmPassword;
 }
