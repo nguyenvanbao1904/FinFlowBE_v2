@@ -21,7 +21,7 @@ public class GetProfileUseCase {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
 
-    @PreAuthorize("hasAnyRole('ROLE_USER','ROLE_ADMIN')")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     public UserResponse execute(String username) {
         log.info("Executing GetProfileUseCase for user: {}", username);
 

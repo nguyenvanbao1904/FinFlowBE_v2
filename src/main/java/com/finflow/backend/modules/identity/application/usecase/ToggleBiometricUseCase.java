@@ -19,7 +19,7 @@ public class ToggleBiometricUseCase {
     private final UserRepository userRepository;
 
     @Transactional
-    @PreAuthorize("hasAnyRole('ROLE_USER','ROLE_ADMIN')")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     public void execute(String username, ToggleBiometricRequest request) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new AppException(IdentityErrorCode.USER_NOT_FOUND));

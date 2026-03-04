@@ -9,16 +9,14 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableJpaAuditing
 @EnableScheduling
 public class FinFlowBackendApplication {
-    public static void main(String[] args) {
+    static void main(String[] args) {
         // Load .env file
         try {
             io.github.cdimascio.dotenv.Dotenv dotenv = io.github.cdimascio.dotenv.Dotenv.configure()
                     .ignoreIfMissing()
                     .load();
             
-            dotenv.entries().forEach(entry -> {
-                System.setProperty(entry.getKey(), entry.getValue());
-            });
+            dotenv.entries().forEach(entry -> System.setProperty(entry.getKey(), entry.getValue()));
         } catch (Exception e) {
             System.err.println("Could not load .env file: " + e.getMessage());
         }

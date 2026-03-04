@@ -18,7 +18,7 @@ public class LogoutUseCase {
 
     private final InvalidatedTokenRepository invalidatedTokenRepository;
 
-    @PreAuthorize("hasAnyRole('ROLE_USER','ROLE_ADMIN')")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     public void execute(String token) {
         log.info("Executing logout use case");
 

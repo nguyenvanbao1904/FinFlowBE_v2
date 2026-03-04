@@ -24,7 +24,7 @@ public class UpdateProfileUseCase {
     private final UserMapper userMapper;
 
     @Transactional
-    @PreAuthorize("hasAnyRole('ROLE_USER','ROLE_ADMIN')")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     public UserResponse execute(String username, UpdateProfileRequest request) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new AppException(IdentityErrorCode.USER_NOT_FOUND));

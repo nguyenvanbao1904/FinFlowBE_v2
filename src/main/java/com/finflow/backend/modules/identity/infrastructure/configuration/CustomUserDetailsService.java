@@ -11,6 +11,12 @@ import org.springframework.stereotype.Service;
 
 import java.util.stream.Collectors;
 
+import java.util.stream.Collectors;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.Collection;
+import org.springframework.security.core.GrantedAuthority;
+
 @Service
 @RequiredArgsConstructor
 public class CustomUserDetailsService implements UserDetailsService {
@@ -31,7 +37,15 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .withUsername(user.getUsername())
                 .password(user.getPassword())
                 .authorities(user.getRoles().stream()
-                        .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getName()))
+                        .map(role -> {
+                            Set<GrantedAuthority> authorities = new HashSet<>();
+                            authorities.add(new SimpleGrantedAuthority("ROLE_" + role.getName()));
+                            if (role.getPermissions() != null) {
+                                role.getPermissions().forEach(p -> authorities.add(new SimpleGrantedAuthority(p.getName())));
+                            }
+                            return authorities;
+                        })
+                        .flatMap(Collection::stream)
                         .collect(Collectors.toList()))
                 .accountLocked(!user.getIsActive())
                 .build();
