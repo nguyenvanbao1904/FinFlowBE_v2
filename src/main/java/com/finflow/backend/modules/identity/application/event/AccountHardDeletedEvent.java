@@ -12,4 +12,5 @@ import lombok.NoArgsConstructor;
 public class AccountHardDeletedEvent {
     private String email;
     private String username;
+    private String correlationId;
 }

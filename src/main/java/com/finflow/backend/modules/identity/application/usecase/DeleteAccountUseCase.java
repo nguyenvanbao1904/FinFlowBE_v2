@@ -5,6 +5,7 @@ import com.finflow.backend.modules.identity.domain.repository.UserRepository;
 import com.finflow.backend.modules.identity.exception.IdentityErrorCode;
 import com.finflow.backend.common.exception.AppException;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.MDC;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,9 +47,13 @@ public class DeleteAccountUseCase {
         userRepository.save(user);
 
         // Publish event for email notification
-        eventPublisher.publishEvent(new com.finflow.backend.modules.identity.application.event.AccountSoftDeletedEvent(
-                user.getEmail(),
-                user.getUsername()
-        ));
+        String correlationId = MDC.get("correlationId");
+        eventPublisher.publishEvent(
+                com.finflow.backend.modules.identity.application.event.AccountSoftDeletedEvent.builder()
+                        .email(user.getEmail())
+                        .username(user.getUsername())
+                        .correlationId(correlationId)
+                        .build()
+        );
     }
 }

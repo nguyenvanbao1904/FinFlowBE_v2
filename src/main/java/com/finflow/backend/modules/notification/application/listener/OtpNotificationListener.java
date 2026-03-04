@@ -4,6 +4,7 @@ import com.finflow.backend.modules.identity.application.event.OtpRequestedEvent;
 import com.finflow.backend.modules.notification.infrastructure.mail.EmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
@@ -16,10 +17,15 @@ public class OtpNotificationListener {
 
     @EventListener
     public void handleOtpRequested(OtpRequestedEvent event) {
-        log.info("Received OTP request event for: {}", event.getEmail());
-        String subject = "FinFlow Verification Code";
-        String text = "Your verification code is: " + event.getOtpCode() + "\n\nThis code expires in 5 minutes.";
-        
-        emailService.sendSimpleMessage(event.getEmail(), subject, text);
+        MDC.put("correlationId", event.getCorrelationId());
+        try {
+            log.info("Received OTP request event for: {}", event.getEmail());
+            String subject = "FinFlow Verification Code";
+            String text = "Your verification code is: " + event.getOtpCode() + "\n\nThis code expires in 5 minutes.";
+
+            emailService.sendSimpleMessage(event.getEmail(), subject, text);
+        } finally {
+            MDC.remove("correlationId");
+        }
     }
 }

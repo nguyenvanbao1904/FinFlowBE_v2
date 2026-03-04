@@ -8,6 +8,7 @@ import com.finflow.backend.modules.identity.domain.repository.UserRepository;
 import com.finflow.backend.modules.identity.exception.IdentityErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
@@ -74,8 +75,15 @@ public class SendOtpUseCase {
         
         log.info("Stored OTP in Redis for: {} with TTL: {} minutes", email, EXPIRATION_MINUTES);
         log.info("Publishing OTP event for: {}", email);
-        
-        eventPublisher.publishEvent(new OtpRequestedEvent(email, otp));
+
+        String correlationId = MDC.get("correlationId");
+        eventPublisher.publishEvent(
+                OtpRequestedEvent.builder()
+                        .email(email)
+                        .otpCode(otp)
+                        .correlationId(correlationId)
+                        .build()
+        );
     }
     
     public record OtpData(

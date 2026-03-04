@@ -12,4 +12,5 @@ import lombok.NoArgsConstructor;
 public class OtpRequestedEvent {
     private String email;
     private String otpCode;
+    private String correlationId;
 }

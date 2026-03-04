@@ -4,6 +4,7 @@ import com.finflow.backend.modules.identity.domain.entity.User;
 import com.finflow.backend.modules.identity.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,11 +43,13 @@ public class CleanupDeletedAccountsUseCase {
         for (User user : usersToDelete) {
             try {
                 // Publish event BEFORE deleting to ensure user still exists in memory (if listener needs it)
+                String correlationId = MDC.get("correlationId");
                 eventPublisher.publishEvent(
-                        new com.finflow.backend.modules.identity.application.event.AccountHardDeletedEvent(
-                                user.getEmail(),
-                                user.getUsername()
-                        )
+                        com.finflow.backend.modules.identity.application.event.AccountHardDeletedEvent.builder()
+                                .email(user.getEmail())
+                                .username(user.getUsername())
+                                .correlationId(correlationId)
+                                .build()
                 );
 
                 log.info("Permanently deleting user: {} (Deleted at: {})", user.getUsername(), user.getDeletedAt());
