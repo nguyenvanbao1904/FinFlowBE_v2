@@ -1,5 +1,6 @@
 package com.finflow.backend.common.exception;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
@@ -11,13 +12,16 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import com.finflow.backend.common.constants.ValidationConstants;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 @ControllerAdvice
 @Slf4j
+@RequiredArgsConstructor
 public class GlobalExceptionHandler {
+
+    private final List<ErrorCodeResolver> errorCodeResolvers;
 
     // 1. Xử lý Exception Business (AppException)
     @ExceptionHandler(value = AppException.class)
@@ -36,18 +40,25 @@ public class GlobalExceptionHandler {
         Map<String, Object> attributes = null;
 
         try {
-            // 1. Try to find ErrorCode from known Enums
-            try {
-                errorCode = com.finflow.backend.modules.identity.exception.IdentityErrorCode.valueOf(enumKey);
-            } catch (IllegalArgumentException e1) {
-                try {
-                    errorCode = CommonErrorCode.valueOf(enumKey);
-                } catch (IllegalArgumentException e2) {
-                    // Not found in both, keep INVALID_KEY
+            // 1. Try to resolve via registered module-specific resolvers
+            for (ErrorCodeResolver resolver : errorCodeResolvers) {
+                ErrorCode resolved = resolver.resolve(enumKey);
+                if (resolved != null) {
+                    errorCode = resolved;
+                    break;
                 }
             }
 
-            // 2. Extract attributes (min, max, etc.) from ConstraintViolation
+            // 2. Fallback to CommonErrorCode enum if there is a matching constant
+            if (errorCode == CommonErrorCode.INVALID_KEY) {
+                try {
+                    errorCode = CommonErrorCode.valueOf(enumKey);
+                } catch (IllegalArgumentException ignored) {
+                    // Not found, keep INVALID_KEY
+                }
+            }
+
+            // 3. Extract attributes (min, max, etc.) from ConstraintViolation
             var validationError = exception.getBindingResult().getAllErrors().getFirst();
             if (validationError.contains(jakarta.validation.ConstraintViolation.class)) {
                  var constraintViolation = validationError.unwrap(jakarta.validation.ConstraintViolation.class);
@@ -58,7 +69,7 @@ public class GlobalExceptionHandler {
             // If any lookup fails
         }
 
-        // 3. Map attributes to message placeholders
+        // 4. Map attributes to message placeholders
         String message = Objects.nonNull(attributes)
                 ? mapAttribute(errorCode.getMessage(), attributes)
                 : errorCode.getMessage();
