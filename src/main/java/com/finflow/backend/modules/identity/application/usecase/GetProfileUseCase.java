@@ -8,6 +8,7 @@ import com.finflow.backend.modules.identity.exception.IdentityErrorCode;
 import com.finflow.backend.modules.identity.application.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 
 import java.util.stream.Collectors;
@@ -20,6 +21,7 @@ public class GetProfileUseCase {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
 
+    @PreAuthorize("hasAnyRole('ROLE_USER','ROLE_ADMIN')")
     public UserResponse execute(String username) {
         log.info("Executing GetProfileUseCase for user: {}", username);
 

@@ -5,6 +5,7 @@ import com.finflow.backend.modules.identity.domain.repository.UserRepository;
 import com.finflow.backend.modules.identity.exception.IdentityErrorCode;
 import com.finflow.backend.common.exception.AppException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +20,7 @@ public class DeleteAccountUseCase {
     private final org.springframework.context.ApplicationEventPublisher eventPublisher;
 
     @Transactional
+    @PreAuthorize("hasAnyRole('ROLE_USER','ROLE_ADMIN')")
     public void execute(String username, DeleteAccountRequest request) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new AppException(IdentityErrorCode.USER_NOT_FOUND));

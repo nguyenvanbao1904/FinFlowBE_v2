@@ -6,6 +6,7 @@ import com.finflow.backend.modules.identity.exception.IdentityErrorCode;
 import com.finflow.backend.modules.identity.presentation.request.ChangePasswordRequest;
 import com.finflow.backend.common.exception.AppException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +18,7 @@ public class ChangePasswordUseCase {
     private final PasswordEncoder passwordEncoder;
 
     @Transactional
+    @PreAuthorize("hasAnyRole('ROLE_USER','ROLE_ADMIN')")
     public void execute(String username, ChangePasswordRequest request) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new AppException(IdentityErrorCode.USER_NOT_FOUND));

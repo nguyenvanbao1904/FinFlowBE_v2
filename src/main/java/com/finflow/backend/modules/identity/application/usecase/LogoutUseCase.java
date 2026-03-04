@@ -5,6 +5,7 @@ import com.finflow.backend.modules.identity.domain.repository.InvalidatedTokenRe
 import com.nimbusds.jwt.SignedJWT;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 
 import java.text.ParseException;
@@ -17,6 +18,7 @@ public class LogoutUseCase {
 
     private final InvalidatedTokenRepository invalidatedTokenRepository;
 
+    @PreAuthorize("hasAnyRole('ROLE_USER','ROLE_ADMIN')")
     public void execute(String token) {
         log.info("Executing logout use case");
 

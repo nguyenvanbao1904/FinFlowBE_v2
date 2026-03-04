@@ -9,6 +9,7 @@ import com.finflow.backend.modules.identity.exception.IdentityErrorCode;
 import com.finflow.backend.modules.identity.application.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +24,7 @@ public class UpdateProfileUseCase {
     private final UserMapper userMapper;
 
     @Transactional
+    @PreAuthorize("hasAnyRole('ROLE_USER','ROLE_ADMIN')")
     public UserResponse execute(String username, UpdateProfileRequest request) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new AppException(IdentityErrorCode.USER_NOT_FOUND));
