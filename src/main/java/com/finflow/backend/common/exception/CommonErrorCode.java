@@ -11,6 +11,8 @@ public enum CommonErrorCode implements ErrorCode {
     UNAUTHENTICATED(1006, "Unauthenticated", HttpStatus.UNAUTHORIZED),
     UNAUTHORIZED(1007, "You do not have permission", HttpStatus.FORBIDDEN),
     UNSUPPORTED_API_VERSION(1008, "Unsupported API version", HttpStatus.BAD_REQUEST),
+    REDIS_WRITE_ERROR(1009, "Failed to write to Redis", HttpStatus.INTERNAL_SERVER_ERROR),
+    REDIS_READ_ERROR(1010, "Failed to read from Redis", HttpStatus.INTERNAL_SERVER_ERROR),
     ;
 
     private final int code;

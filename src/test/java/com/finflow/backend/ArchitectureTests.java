@@ -13,7 +13,7 @@ class ArchitectureTests {
 
     @ArchTest
     static final ArchRule domain_entities_must_not_import_spring_core =
-            noClasses().that().resideInAPackage(BASE + ".modules..domain.entity..")
+            noClasses().that().resideInAPackage(BASE + "..domain.entity..")
                     .should().dependOnClassesThat()
                     .resideInAnyPackage(
                             "org.springframework.stereotype..",
@@ -25,9 +25,9 @@ class ArchitectureTests {
 
     @ArchTest
     static final ArchRule controllers_must_not_depend_on_entities =
-            noClasses().that().resideInAPackage(BASE + ".modules..presentation.controller..")
+            noClasses().that().resideInAPackage(BASE + "..presentation.controller..")
                     .should().dependOnClassesThat()
-                    .resideInAPackage(BASE + ".modules..domain.entity..")
+                    .resideInAPackage(BASE + "..domain.entity..")
                     .because("Controllers must only use DTOs, never Entity classes directly");
 
     @ArchTest

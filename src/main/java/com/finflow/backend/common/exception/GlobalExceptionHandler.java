@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import com.finflow.backend.common.constants.ValidationConstants;
+import com.finflow.backend.identity.exception.IdentityErrorCode;
+import com.finflow.backend.transaction.exception.TransactionErrorCode;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.util.List;

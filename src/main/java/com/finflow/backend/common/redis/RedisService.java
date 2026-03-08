@@ -1,6 +1,8 @@
 package com.finflow.backend.common.redis;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.finflow.backend.common.exception.AppException;
+import com.finflow.backend.common.exception.CommonErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -23,7 +25,7 @@ public class RedisService {
             log.debug("Set Redis key: {} with TTL: {} {}", key, timeout, unit);
         } catch (Exception e) {
             log.error("Error writing to Redis for key: {}", key, e);
-            throw new RuntimeException("Failed to write to Redis: " + e.getMessage(), e);
+            throw new AppException(CommonErrorCode.REDIS_WRITE_ERROR);
         }
     }
 
@@ -38,7 +40,7 @@ public class RedisService {
             return objectMapper.readValue(json, targetClass);
         } catch (Exception e) {
             log.error("Error reading from Redis for key: {}", key, e);
-            throw new RuntimeException("Failed to read from Redis: " + e.getMessage(), e);
+            throw new AppException(CommonErrorCode.REDIS_READ_ERROR);
         }
     }
 

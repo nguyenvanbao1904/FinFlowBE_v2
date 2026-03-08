@@ -1,0 +1,14 @@
+package com.finflow.backend.identity.application.mapper;
+
+import com.finflow.backend.identity.presentation.response.UserResponse;
+import com.finflow.backend.identity.domain.entity.User;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+
+@Mapper(componentModel = "spring")
+public interface UserMapper {
+
+    @Mapping(target = "roles", ignore = true)
+    @Mapping(target = "hasPassword", expression = "java(user.getPassword() != null && !user.getPassword().isEmpty())")
+    UserResponse toUserResponse(User user);
+}
