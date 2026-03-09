@@ -3,6 +3,11 @@ package com.finflow.backend.transaction.domain.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Getter
@@ -13,6 +18,7 @@ import java.util.UUID;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
 @Table(name = "categories")
+@EntityListeners(AuditingEntityListener.class)
 public class Category {
 
     @Id
@@ -20,7 +26,7 @@ public class Category {
     UUID id;
 
     @Column(name = "user_id", nullable = false)
-    String userId; // Keep simple string since user is managed in identity module
+    String userId;
 
     @Column(nullable = false)
     String name;
@@ -32,4 +38,12 @@ public class Category {
     String icon;
 
     String color;
+
+    @CreatedDate
+    @Column(name = "created_at", updatable = false)
+    LocalDateTime createdAt;
+
+    @LastModifiedDate
+    @Column(name = "updated_at")
+    LocalDateTime updatedAt;
 }
