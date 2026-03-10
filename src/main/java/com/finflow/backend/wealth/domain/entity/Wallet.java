@@ -1,6 +1,6 @@
-package com.finflow.backend.transaction.domain.entity;
+package com.finflow.backend.wealth.domain.entity;
 
-import com.finflow.backend.transaction.domain.enums.CategoryType;
+import com.finflow.backend.wealth.domain.enums.WalletType;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -19,44 +19,36 @@ import java.util.UUID;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
-@Table(name = "transactions")
+@Table(name = "wallets")
 @EntityListeners(AuditingEntityListener.class)
-public class Transaction {
+public class Wallet {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     UUID id;
 
-    @Column(name = "user_id", nullable = false)
+    @Column(nullable = false)
     String userId;
 
-    @Column(nullable = false, precision = 19, scale = 2)
-    BigDecimal amount;
+    @Column(nullable = false)
+    String name;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    CategoryType type;
+    WalletType type;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "category_id", nullable = false)
-    Category category;
+    @Builder.Default
+    @Column(nullable = false, precision = 19, scale = 2)
+    BigDecimal balance = BigDecimal.ZERO;
 
-    String note;
-
-    @Column(name = "wallet_id", nullable = false)
-    UUID walletId;
-
-    @Column(name = "goal_id")
-    UUID goalId;
-
-    @Column(name = "transaction_date", nullable = false)
-    LocalDateTime transactionDate;
+    @Builder.Default
+    @Column(nullable = false)
+    Boolean isSynced = false; // Đánh dấu nếu ví này đồng bộ tự động từ Open Banking / DNSE
 
     @CreatedDate
-    @Column(name = "created_at", updatable = false)
+    @Column(updatable = false)
     LocalDateTime createdAt;
 
     @LastModifiedDate
-    @Column(name = "updated_at")
     LocalDateTime updatedAt;
 }

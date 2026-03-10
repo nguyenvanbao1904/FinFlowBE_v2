@@ -1,6 +1,6 @@
 package com.finflow.backend.transaction.presentation.request;
 
-import com.finflow.backend.transaction.domain.entity.CategoryType;
+import com.finflow.backend.transaction.domain.enums.CategoryType;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

@@ -1,6 +1,6 @@
 package com.finflow.backend.transaction.presentation.response;
 
-import com.finflow.backend.transaction.domain.entity.CategoryType;
+import com.finflow.backend.transaction.domain.enums.CategoryType;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Data;

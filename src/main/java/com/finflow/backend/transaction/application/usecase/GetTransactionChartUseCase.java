@@ -1,6 +1,6 @@
 package com.finflow.backend.transaction.application.usecase;
 
-import com.finflow.backend.transaction.domain.entity.CategoryType;
+import com.finflow.backend.transaction.domain.enums.CategoryType;
 import com.finflow.backend.transaction.domain.entity.Transaction;
 import com.finflow.backend.transaction.domain.repository.TransactionRepository;
 import com.finflow.backend.transaction.presentation.response.TransactionChartResponse;
@@ -13,7 +13,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -52,7 +51,7 @@ public class GetTransactionChartUseCase {
         String label = weekStart.format(DateTimeFormatter.ofPattern("dd/MM")) +
                        "–" + weekEnd.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
 
-        List<Transaction> transactions = transactionRepository.findByUserIdAndTransactionDateBetween(
+        List<Transaction> transactions = transactionRepository.findByUserIdAndTransactionDateBetweenOrderByTransactionDateDescCreatedAtDesc(
                 userId, weekStart.atStartOfDay(), weekEnd.atTime(23, 59, 59));
         Map<LocalDate, double[]> byDay = aggregateByDayWithTimezone(transactions);
 
@@ -78,7 +77,7 @@ public class GetTransactionChartUseCase {
 
         String periodLabel = "Tháng " + ym.getMonthValue() + "/" + ym.getYear();
 
-        List<Transaction> transactions = transactionRepository.findByUserIdAndTransactionDateBetween(
+        List<Transaction> transactions = transactionRepository.findByUserIdAndTransactionDateBetweenOrderByTransactionDateDescCreatedAtDesc(
                 userId, monthStart.atStartOfDay(), monthEnd.atTime(23, 59, 59));
         Map<LocalDate, double[]> byDay = aggregateByDayWithTimezone(transactions);
 
@@ -106,7 +105,7 @@ public class GetTransactionChartUseCase {
 
         String periodLabel = "Quý " + (quarter + 1) + "/" + ref.getYear();
 
-        List<Transaction> transactions = transactionRepository.findByUserIdAndTransactionDateBetween(
+        List<Transaction> transactions = transactionRepository.findByUserIdAndTransactionDateBetweenOrderByTransactionDateDescCreatedAtDesc(
                 userId, quarterStart.atStartOfDay(), quarterEnd.atTime(23, 59, 59));
         Map<String, double[]> byMonth = aggregateByMonthWithTimezone(transactions);
 
@@ -132,7 +131,7 @@ public class GetTransactionChartUseCase {
 
         String periodLabel = "Năm " + ref.getYear();
 
-        List<Transaction> transactions = transactionRepository.findByUserIdAndTransactionDateBetween(
+        List<Transaction> transactions = transactionRepository.findByUserIdAndTransactionDateBetweenOrderByTransactionDateDescCreatedAtDesc(
                 userId, yearStart.atStartOfDay(), yearEnd.atTime(23, 59, 59));
         Map<String, double[]> byMonth = aggregateByMonthWithTimezone(transactions);
 

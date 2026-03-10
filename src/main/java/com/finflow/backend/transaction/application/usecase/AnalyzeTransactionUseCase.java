@@ -1,7 +1,7 @@
 package com.finflow.backend.transaction.application.usecase;
 
 import com.finflow.backend.transaction.domain.entity.Category;
-import com.finflow.backend.transaction.domain.entity.CategoryType;
+import com.finflow.backend.transaction.domain.enums.CategoryType;
 import com.finflow.backend.transaction.domain.repository.CategoryRepository;
 import com.finflow.backend.transaction.presentation.request.AnalyzeTransactionRequest;
 import com.finflow.backend.transaction.presentation.response.AnalyzeTransactionResponse;

@@ -16,12 +16,12 @@ import java.util.UUID;
 @Repository
 public interface TransactionRepository extends JpaRepository<Transaction, UUID> {
     
-    Page<Transaction> findByUserIdOrderByTransactionDateDesc(String userId, Pageable pageable);
+    Page<Transaction> findByUserIdOrderByTransactionDateDescCreatedAtDesc(String userId, Pageable pageable);
     
-    Page<Transaction> findByUserIdAndTransactionDateBetweenOrderByTransactionDateDesc(
+    Page<Transaction> findByUserIdAndTransactionDateBetweenOrderByTransactionDateDescCreatedAtDesc(
             String userId, LocalDateTime startDate, LocalDateTime endDate, Pageable pageable);
 
-    List<Transaction> findByUserIdAndTransactionDateBetween(
+    List<Transaction> findByUserIdAndTransactionDateBetweenOrderByTransactionDateDescCreatedAtDesc(
             String userId, LocalDateTime startDate, LocalDateTime endDate);
 
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.userId = :userId AND t.type = 'INCOME'")
@@ -33,7 +33,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
     @Query("SELECT t FROM Transaction t JOIN t.category c WHERE t.userId = :userId " +
            "AND (LOWER(t.note) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
            "OR LOWER(c.name) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
-           "ORDER BY t.transactionDate DESC")
+           "ORDER BY t.transactionDate DESC, t.createdAt DESC")
     Page<Transaction> searchByUserIdAndKeyword(
             @Param("userId") String userId, 
             @Param("keyword") String keyword, 
@@ -43,7 +43,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
            "AND t.transactionDate BETWEEN :startDate AND :endDate " +
            "AND (LOWER(t.note) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
            "OR LOWER(c.name) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
-           "ORDER BY t.transactionDate DESC")
+           "ORDER BY t.transactionDate DESC, t.createdAt DESC")
     Page<Transaction> searchByUserIdAndDateRangeAndKeyword(
             @Param("userId") String userId,
             @Param("startDate") LocalDateTime startDate,

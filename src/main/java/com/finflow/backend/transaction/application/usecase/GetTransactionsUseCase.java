@@ -39,12 +39,12 @@ public class GetTransactionsUseCase {
             transactions = transactionRepository.searchByUserIdAndDateRangeAndKeyword(
                     userId, startDate.atStartOfDay(), endDate.atTime(23, 59, 59), keyword.trim(), pageable);
         } else if (hasDateFilter) {
-            transactions = transactionRepository.findByUserIdAndTransactionDateBetweenOrderByTransactionDateDesc(
+            transactions = transactionRepository.findByUserIdAndTransactionDateBetweenOrderByTransactionDateDescCreatedAtDesc(
                     userId, startDate.atStartOfDay(), endDate.atTime(23, 59, 59), pageable);
         } else if (hasKeyword) {
             transactions = transactionRepository.searchByUserIdAndKeyword(userId, keyword.trim(), pageable);
         } else {
-            transactions = transactionRepository.findByUserIdOrderByTransactionDateDesc(userId, pageable);
+            transactions = transactionRepository.findByUserIdOrderByTransactionDateDescCreatedAtDesc(userId, pageable);
         }
         return transactions.map(transactionMapper::toTransactionResponse);
     }

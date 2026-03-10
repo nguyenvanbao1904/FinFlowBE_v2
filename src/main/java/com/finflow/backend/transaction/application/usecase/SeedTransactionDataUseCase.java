@@ -1,7 +1,7 @@
 package com.finflow.backend.transaction.application.usecase;
 
 import com.finflow.backend.transaction.domain.entity.Category;
-import com.finflow.backend.transaction.domain.entity.CategoryType;
+import com.finflow.backend.transaction.domain.enums.CategoryType;
 import com.finflow.backend.transaction.domain.repository.CategoryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

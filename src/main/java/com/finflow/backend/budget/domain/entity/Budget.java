@@ -1,6 +1,5 @@
-package com.finflow.backend.transaction.domain.entity;
+package com.finflow.backend.budget.domain.entity;
 
-import com.finflow.backend.transaction.domain.enums.CategoryType;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -8,6 +7,8 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -18,33 +19,37 @@ import java.util.UUID;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
-@Table(name = "categories")
+@Table(name = "budgets")
 @EntityListeners(AuditingEntityListener.class)
-public class Category {
+public class Budget {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     UUID id;
 
-    @Column(name = "user_id", nullable = false)
+    @Column(nullable = false)
     String userId;
 
     @Column(nullable = false)
-    String name;
+    UUID categoryId;
 
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    CategoryType type;
+    BigDecimal targetAmount;
 
-    String icon;
+    @Column(nullable = false)
+    LocalDate startDate;
 
-    String color;
+    @Column(nullable = false)
+    LocalDate endDate;
+
+    Boolean isRecurring;
+
+    LocalDate recurringStartDate;
 
     @CreatedDate
-    @Column(name = "created_at", updatable = false)
+    @Column(updatable = false)
     LocalDateTime createdAt;
 
     @LastModifiedDate
-    @Column(name = "updated_at")
     LocalDateTime updatedAt;
 }

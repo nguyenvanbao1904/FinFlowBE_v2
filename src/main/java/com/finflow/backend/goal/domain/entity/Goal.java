@@ -1,6 +1,6 @@
-package com.finflow.backend.transaction.domain.entity;
+package com.finflow.backend.goal.domain.entity;
 
-import com.finflow.backend.transaction.domain.enums.CategoryType;
+import com.finflow.backend.goal.domain.enums.GoalStatus; // Nhớ tạo Enum này
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -8,6 +8,8 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -18,33 +20,44 @@ import java.util.UUID;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
-@Table(name = "categories")
+@Table(name = "goals")
 @EntityListeners(AuditingEntityListener.class)
-public class Category {
+public class Goal {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     UUID id;
 
-    @Column(name = "user_id", nullable = false)
+    @Column(nullable = false)
     String userId;
 
     @Column(nullable = false)
     String name;
 
-    @Enumerated(EnumType.STRING)
+    String description;
+
     @Column(nullable = false)
-    CategoryType type;
+    BigDecimal targetAmount;
 
-    String icon;
+    @Builder.Default
+    @Column(nullable = false)
+    BigDecimal currentAmount = BigDecimal.ZERO;
 
-    String color;
+    @Column(nullable = false)
+    LocalDate startDate;
+
+    @Column(nullable = false)
+    LocalDate endDate;
+
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    @Column(nullable = false)
+    GoalStatus status = GoalStatus.IN_PROGRESS;
 
     @CreatedDate
-    @Column(name = "created_at", updatable = false)
+    @Column(updatable = false)
     LocalDateTime createdAt;
 
     @LastModifiedDate
-    @Column(name = "updated_at")
     LocalDateTime updatedAt;
 }

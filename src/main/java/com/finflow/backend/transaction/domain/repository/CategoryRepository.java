@@ -1,7 +1,7 @@
 package com.finflow.backend.transaction.domain.repository;
 
 import com.finflow.backend.transaction.domain.entity.Category;
-import com.finflow.backend.transaction.domain.entity.CategoryType;
+import com.finflow.backend.transaction.domain.enums.CategoryType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
