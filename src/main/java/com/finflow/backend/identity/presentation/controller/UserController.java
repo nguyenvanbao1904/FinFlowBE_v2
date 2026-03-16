@@ -5,6 +5,8 @@ import com.finflow.backend.identity.presentation.request.UpdateProfileRequest;
 import com.finflow.backend.identity.application.usecase.GetProfileUseCase;
 import com.finflow.backend.identity.application.usecase.UpdateProfileUseCase;
 import com.finflow.backend.common.versioning.ApiVersion;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -18,11 +20,13 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 @Slf4j
 @ApiVersion("1")
+@Tag(name = "User", description = "User profile APIs")
 public class UserController {
 
     private final GetProfileUseCase getProfileUseCase;
     private final UpdateProfileUseCase updateProfileUseCase;
 
+    @Operation(summary = "Get current user profile")
     @GetMapping("/my-profile")
     public ResponseEntity<UserResponse> getMyProfile() {
         // 1. Get userId from Security Context
@@ -38,6 +42,7 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
+    @Operation(summary = "Update current user profile")
     @org.springframework.web.bind.annotation.PutMapping("/my-profile")
     public ResponseEntity<UserResponse> updateProfile(@org.springframework.web.bind.annotation.RequestBody UpdateProfileRequest request) {
         var context = SecurityContextHolder.getContext();

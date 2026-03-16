@@ -1,0 +1,37 @@
+package com.finflow.backend.finance.budget.application.usecase;
+
+import com.finflow.backend.common.exception.AppException;
+import com.finflow.backend.finance.budget.domain.entity.Budget;
+import com.finflow.backend.finance.budget.domain.repository.BudgetRepository;
+import com.finflow.backend.finance.budget.exception.BudgetErrorCode;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class DeleteBudgetUseCase {
+
+    private final BudgetRepository budgetRepository;
+
+    @Transactional
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public void execute(String userId, UUID budgetId) {
+        log.info("Deleting budget {} for user: {}", budgetId, userId);
+
+        Budget budget = budgetRepository.findById(budgetId)
+                .orElseThrow(() -> new AppException(BudgetErrorCode.BUDGET_NOT_FOUND));
+
+        if (!budget.getUserId().equals(userId)) {
+            throw new AppException(BudgetErrorCode.BUDGET_NOT_FOUND);
+        }
+
+        budgetRepository.delete(budget);
+    }
+}
+

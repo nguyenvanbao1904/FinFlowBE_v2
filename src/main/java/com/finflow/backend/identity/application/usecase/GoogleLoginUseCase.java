@@ -1,5 +1,7 @@
 package com.finflow.backend.identity.application.usecase;
 
+import com.finflow.backend.common.exception.AppException;
+import com.finflow.backend.identity.exception.IdentityErrorCode;
 import com.finflow.backend.identity.infrastructure.configuration.TokenConfig;
 import com.finflow.backend.identity.presentation.response.AuthResponse;
 import com.finflow.backend.identity.presentation.request.GoogleLoginRequest;
@@ -76,7 +78,7 @@ public class GoogleLoginUseCase {
     private User createNewUser(String email, GoogleIdToken.Payload payload) {
         // Fetch default role
         Role userRole = roleRepository.findById("ROLE_USER")
-                .orElseThrow(() -> new RuntimeException("Default role ROLE_USER not found"));
+                .orElseThrow(() -> new AppException(IdentityErrorCode.ROLE_NOT_FOUND));
 
         User user = new User();
         user.setEmail(email);

@@ -118,7 +118,10 @@ public class SecurityConfig {
         "/api/auth/send-otp",
         "/api/auth/verify-otp",
         "/api/auth/reset-password",
-        "/api/auth/check-user-existence"
+        "/api/auth/check-user-existence",
+        "/v3/api-docs/**",
+        "/swagger-ui/**",
+        "/swagger-ui.html"
     };
 
     // --- 3. FILTER CHAIN (Quy định đường đi của Request) ---

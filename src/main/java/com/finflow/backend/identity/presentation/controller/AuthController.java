@@ -4,6 +4,8 @@ import com.finflow.backend.identity.presentation.request.*;
 import com.finflow.backend.identity.presentation.response.*;
 import com.finflow.backend.identity.application.usecase.*;
 import com.finflow.backend.common.versioning.ApiVersion;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,6 +20,7 @@ import jakarta.servlet.http.HttpServletRequest;
 @RequiredArgsConstructor
 @Slf4j
 @ApiVersion("1")
+@Tag(name = "Auth", description = "Authentication and account management APIs")
 public class AuthController {
 
     // Inject Use Cases instead of Services
@@ -34,6 +37,7 @@ public class AuthController {
     private final ChangePasswordUseCase changePasswordUseCase;
     private final DeleteAccountUseCase deleteAccountUseCase;
 
+    @Operation(summary = "Register a new user (requires X-Registration-Token)")
     @PostMapping("/register")
     public ResponseEntity<MessageResponse> register(
             @RequestBody @Valid RegisterRequest request,
@@ -45,7 +49,7 @@ public class AuthController {
                 .body(new MessageResponse("User registered successfully!"));
     }
 
-   
+    @Operation(summary = "Login with username and password")
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         log.info("Login request received for username: {}", request.getUsername());
@@ -53,6 +57,7 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    @Operation(summary = "Refresh access token")
     @PostMapping("/refresh")
     public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshTokenRequest request) {
         log.info("Refresh token request received");
@@ -60,6 +65,7 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    @Operation(summary = "Login with Google ID token")
     @PostMapping("/google")
     public ResponseEntity<AuthResponse> googleLogin(@RequestBody @Valid GoogleLoginRequest request) {
         log.info("Google login request received");
@@ -67,6 +73,7 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    @Operation(summary = "Send OTP to email (for reset password or verification)")
     @PostMapping("/send-otp")
     public ResponseEntity<MessageResponse> sendOtp(@RequestBody @Valid SendOtpRequest request) {
         log.info("Send OTP request for: {} with purpose: {}", request.getEmail(), request.getPurpose());
@@ -74,6 +81,7 @@ public class AuthController {
         return ResponseEntity.ok(new MessageResponse("OTP sent successfully"));
     }
 
+    @Operation(summary = "Verify OTP and get reset token or verification result")
     @PostMapping("/verify-otp")
     public ResponseEntity<VerifyOtpResponse> verifyOtp(@RequestBody @Valid VerifyOtpRequest request) {
         log.info("Verify OTP request for: {} with purpose: {}", request.getEmail(), request.getPurpose());
@@ -81,6 +89,7 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    @Operation(summary = "Reset password with token from verify-otp (requires X-Reset-Token)")
     @PostMapping("/reset-password")
     public ResponseEntity<MessageResponse> resetPassword(
             @RequestBody @Valid ResetPasswordRequest request,
@@ -91,6 +100,7 @@ public class AuthController {
         return ResponseEntity.ok(new MessageResponse("Password reset successfully"));
     }
 
+    @Operation(summary = "Logout and invalidate refresh token")
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(HttpServletRequest request) {
         log.info("Logout request received");
@@ -109,6 +119,7 @@ public class AuthController {
         return ResponseEntity.noContent().build();
     }
     
+    @Operation(summary = "Check if user exists by email (e.g. for forgot password)")
     @PostMapping("/check-user-existence")
     public ResponseEntity<CheckUserExistenceResponse> checkUserExistence(@RequestBody @Valid CheckUserExistenceRequest request) {
         log.info("Check user existence request received for email: {}", request.getEmail());
@@ -116,6 +127,7 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    @Operation(summary = "Enable or disable biometric authentication for current user")
     @PostMapping("/toggle-biometric")
     public ResponseEntity<MessageResponse> toggleBiometric(
             @RequestBody @Valid ToggleBiometricRequest request
@@ -132,6 +144,7 @@ public class AuthController {
                 : "Biometric authentication disabled successfully"
         ));
     }
+    @Operation(summary = "Change password for authenticated user")
     @PostMapping("/change-password")
     public ResponseEntity<MessageResponse> changePassword(
             @RequestBody @Valid ChangePasswordRequest request
@@ -145,6 +158,7 @@ public class AuthController {
         return ResponseEntity.ok(new MessageResponse("Password changed successfully"));
     }
 
+    @Operation(summary = "Soft delete current user account")
     @DeleteMapping("/delete-account")
     public ResponseEntity<MessageResponse> deleteAccount(@RequestBody(required = false) DeleteAccountRequest request) {
         String userId = org.springframework.security.core.context.SecurityContextHolder

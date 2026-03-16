@@ -21,4 +21,3 @@ class ModularityTests {
                 .writeModuleCanvases(); // Sinh ra file Markdown mô tả các Event, Bean...
     }
 }
-
