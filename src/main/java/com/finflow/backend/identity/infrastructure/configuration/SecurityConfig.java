@@ -121,7 +121,8 @@ public class SecurityConfig {
         "/api/auth/check-user-existence",
         "/v3/api-docs/**",
         "/swagger-ui/**",
-        "/swagger-ui.html"
+        "/swagger-ui.html",
+        "/api/internal/**" // Allow internal service calls
     };
 
     // --- 3. FILTER CHAIN (Quy định đường đi của Request) ---
