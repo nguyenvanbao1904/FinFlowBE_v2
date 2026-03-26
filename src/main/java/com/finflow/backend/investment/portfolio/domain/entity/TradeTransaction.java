@@ -1,4 +1,4 @@
-package com.finflow.backend.investment.market_data.domain.entity;
+package com.finflow.backend.investment.portfolio.domain.entity;
 
 import jakarta.persistence.*;
 import lombok.*;

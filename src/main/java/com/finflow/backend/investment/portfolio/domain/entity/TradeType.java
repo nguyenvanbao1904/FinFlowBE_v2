@@ -1,4 +1,4 @@
-package com.finflow.backend.investment.market_data.domain.entity;
+package com.finflow.backend.investment.portfolio.domain.entity;
 
 /**
  * Loại giao dịch trong danh mục đầu tư.
