@@ -15,21 +15,28 @@ import java.util.List;
 @RequestMapping("/api/internal/investment/sync")
 @RequiredArgsConstructor
 public class InternalInvestmentSyncController {
-
-    private final SyncFinancialIndicatorsUseCase syncFinancialIndicatorsUseCase;
     private final SyncBankIncomeStatementsUseCase syncBankIncomeStatementsUseCase;
     private final SyncNonBankIncomeStatementsUseCase syncNonBankIncomeStatementsUseCase;
     private final SyncBankBalanceSheetsUseCase syncBankBalanceSheetsUseCase;
     private final SyncNonBankBalanceSheetsUseCase syncNonBankBalanceSheetsUseCase;
+    private final SyncBankFinancialIndicatorsUseCase syncBankFinancialIndicatorsUseCase;
+    private final SyncNonBankFinancialIndicatorsUseCase syncNonBankFinancialIndicatorsUseCase;
 
     private final SyncCompaniesUseCase syncCompaniesUseCase;
     private final SyncCompanyShareholdersUseCase syncCompanyShareholdersUseCase;
     private final SyncCompanyDividendsUseCase syncCompanyDividendsUseCase;
 
-    @PostMapping("/financial-indicators")
-    public ResponseEntity<Void> syncFinancialIndicators(@RequestBody @Valid List<FinancialIndicatorRequestDTO> request) {
-        log.info("Received sync request for {} financial indicators", request.size());
-        syncFinancialIndicatorsUseCase.execute(request);
+    @PostMapping("/bank-financial-indicators")
+    public ResponseEntity<Void> syncBankFinancialIndicators(@RequestBody @Valid List<BankFinancialIndicatorRequestDTO> request) {
+        log.info("Received sync request for {} bank financial indicators", request.size());
+        syncBankFinancialIndicatorsUseCase.execute(request);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/non-bank-financial-indicators")
+    public ResponseEntity<Void> syncNonBankFinancialIndicators(@RequestBody @Valid List<NonBankFinancialIndicatorRequestDTO> request) {
+        log.info("Received sync request for {} non-bank financial indicators", request.size());
+        syncNonBankFinancialIndicatorsUseCase.execute(request);
         return ResponseEntity.ok().build();
     }
 
