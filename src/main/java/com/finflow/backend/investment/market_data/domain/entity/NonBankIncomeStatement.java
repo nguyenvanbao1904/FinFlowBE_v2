@@ -16,5 +16,13 @@ import java.math.BigDecimal;
 public class NonBankIncomeStatement extends IncomeStatement {
 
     @Column(name = "net_revenue", precision = 19, scale = 2)
-    private BigDecimal netRevenue; // Doanh thu
+    private BigDecimal netRevenue; // Doanh thu thuần
+
+    // --- DOANH THU CHI TIẾT ---
+    @Column(name = "total_revenue", precision = 19, scale = 2)
+    private BigDecimal totalRevenue; // Doanh thu (đồng)
+
+    // --- LỢI NHUẬN ---
+    @Column(name = "net_profit", precision = 19, scale = 2)
+    private BigDecimal netProfit; // Lợi nhuận thuần
 }

@@ -15,15 +15,21 @@ import java.math.BigDecimal;
 @Setter
 public class BankIncomeStatement extends IncomeStatement {
 
+    // --- THU NHẬP LÃI ---
+    @Column(name = "interest_expense", precision = 19, scale = 2)
+    private BigDecimal interestExpense; // Chi phí lãi và các khoản tương tự
+
     @Column(name = "net_interest_income", precision = 19, scale = 2)
     private BigDecimal netInterestIncome; // Thu nhập lãi thuần
 
     @Column(name = "net_fee_commission_income", precision = 19, scale = 2)
     private BigDecimal netFeeAndCommissionIncome; // Lãi thuần từ hoạt động dịch vụ
 
+    // --- THU NHẬP KHÁC ---
     @Column(name = "net_other_income_expenses", precision = 19, scale = 2)
     private BigDecimal netOtherIncomeOrExpenses; // Lãi/lỗ thuần từ hoạt động khác
 
-    @Column(name = "interest_similar_expenses", precision = 19, scale = 2)
-    private BigDecimal interestAndSimilarExpenses; // Chi phí lãi và các khoản tương tự
+    // --- LỢI NHUẬN ---
+    @Column(name = "net_profit", precision = 19, scale = 2)
+    private BigDecimal netProfit; // Lợi nhuận thuần
 }

@@ -40,4 +40,8 @@ public class NonBankBalanceSheet extends BalanceSheet {
     
     @Column(name = "advances_from_customers", precision = 19, scale = 2)
     private BigDecimal advancesFromCustomers; // Người mua trả tiền trước
+
+    // --- NỢ PHẢI TRẢ (GỌI CHUNG) ---
+    @Column(name = "total_liabilities", precision = 19, scale = 2)
+    private BigDecimal totalLiabilities; // NỢ PHẢI TRẢ (đồng)
 }

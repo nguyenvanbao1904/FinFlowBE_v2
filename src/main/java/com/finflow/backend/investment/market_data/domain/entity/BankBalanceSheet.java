@@ -30,7 +30,7 @@ public class BankBalanceSheet extends BalanceSheet {
     
     @Column(name = "loans_to_customers", precision = 19, scale = 2)
     private BigDecimal loansToCustomers; // Cho vay khách hàng
-
+    
     // --- NGUỒN VỐN NGÂN HÀNG ---
     @Column(name = "gov_sbv_debt", precision = 19, scale = 2)
     private BigDecimal govAndSbvDebt; // Nợ chính phủ và NHNN
@@ -43,4 +43,8 @@ public class BankBalanceSheet extends BalanceSheet {
     
     @Column(name = "convertible_other_papers", precision = 19, scale = 2)
     private BigDecimal convertibleAndOtherPapers; // Phát hành giấy tờ có giá
+
+    // --- NỢ CHI TIẾT ---
+    @Column(name = "total_liabilities", precision = 19, scale = 2)
+    private BigDecimal totalLiabilities; // NỢ PHẢI TRẢ (đồng)
 }

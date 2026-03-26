@@ -8,9 +8,11 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "financial_indicators")
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+@DiscriminatorColumn(name = "company_type", discriminatorType = DiscriminatorType.STRING)
 @Getter
 @Setter
-public class FinancialIndicator {
+public abstract class FinancialIndicator {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
