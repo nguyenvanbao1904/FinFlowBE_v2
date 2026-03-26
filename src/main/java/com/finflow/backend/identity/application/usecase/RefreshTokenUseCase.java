@@ -79,6 +79,7 @@ public class RefreshTokenUseCase {
     private String buildScope(User user) {
         return user.getRoles().stream()
                 .map(Role::getName)
+                .map(this::normalizeRole)
                 .collect(Collectors.joining(" "));
     }
 
@@ -110,6 +111,13 @@ public class RefreshTokenUseCase {
                 .build();
 
         return jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
+    }
+
+    private String normalizeRole(String roleName) {
+        if (roleName == null || roleName.isBlank()) {
+            return "ROLE_USER";
+        }
+        return roleName.startsWith("ROLE_") ? roleName : "ROLE_" + roleName;
     }
 }
 

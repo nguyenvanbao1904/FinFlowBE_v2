@@ -115,7 +115,17 @@ public class LoginUseCase {
     private String getScope(Authentication authentication) {
         return authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
+                .map(this::normalizeAuthorityForToken)
                 .collect(Collectors.joining(" "));
+    }
+
+    private String normalizeAuthorityForToken(String authority) {
+        if (authority == null) {
+            return "";
+        }
+        return authority.startsWith("ROLE_ROLE_")
+                ? authority.replaceFirst("ROLE_ROLE_", "ROLE_")
+                : authority;
     }
 
     /**

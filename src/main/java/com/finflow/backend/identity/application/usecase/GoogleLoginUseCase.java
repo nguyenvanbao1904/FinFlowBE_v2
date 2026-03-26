@@ -58,6 +58,7 @@ public class GoogleLoginUseCase {
         // Convert Set<Role> to space-separated String for scope
         String scope = user.getRoles().stream()
                 .map(Role::getName)
+                .map(this::normalizeRole)
                 .collect(Collectors.joining(" "));
 
         String accessToken = generateToken(user.getId(), scope, TokenConfig.ACCESS_TOKEN_EXPIRY_SECONDS, "access");
@@ -113,5 +114,12 @@ public class GoogleLoginUseCase {
                 .build();
 
         return jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
+    }
+
+    private String normalizeRole(String roleName) {
+        if (roleName == null || roleName.isBlank()) {
+            return "ROLE_USER";
+        }
+        return roleName.startsWith("ROLE_") ? roleName : "ROLE_" + roleName;
     }
 }
