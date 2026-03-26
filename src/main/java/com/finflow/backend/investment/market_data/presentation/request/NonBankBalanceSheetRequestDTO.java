@@ -20,5 +20,9 @@ public record NonBankBalanceSheetRequestDTO(
     BigDecimal fixedAssets,
     BigDecimal shortTermBorrowings,
     BigDecimal longTermBorrowings,
-    BigDecimal advancesFromCustomers
+    BigDecimal advancesFromCustomers,
+    
+    // --- NỢ PHẢI TRẢ (New Fields) ---
+    BigDecimal totalLiabilities
+    // Các khoản nợ ngắn/dài hạn chi tiết hiện không được vnstock free cung cấp theo đúng model hiện tại
 ) {}

@@ -21,5 +21,8 @@ public record BankBalanceSheetRequestDTO(
     BigDecimal govAndSbvDebt,
     BigDecimal depositsBorrowingsOthers,
     BigDecimal depositsFromCustomers,
-    BigDecimal convertibleAndOtherPapers
+    BigDecimal convertibleAndOtherPapers,
+
+    // --- NỢ CHI TIẾT ---
+    BigDecimal totalLiabilities
 ) {}

@@ -9,8 +9,17 @@ public record BankIncomeStatementRequestDTO(
     @NotNull Integer year,
     @NotNull Integer quarter,
     BigDecimal profitAfterTax,
+    
+    // --- THU NHẬP LÃI (updated/new) ---
+    BigDecimal interestExpense,
     BigDecimal netInterestIncome,
+    
+    // --- THU NHẬP PHÍ ---
     BigDecimal netFeeAndCommissionIncome,
+    
+    // --- THU NHẬP KHÁC ---
     BigDecimal netOtherIncomeOrExpenses,
-    BigDecimal interestAndSimilarExpenses
+    
+    // --- LỢI NHUẬN & EPS ---
+    BigDecimal netProfit
 ) {}

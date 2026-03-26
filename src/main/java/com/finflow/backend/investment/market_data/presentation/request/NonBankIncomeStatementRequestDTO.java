@@ -9,5 +9,9 @@ public record NonBankIncomeStatementRequestDTO(
     @NotNull Integer year,
     @NotNull Integer quarter,
     BigDecimal profitAfterTax,
-    BigDecimal netRevenue
+    BigDecimal netRevenue,
+    
+    // --- DOANH THU CHI TIẾT (New Fields) ---
+    BigDecimal totalRevenue,
+    BigDecimal netProfit
 ) {}
