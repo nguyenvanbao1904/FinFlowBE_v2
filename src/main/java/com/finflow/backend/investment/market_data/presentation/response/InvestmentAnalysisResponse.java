@@ -24,10 +24,23 @@ public record InvestmentAnalysisResponse(
             Double cplh,
             Double currentPE,
             Double medianPE,
+            Double meanPE,
             Double currentPB,
             Double medianPB,
+            Double meanPB,
             Double currentPS,
-            Double medianPS
+            Double medianPS,
+            Double meanPS,
+            /** PE theo giá VPS gần nhất / EPS (TTM 4 quý gần nhất). */
+            Double livePe,
+            /** PB theo giá VPS gần nhất / BVPS (BCTC gần nhất). */
+            Double livePb,
+            /** P/S theo giá VPS / (mẫu TTM trên CP; NH = NII+phí+khác). */
+            Double livePs,
+            /** Giá VND dùng cho bội số live (VPS). */
+            Double livePriceVnd,
+            /** CLOSE (nguồn giá VPS). */
+            String livePriceSource
     ) {}
 
     public record ShareholderPoint(
@@ -39,6 +52,14 @@ public record InvestmentAnalysisResponse(
     public record ValuationPoint(
             Integer year,
             Integer quarter,
+            Double pe,
+            Double pb,
+            Double ps
+    ) {}
+
+    /** Chuỗi P/E–P/B–P/S theo ngày giao dịch (Finfo + BCTC). */
+    public record DailyValuationPoint(
+            String date,
             Double pe,
             Double pb,
             Double ps

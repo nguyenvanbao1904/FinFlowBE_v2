@@ -5,6 +5,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -29,5 +30,18 @@ public interface FinancialIndicatorRepository extends JpaRepository<FinancialInd
             int year,
             int startQuarter,
             int endQuarter
+    );
+
+    /**
+     * Batch: tải N quý gần nhất cho nhiều mã cùng lúc — dùng cho Portfolio Health.
+     * Kết quả sort mới nhất trước để Pageable(quarters) cắt đúng.
+     */
+    List<FinancialIndicator> findByCompanyIdInOrderByYearDescQuarterDesc(
+            Collection<String> companyIds, Pageable pageable
+    );
+
+    /** Batch full list để backend tự limit theo từng symbol (tránh lệch do global Pageable). */
+    List<FinancialIndicator> findByCompanyIdInOrderByCompanyIdAscYearDescQuarterDesc(
+            Collection<String> companyIds
     );
 }

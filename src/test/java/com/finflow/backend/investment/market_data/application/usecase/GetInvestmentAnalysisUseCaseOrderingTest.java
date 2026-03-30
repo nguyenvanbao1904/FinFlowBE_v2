@@ -6,6 +6,7 @@ import com.finflow.backend.investment.market_data.domain.entity.BankIncomeStatem
 import com.finflow.backend.investment.market_data.domain.entity.Company;
 import com.finflow.backend.investment.market_data.domain.repository.*;
 import com.finflow.backend.investment.market_data.presentation.response.InvestmentAnalysisResponse;
+import com.finflow.backend.investment.portfolio.infrastructure.VpsMarketPriceClient;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -42,6 +43,8 @@ class GetInvestmentAnalysisUseCaseOrderingTest {
     BankIncomeStatementRepository bankIncomeStatementRepository;
     @Mock
     NonBankIncomeStatementRepository nonBankIncomeStatementRepository;
+    @Mock
+    VpsMarketPriceClient vpsMarketPriceClient;
     private InvestmentAnalysisService service;
 
     @org.junit.jupiter.api.BeforeEach
@@ -61,7 +64,8 @@ class GetInvestmentAnalysisUseCaseOrderingTest {
                 bankIncomeStatementRepository,
                 nonBankIncomeStatementRepository
         );
-        InvestmentAnalysisOverviewBuilder overviewBuilder = new InvestmentAnalysisOverviewBuilder();
+        InvestmentAnalysisOverviewBuilder overviewBuilder =
+                new InvestmentAnalysisOverviewBuilder(vpsMarketPriceClient, repositoryLoader);
         InvestmentAnalysisFinancialSeriesLoader financialSeriesLoader =
                 new InvestmentAnalysisFinancialSeriesLoader(repositoryLoader, financialSeriesBuilder);
 

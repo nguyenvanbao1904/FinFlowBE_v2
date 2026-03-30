@@ -1,11 +1,16 @@
 package com.finflow.backend.investment.market_data.presentation.controller;
 
 import com.finflow.backend.common.versioning.ApiVersion;
+import com.finflow.backend.investment.market_data.application.usecase.GetDailyValuationSeriesUseCase;
 import com.finflow.backend.investment.market_data.application.usecase.GetInvestmentDividendsUseCase;
 import com.finflow.backend.investment.market_data.application.usecase.GetInvestmentFinancialSeriesUseCase;
 import com.finflow.backend.investment.market_data.application.usecase.GetInvestmentFullAnalysisUseCase;
 import com.finflow.backend.investment.market_data.application.usecase.GetInvestmentValuationsUseCase;
+import com.finflow.backend.investment.market_data.application.usecase.GetCompanyIndustriesUseCase;
+import com.finflow.backend.investment.market_data.application.usecase.SuggestCompaniesUseCase;
 import com.finflow.backend.investment.market_data.presentation.response.InvestmentAnalysisResponse;
+import com.finflow.backend.investment.market_data.presentation.response.CompanySuggestionResponse;
+import com.finflow.backend.investment.market_data.presentation.response.CompanyIndustryResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -23,7 +28,27 @@ public class InvestmentQueryController {
     private final GetInvestmentFullAnalysisUseCase fullAnalysisUseCase;
     private final GetInvestmentFinancialSeriesUseCase financialSeriesUseCase;
     private final GetInvestmentValuationsUseCase valuationsUseCase;
+    private final GetDailyValuationSeriesUseCase dailyValuationSeriesUseCase;
     private final GetInvestmentDividendsUseCase dividendsUseCase;
+    private final GetCompanyIndustriesUseCase getCompanyIndustriesUseCase;
+    private final SuggestCompaniesUseCase suggestCompaniesUseCase;
+
+    @Operation(summary = "Suggest companies by ticker prefix (fallback by companyName)")
+    @GetMapping("/companies/suggest")
+    public ResponseEntity<java.util.List<CompanySuggestionResponse>> suggestCompanies(
+            @RequestParam(name = "q") String q,
+            @RequestParam(required = false) Integer limit
+    ) {
+        return ResponseEntity.ok(suggestCompaniesUseCase.execute(q, limit));
+    }
+
+    @Operation(summary = "Get industry labels for a list of company symbols")
+    @GetMapping("/companies/industries")
+    public ResponseEntity<java.util.List<CompanyIndustryResponse>> getCompanyIndustries(
+            @RequestParam(name = "symbols") java.util.List<String> symbols
+    ) {
+        return ResponseEntity.ok(getCompanyIndustriesUseCase.execute(symbols));
+    }
 
     @Operation(summary = "Get stock analysis data for one company symbol")
     @GetMapping("/companies/{symbol}/analysis")
@@ -69,6 +94,18 @@ public class InvestmentQueryController {
         return ResponseEntity.ok(
                 valuationsUseCase.execute(symbol, annualLimit, startDate, endDate, showQuarterly)
         );
+    }
+
+    @Operation(summary = "Daily P/E–P/B–P/S series (Finfo close + fundamentals as-of each day)")
+    @GetMapping("/companies/{symbol}/analysis/valuations/daily")
+    public ResponseEntity<java.util.List<InvestmentAnalysisResponse.DailyValuationPoint>> getCompanyDailyValuations(
+            @PathVariable String symbol,
+            @Parameter(description = "yyyy-MM-dd", required = true)
+            @RequestParam String startDate,
+            @Parameter(description = "yyyy-MM-dd", required = true)
+            @RequestParam String endDate
+    ) {
+        return ResponseEntity.ok(dailyValuationSeriesUseCase.execute(symbol, startDate, endDate));
     }
 
     @Operation(summary = "Get dividend chart series only")

@@ -41,6 +41,30 @@ class InvestmentAnalysisRepositoryLoader {
         return companyShareholderRepository.findByCompanyIdOrderByShareOwnPercentDesc(companyId);
     }
 
+    List<CompanyDividend> loadAllCompanyDividendsOrderByRecordDateAsc(String companyId) {
+        return companyDividendRepository.findByCompanyIdOrderByRecordDateAsc(companyId);
+    }
+
+    List<FinancialIndicator> loadAllFinancialIndicatorsAsc(String companyId) {
+        return financialIndicatorRepository.findByCompanyIdOrderByYearAscQuarterAsc(companyId);
+    }
+
+    List<NonBankIncomeStatement> loadAllNonBankIncomesAsc(String companyId) {
+        return nonBankIncomeStatementRepository.findByCompanyIdOrderByYearAscQuarterAsc(companyId);
+    }
+
+    List<BankIncomeStatement> loadAllBankIncomesAsc(String companyId) {
+        return bankIncomeStatementRepository.findByCompanyIdOrderByYearAscQuarterAsc(companyId);
+    }
+
+    /** {@code limit} quý gần nhất (year/quarter DESC), dùng cho TTM “doanh thu” NH. */
+    List<BankIncomeStatement> loadBankIncomesLastQuarters(String companyId, int limit) {
+        int cap = Math.max(1, limit);
+        return new ArrayList<>(
+                bankIncomeStatementRepository.findByCompanyIdOrderByYearDescQuarterDesc(companyId, PageRequest.of(0, cap))
+        );
+    }
+
     List<FinancialIndicator> loadFinancialIndicators(String companyId, Integer annualLimit, Integer quarterlyLimit) {
         if (!isBoundedLoad(annualLimit, quarterlyLimit)) {
             return financialIndicatorRepository.findByCompanyIdOrderByYearAscQuarterAsc(companyId);
@@ -205,6 +229,14 @@ class InvestmentAnalysisRepositoryLoader {
         );
         rows.sort(Comparator.comparing(NonBankIncomeStatement::getYear).thenComparing(NonBankIncomeStatement::getQuarter));
         return rows;
+    }
+
+    /** {@code limit} quý gần nhất (year/quarter DESC), dùng cho DTT TTM. */
+    List<NonBankIncomeStatement> loadNonBankIncomesLastQuarters(String companyId, int limit) {
+        int cap = Math.max(1, limit);
+        return new ArrayList<>(
+                nonBankIncomeStatementRepository.findByCompanyIdOrderByYearDescQuarterDesc(companyId, PageRequest.of(0, cap))
+        );
     }
 
     LocalDate parseIsoDate(String raw, String paramName) {
