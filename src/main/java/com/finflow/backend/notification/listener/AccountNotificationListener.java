@@ -1,11 +1,11 @@
-package com.finflow.backend.notification.application.listener;
+package com.finflow.backend.notification.listener;
 
 import com.finflow.backend.identity.application.event.AccountHardDeletedEvent;
 import com.finflow.backend.identity.application.event.AccountSoftDeletedEvent;
-import com.finflow.backend.notification.infrastructure.mail.EmailService;
+import com.finflow.backend.notification.MdcCorrelationSupport;
+import com.finflow.backend.notification.mail.EmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.MDC;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
@@ -20,8 +20,7 @@ public class AccountNotificationListener {
     @Async
     @EventListener
     public void handleSoftDelete(AccountSoftDeletedEvent event) {
-        MDC.put("correlationId", event.getCorrelationId());
-        try {
+        MdcCorrelationSupport.run(event.getCorrelationId(), () -> {
             log.info("Sending soft delete notification to: {}", event.getEmail());
             String subject = "Account Deletion Scheduled - FinFlow";
             String text = "Dear " + event.getUsername() + ",\n\n" +
@@ -29,28 +28,21 @@ public class AccountNotificationListener {
                     "If this was you, no further action is needed.\n" +
                     "If you changed your mind, you can simply log in again within the next 30 days to restore your account instantly.\n\n" +
                     "Best regards,\nFinFlow Team";
-
             emailService.sendSimpleMessage(event.getEmail(), subject, text);
-        } finally {
-            MDC.remove("correlationId");
-        }
+        });
     }
 
     @Async
     @EventListener
     public void handleHardDelete(AccountHardDeletedEvent event) {
-        MDC.put("correlationId", event.getCorrelationId());
-        try {
+        MdcCorrelationSupport.run(event.getCorrelationId(), () -> {
             log.info("Sending hard delete notification to: {}", event.getEmail());
             String subject = "Account Permanently Deleted - FinFlow";
             String text = "Dear " + event.getUsername() + ",\n\n" +
                     "Your FinFlow account and all associated data have been permanently deleted as scheduled.\n" +
                     "We are sorry to see you go and hope to welcome you back in the future.\n\n" +
                     "Best regards,\nFinFlow Team";
-
             emailService.sendSimpleMessage(event.getEmail(), subject, text);
-        } finally {
-            MDC.remove("correlationId");
-        }
+        });
     }
 }

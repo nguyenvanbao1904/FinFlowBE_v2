@@ -1,14 +1,14 @@
-package com.finflow.backend.notification.infrastructure.mail;
+package com.finflow.backend.notification.mail;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.scheduling.annotation.Async;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
-@Service
+@Component
 @RequiredArgsConstructor
 @Slf4j
 public class EmailService {
@@ -18,7 +18,9 @@ public class EmailService {
     @Value("${spring.mail.username}")
     private String fromEmail;
 
-    @Async
+    /**
+     * Sends mail synchronously; callers are {@code @Async} listeners (no nested async).
+     */
     public void sendSimpleMessage(String to, String subject, String text) {
         try {
             SimpleMailMessage message = new SimpleMailMessage();
@@ -28,9 +30,8 @@ public class EmailService {
             message.setText(text);
             mailSender.send(message);
             log.info("Email sent to: {}", to);
-        } catch (Exception e) {
-            log.error("Failed to send email to {}: {}", to, e.getMessage());
-            // In async, we can't throw to caller, just log.
+        } catch (MailException e) {
+            log.error("Failed to send email to {}", to, e);
         }
     }
 }
