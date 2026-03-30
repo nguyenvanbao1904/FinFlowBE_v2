@@ -2,7 +2,7 @@ package com.finflow.backend.identity.application.usecase;
 
 import com.finflow.backend.common.exception.AppException;
 import com.finflow.backend.common.redis.RedisService;
-import com.finflow.backend.identity.application.usecase.SendOtpUseCase.OtpData;
+import com.finflow.backend.identity.application.dto.OtpData;
 import com.finflow.backend.identity.domain.enums.OtpPurpose;
 import com.finflow.backend.identity.exception.IdentityErrorCode;
 import com.finflow.backend.identity.presentation.response.VerifyOtpResponse;

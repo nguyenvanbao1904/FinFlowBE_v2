@@ -7,13 +7,13 @@ import com.finflow.backend.common.exception.AppException;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.MDC;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.finflow.backend.identity.presentation.request.DeleteAccountRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-@Service
+@Component
 @RequiredArgsConstructor
 public class DeleteAccountUseCase {
     private final UserRepository userRepository;

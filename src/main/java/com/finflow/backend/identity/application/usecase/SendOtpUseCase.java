@@ -2,6 +2,7 @@ package com.finflow.backend.identity.application.usecase;
 
 import com.finflow.backend.common.exception.AppException;
 import com.finflow.backend.common.redis.RedisService;
+import com.finflow.backend.identity.application.dto.OtpData;
 import com.finflow.backend.identity.application.event.OtpRequestedEvent;
 import com.finflow.backend.identity.domain.enums.OtpPurpose;
 import com.finflow.backend.identity.domain.repository.UserRepository;
@@ -85,10 +86,4 @@ public class SendOtpUseCase {
                         .build()
         );
     }
-    
-    public record OtpData(
-        String code, 
-        LocalDateTime expiryTime, 
-        OtpPurpose purpose
-    ) {}
 }
