@@ -9,7 +9,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class UpdateCategoryRequest {
 
-    @NotBlank(message = "Category name is required")
+    @NotBlank(message = "CATEGORY_NAME_REQUIRED")
     String name;
 
     String icon;

@@ -8,19 +8,20 @@ import com.finflow.backend.finance.transaction.presentation.response.AnalyzeTran
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
-@Service
+@Component
 @RequiredArgsConstructor
 @Slf4j
 public class AnalyzeTransactionUseCase {
 
     private final CategoryRepository categoryRepository;
 
+    @Transactional(readOnly = true)
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public AnalyzeTransactionResponse execute(String userId, AnalyzeTransactionRequest request) {
         log.info("Analyzing transaction text for userId: '{}' text: '{}'", userId, request.getText());

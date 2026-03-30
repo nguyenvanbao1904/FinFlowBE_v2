@@ -5,7 +5,7 @@ import com.finflow.backend.finance.budget.domain.repository.BudgetRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -17,7 +17,7 @@ import java.util.List;
  * creates the next period's budget (same category, targetAmount, isRecurring, recurringStartDate).
  * Only queries budgets with endDate in a narrow window to avoid full table scan.
  */
-@Service
+@Component
 @RequiredArgsConstructor
 @Slf4j
 public class RollRecurringBudgetsUseCase {

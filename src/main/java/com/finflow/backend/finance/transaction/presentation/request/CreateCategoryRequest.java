@@ -11,10 +11,10 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class CreateCategoryRequest {
 
-    @NotBlank(message = "Category name is required")
+    @NotBlank(message = "CATEGORY_NAME_REQUIRED")
     String name;
 
-    @NotNull(message = "Category type is required")
+    @NotNull(message = "CATEGORY_TYPE_REQUIRED")
     CategoryType type;
 
     String icon;

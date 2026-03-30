@@ -6,11 +6,12 @@ import com.finflow.backend.finance.wealth.presentation.response.WealthAccountTyp
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-@Service
+@Component
 @RequiredArgsConstructor
 @Slf4j
 public class GetWealthAccountTypesUseCase {
@@ -18,6 +19,7 @@ public class GetWealthAccountTypesUseCase {
     private final WealthAccountTypeRepository wealthAccountTypeRepository;
     private final WealthAccountMapper wealthAccountMapper;
 
+    @Transactional(readOnly = true)
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public List<WealthAccountTypeOptionResponse> execute() {
         log.debug("Fetching wealth account type options");

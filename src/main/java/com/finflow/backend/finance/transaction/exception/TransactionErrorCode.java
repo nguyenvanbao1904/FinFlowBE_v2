@@ -25,6 +25,8 @@ public enum TransactionErrorCode implements ErrorCode {
     TRANSACTION_ACCOUNT_REQUIRED(3012, "Wealth account is required", HttpStatus.BAD_REQUEST),
     TRANSACTION_DATE_REQUIRED(3013, "Transaction date is required", HttpStatus.BAD_REQUEST),
     TRANSACTION_AMOUNT_REQUIRED(3014, "Transaction amount is required", HttpStatus.BAD_REQUEST),
+    CATEGORY_NAME_REQUIRED(3015, "Category name is required", HttpStatus.BAD_REQUEST),
+    CATEGORY_TYPE_REQUIRED(3016, "Category type is required", HttpStatus.BAD_REQUEST),
     ;
 
     TransactionErrorCode(int code, String message, HttpStatusCode statusCode) {
