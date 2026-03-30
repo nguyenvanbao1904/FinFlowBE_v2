@@ -45,9 +45,9 @@ public class TradeTransaction {
 
     /**
      * Khối lượng — NULL khi tradeType là DEPOSIT hoặc WITHDRAW.
-     * Dùng scale=4 để hỗ trợ chứng khoán phân đoạn (fractional shares).
+     * Chỉ hỗ trợ số nguyên cổ phiếu.
      */
-    @Column(precision = 19, scale = 4)
+    @Column(precision = 19, scale = 0)
     BigDecimal quantity;
 
     /**

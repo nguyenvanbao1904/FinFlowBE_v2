@@ -49,8 +49,8 @@ public class PortfolioAsset {
     @Column(nullable = false, length = 10)
     String symbol;
 
-    /** Tổng khối lượng đang nắm giữ (scale=4 cho fractional shares) */
-    @Column(name = "total_quantity", nullable = false, precision = 19, scale = 4)
+    /** Tổng khối lượng đang nắm giữ (số nguyên cổ phiếu, không hỗ trợ fractional shares). */
+    @Column(name = "total_quantity", nullable = false, precision = 19, scale = 0)
     BigDecimal totalQuantity;
 
     /**
