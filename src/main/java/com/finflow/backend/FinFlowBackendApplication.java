@@ -9,7 +9,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableJpaAuditing
 @EnableScheduling
 public class FinFlowBackendApplication {
-    static void main(String[] args) {
+    public static void main(String[] args) {
         // Load .env file
         try {
             io.github.cdimascio.dotenv.Dotenv dotenv = io.github.cdimascio.dotenv.Dotenv.configure()
