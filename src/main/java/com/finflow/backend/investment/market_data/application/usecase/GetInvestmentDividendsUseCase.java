@@ -2,12 +2,12 @@ package com.finflow.backend.investment.market_data.application.usecase;
 
 import com.finflow.backend.investment.market_data.presentation.response.InvestmentAnalysisResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-@Service
+@Component
 @RequiredArgsConstructor
 public class GetInvestmentDividendsUseCase {
 

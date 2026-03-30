@@ -6,7 +6,7 @@ import com.finflow.backend.investment.market_data.domain.entity.CompanySharehold
 import com.finflow.backend.investment.market_data.domain.entity.FinancialIndicator;
 import com.finflow.backend.investment.market_data.presentation.response.InvestmentAnalysisResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -24,7 +24,7 @@ import java.util.Optional;
  * <strong>Giới hạn</strong>: {@code annualLimit} / {@code quarterlyLimit} — khi cả hai đều {@code null} thì tải
  * đủ lịch sử; khi một trong hai khác {@code null} thì dùng truy vấn có {@code LIMIT} ở DB (xem các {@code load*}).
  */
-@Service
+@Component
 @RequiredArgsConstructor
 class InvestmentAnalysisService {
     private static final Comparator<InvestmentAnalysisResponse.ValuationPoint> VALUATION_ASC =

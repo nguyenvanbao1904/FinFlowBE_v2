@@ -8,13 +8,13 @@ import java.time.LocalDate;
 
 @Builder
 public record CompanyDividendRequestDTO(
-        @NotBlank(message = "SYSTEM_ERROR")
+        @NotBlank(message = "REQUIRED_FIELD")
         String companyId,
 
-        @NotBlank(message = "SYSTEM_ERROR")
+        @NotBlank(message = "REQUIRED_FIELD")
         String eventTitle,
 
-        @NotBlank(message = "SYSTEM_ERROR")
+        @NotBlank(message = "REQUIRED_FIELD")
         String eventType, // CASH or STOCK
 
         String ratio,

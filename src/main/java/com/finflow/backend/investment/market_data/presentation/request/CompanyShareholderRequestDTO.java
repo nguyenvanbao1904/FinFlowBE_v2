@@ -8,10 +8,10 @@ import java.time.LocalDate;
 
 @Builder
 public record CompanyShareholderRequestDTO(
-        @NotBlank(message = "SYSTEM_ERROR")
+        @NotBlank(message = "REQUIRED_FIELD")
         String companyId,
 
-        @NotBlank(message = "SYSTEM_ERROR")
+        @NotBlank(message = "REQUIRED_FIELD")
         String shareholderName,
 
         Long quantity,

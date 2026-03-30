@@ -5,14 +5,14 @@ import com.finflow.backend.investment.market_data.domain.repository.IndustryNode
 import com.finflow.backend.investment.market_data.presentation.request.IndustryNodeRequestDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
 import java.util.List;
 
 @Slf4j
-@Service
+@Component
 @RequiredArgsConstructor
 public class SyncIndustryNodesUseCase {
 

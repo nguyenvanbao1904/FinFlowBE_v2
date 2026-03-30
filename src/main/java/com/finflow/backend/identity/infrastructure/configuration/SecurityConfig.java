@@ -10,6 +10,7 @@ import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -34,9 +35,11 @@ import org.springframework.security.web.SecurityFilterChain;
 
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
-import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
+import java.security.SecureRandom;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
+import java.nio.charset.StandardCharsets;
 
 @Configuration
 @EnableWebSecurity
@@ -47,14 +50,40 @@ public class SecurityConfig {
     private final CustomUserDetailsService customUserDetailsService;
     private final InvalidatedTokenRepository invalidatedTokenRepository;
 
+    // Prefer config property: jwt.signerKey=${FINFLOW_JWTSIGNERKEY}
+    // Fallback: FINFLOW_JWTSIGNERKEY from env/system properties.
+    @Value("${jwt.signerKey:}")
+    private String jwtSignerKey;
+
     // --- 1. KEY MANAGEMENT (RSA) ---
     @Bean
     public KeyPair keyPair() {
+        String signerKey = jwtSignerKey;
+        if (signerKey == null || signerKey.isBlank()) {
+            signerKey = System.getProperty("FINFLOW_JWTSIGNERKEY");
+        }
+        if (signerKey == null || signerKey.isBlank()) {
+            signerKey = System.getenv("FINFLOW_JWTSIGNERKEY");
+        }
+        if (signerKey == null || signerKey.isBlank()) {
+            throw new AppException(CommonErrorCode.UNCATEGORIZED_EXCEPTION);
+        }
+
+        byte[] seed = toSeedBytes(signerKey);
+        SecureRandom secureRandom;
+        try {
+            secureRandom = SecureRandom.getInstance("SHA1PRNG");
+        } catch (Exception ignored) {
+            secureRandom = new SecureRandom();
+        }
+        secureRandom.setSeed(seed);
+
         try {
             var keyPairGenerator = KeyPairGenerator.getInstance("RSA");
-            keyPairGenerator.initialize(2048);
+            // Deterministic primes => stable JWT keys across restarts (dev simplification).
+            keyPairGenerator.initialize(2048, secureRandom);
             return keyPairGenerator.generateKeyPair();
-        } catch (NoSuchAlgorithmException e) {
+        } catch (Exception e) {
             throw new AppException(CommonErrorCode.UNCATEGORIZED_EXCEPTION);
         }
     }
@@ -90,6 +119,21 @@ public class SecurityConfig {
         ));
 
         return jwtDecoder;
+    }
+
+    private static byte[] toSeedBytes(String signerKey) {
+        String raw = signerKey.trim();
+        // If it looks like hex, decode it. Otherwise use raw UTF-8 bytes.
+        if (raw.length() % 2 == 0 && raw.matches("[0-9a-fA-F]+")) {
+            int len = raw.length() / 2;
+            byte[] out = new byte[len];
+            for (int i = 0; i < len; i++) {
+                int idx = i * 2;
+                out[i] = (byte) Integer.parseInt(raw.substring(idx, idx + 2), 16);
+            }
+            return out;
+        }
+        return raw.getBytes(StandardCharsets.UTF_8);
     }
 
     // --- 2. AUTHENTICATION MANAGER ---

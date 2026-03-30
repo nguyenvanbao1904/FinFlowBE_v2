@@ -11,15 +11,15 @@ import java.util.UUID;
  */
 @Builder
 public record IndustryNodeRequestDTO(
-        @NotNull(message = "SYSTEM_ERROR")
+        @NotNull(message = "REQUIRED_FIELD")
         UUID id,
 
         UUID parentId,
 
-        @NotBlank(message = "SYSTEM_ERROR")
+        @NotBlank(message = "REQUIRED_FIELD")
         String nameVi,
 
-        @NotNull(message = "SYSTEM_ERROR")
+        @NotNull(message = "REQUIRED_FIELD")
         Integer level,
 
         String icbCode,

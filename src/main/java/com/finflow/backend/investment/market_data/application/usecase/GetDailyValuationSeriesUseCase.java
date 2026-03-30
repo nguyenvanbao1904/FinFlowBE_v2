@@ -11,7 +11,7 @@ import com.finflow.backend.investment.portfolio.infrastructure.VndirectFinfoPric
 import com.finflow.backend.investment.portfolio.infrastructure.VndirectFinfoPriceClient.StockDailyClose;
 import com.finflow.backend.investment.portfolio.infrastructure.VpsMarketPriceClient;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -27,7 +27,7 @@ import java.util.TreeMap;
  * P/E, P/B, P/S theo từng ngày: giá Finfo (range), EPS/BVPS/CPLH từ chỉ số; P/S = giá / (mẫu TTM trên CP):
  * non-bank = doanh thu thuần TTM; NH = (thu nhập lãi thuần + dịch vụ + khác) TTM.
  */
-@Service
+@Component
 @RequiredArgsConstructor
 public class GetDailyValuationSeriesUseCase {
 

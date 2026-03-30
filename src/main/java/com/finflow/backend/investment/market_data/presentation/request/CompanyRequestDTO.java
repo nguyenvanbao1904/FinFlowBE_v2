@@ -5,10 +5,10 @@ import lombok.Builder;
 
 @Builder
 public record CompanyRequestDTO(
-        @NotBlank(message = "SYSTEM_ERROR")
+        @NotBlank(message = "REQUIRED_FIELD")
         String id,
 
-        @NotBlank(message = "SYSTEM_ERROR")
+        @NotBlank(message = "REQUIRED_FIELD")
         String exchange,
 
         /** UUID nút ngành (nút lá) — ưu tiên hơn {@code industryIcbCode}. */
@@ -21,7 +21,7 @@ public record CompanyRequestDTO(
 
         String description,
 
-        @NotBlank(message = "SYSTEM_ERROR")
+        @NotBlank(message = "REQUIRED_FIELD")
         String companyType // BANK or NON_BANK
 ) {
 }

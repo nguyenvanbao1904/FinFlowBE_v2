@@ -11,7 +11,7 @@ import com.finflow.backend.investment.portfolio.presentation.request.ImportPortf
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -24,7 +24,7 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-@Service
+@Component
 @RequiredArgsConstructor
 @Slf4j
 public class ImportPortfolioSnapshotUseCase {

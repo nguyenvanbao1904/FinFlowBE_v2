@@ -1,14 +1,16 @@
 package com.finflow.backend.investment.portfolio.application.usecase;
 
+import com.finflow.backend.common.exception.AppException;
 import com.finflow.backend.investment.portfolio.domain.entity.DailyMarketIndexSnapshot;
 import com.finflow.backend.investment.portfolio.domain.entity.DailyPortfolioSnapshot;
 import com.finflow.backend.investment.portfolio.domain.repository.DailyMarketIndexSnapshotRepository;
 import com.finflow.backend.investment.portfolio.domain.repository.DailyPortfolioSnapshotRepository;
 import com.finflow.backend.investment.portfolio.domain.repository.PortfolioRepository;
+import com.finflow.backend.investment.portfolio.exception.PortfolioErrorCode;
 import com.finflow.backend.investment.portfolio.presentation.response.PerformanceSeriesPointResponse;
 import com.finflow.backend.investment.portfolio.presentation.response.PortfolioPerformanceResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -19,7 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-@Service
+@Component
 @RequiredArgsConstructor
 public class GetPortfolioPerformanceUseCase {
 
@@ -40,7 +42,7 @@ public class GetPortfolioPerformanceUseCase {
             LocalDate endOverride
     ) {
         portfolioRepository.findByIdAndUserId(portfolioId, userId)
-                .orElseThrow(() -> new IllegalArgumentException("Portfolio not found"));
+                .orElseThrow(() -> new AppException(PortfolioErrorCode.PORTFOLIO_NOT_FOUND));
 
         LocalDate end = endOverride != null ? endOverride : LocalDate.now(VN_ZONE);
         LocalDate start = startOverride != null ? startOverride : range.resolveStart(end);

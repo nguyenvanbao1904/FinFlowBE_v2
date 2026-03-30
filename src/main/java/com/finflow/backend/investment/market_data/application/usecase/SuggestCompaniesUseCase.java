@@ -6,7 +6,7 @@ import com.finflow.backend.investment.market_data.presentation.response.CompanyS
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-@Service
+@Component
 @RequiredArgsConstructor
 @Slf4j
 public class SuggestCompaniesUseCase {

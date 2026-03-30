@@ -7,7 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.retry.ExhaustedRetryException;
 import org.springframework.retry.RetryContext;
 import org.springframework.retry.support.RetryTemplate;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.time.LocalDate;
@@ -16,7 +16,7 @@ import java.time.LocalDate;
  * Retry VNINDEX thiếu dữ liệu: tối đa 5 lần, cách 30 phút (tương đương {@code @Retryable} trong plan).
  */
 @Slf4j
-@Service
+@Component
 @RequiredArgsConstructor
 public class DailyPortfolioSnapshotRetryService {
 

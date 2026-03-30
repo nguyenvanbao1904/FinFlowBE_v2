@@ -3,7 +3,7 @@ package com.finflow.backend.investment.market_data.application.usecase;
 import com.finflow.backend.investment.market_data.domain.repository.CompanyRepository;
 import com.finflow.backend.investment.market_data.presentation.response.CompanyIndustryResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-@Service
+@Component
 @RequiredArgsConstructor
 public class GetCompanyIndustriesUseCase {
     private static final String UNKNOWN_INDUSTRY = "Khác";

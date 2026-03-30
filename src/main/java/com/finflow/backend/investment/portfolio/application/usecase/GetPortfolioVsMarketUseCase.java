@@ -1,10 +1,11 @@
 package com.finflow.backend.investment.portfolio.application.usecase;
 
+import com.finflow.backend.investment.portfolio.application.service.PortfolioHealthComputationService;
 import com.finflow.backend.investment.portfolio.infrastructure.VndirectRatiosClient;
 import com.finflow.backend.investment.portfolio.presentation.response.PortfolioHealthResponse;
 import com.finflow.backend.investment.portfolio.presentation.response.PortfolioMarketBenchmarkResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
@@ -12,7 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-@Service
+@Component
 @RequiredArgsConstructor
 public class GetPortfolioVsMarketUseCase {
 
@@ -22,7 +23,7 @@ public class GetPortfolioVsMarketUseCase {
     private static final String ROE_CODE = "82008";
     private static final String ROA_CODE = "82006";
 
-    private final GetPortfolioHealthUseCase getPortfolioHealthUseCase;
+    private final PortfolioHealthComputationService portfolioHealthComputationService;
     private final VndirectRatiosClient vndirectRatiosClient;
 
     @Transactional(readOnly = true)
@@ -31,7 +32,7 @@ public class GetPortfolioVsMarketUseCase {
                 ? "VNINDEX"
                 : benchmarkCode.trim().toUpperCase();
 
-        PortfolioHealthResponse health = getPortfolioHealthUseCase.execute(userId, portfolioId, 20);
+        PortfolioHealthResponse health = portfolioHealthComputationService.compute(userId, portfolioId, 20);
         Map<String, Double> benchmark = vndirectRatiosClient.getLatestRatios(
                 code,
                 List.of(PE_CODE, PB_CODE, PS_CODE, ROE_CODE, ROA_CODE)
@@ -41,7 +42,6 @@ public class GetPortfolioVsMarketUseCase {
         Double portfolioPb = health.current().pb();
         Double portfolioPs = health.current().ps();
 
-        // ROE/ROA currently available as quarterly history values in portfolio health.
         PortfolioHealthResponse.HistoryPoint latestHistory = health.history().stream()
                 .max(Comparator.comparingInt(PortfolioHealthResponse.HistoryPoint::year)
                         .thenComparingInt(PortfolioHealthResponse.HistoryPoint::quarter))
@@ -68,4 +68,3 @@ public class GetPortfolioVsMarketUseCase {
         return new PortfolioMarketBenchmarkResponse.MetricComparison(portfolio, benchmark, deltaPct);
     }
 }
-

@@ -6,14 +6,14 @@ import com.finflow.backend.investment.market_data.domain.repository.NonBankBalan
 import com.finflow.backend.investment.market_data.presentation.request.NonBankBalanceSheetRequestDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Slf4j
-@Service
+@Component
 @RequiredArgsConstructor
 public class SyncNonBankBalanceSheetsUseCase {
 

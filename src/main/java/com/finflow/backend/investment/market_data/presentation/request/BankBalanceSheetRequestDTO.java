@@ -5,9 +5,9 @@ import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 
 public record BankBalanceSheetRequestDTO(
-    @NotBlank String companyId,
-    @NotNull Integer year,
-    @NotNull Integer quarter,
+    @NotBlank(message = "REQUIRED_FIELD") String companyId,
+    @NotNull(message = "REQUIRED_FIELD") Integer year,
+    @NotNull(message = "REQUIRED_FIELD") Integer quarter,
     BigDecimal cashAndCashEquivalents,
     BigDecimal totalAssets,
     BigDecimal equity,

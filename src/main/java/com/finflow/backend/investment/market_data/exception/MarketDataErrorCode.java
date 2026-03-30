@@ -19,7 +19,12 @@ public enum MarketDataErrorCode implements ErrorCode {
     DAILY_VALUATION_START_BEFORE_MIN(
             6005,
             "startDate must be on or after 2010-01-01",
-            HttpStatus.BAD_REQUEST);
+            HttpStatus.BAD_REQUEST),
+
+    // DTO validation / required fields -> 6006-6099 (non-overlapping with existing ones)
+    // Chỉ dùng làm "message key" cho Bean Validation mapping trong GlobalExceptionHandler.
+    // (xem error-handling-patterns skill A.5: message must equal exact enum name)
+    REQUIRED_FIELD(6006, "Required field is missing", HttpStatus.BAD_REQUEST);
 
     private final int code;
     private final String message;

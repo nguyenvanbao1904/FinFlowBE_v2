@@ -13,7 +13,7 @@ import com.finflow.backend.investment.portfolio.infrastructure.VndirectFinfoPric
 import com.finflow.backend.investment.portfolio.infrastructure.VpsMarketPriceClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -30,7 +30,7 @@ import java.util.UUID;
  * Chốt NAV cuối ngày + snapshot VNINDEX; VPS → Finfo T → Finfo T-1; thiếu giá thì bỏ qua portfolio đó.
  */
 @Slf4j
-@Service
+@Component
 @RequiredArgsConstructor
 public class RecordDailyPortfolioSnapshotsUseCase {
 
