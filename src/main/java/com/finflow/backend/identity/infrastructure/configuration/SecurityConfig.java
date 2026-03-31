@@ -32,10 +32,10 @@ import org.springframework.security.oauth2.jwt.*;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
-import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
@@ -49,6 +49,7 @@ public class SecurityConfig {
 
     private final CustomUserDetailsService customUserDetailsService;
     private final InvalidatedTokenRepository invalidatedTokenRepository;
+    private final InternalApiKeyFilter internalApiKeyFilter;
 
     // Prefer config property: jwt.signerKey=${FINFLOW_JWTSIGNERKEY}
     // Fallback: FINFLOW_JWTSIGNERKEY from env/system properties.
@@ -165,8 +166,7 @@ public class SecurityConfig {
         "/api/auth/check-user-existence",
         "/v3/api-docs/**",
         "/swagger-ui/**",
-        "/swagger-ui.html",
-        "/api/internal/**" // Allow internal service calls
+        "/swagger-ui.html"
     };
 
     // --- 3. FILTER CHAIN (Quy định đường đi của Request) ---
@@ -183,7 +183,8 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
                 // Kích hoạt tính năng OAuth2 Resource Server (Tự động check Token)
-                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
+                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())))
+                .addFilterBefore(internalApiKeyFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
