@@ -54,4 +54,33 @@ public class RedisService {
         Boolean result = redisTemplate.hasKey(key);
         return Boolean.TRUE.equals(result);
     }
+
+    /**
+     * Cache read that never throws — returns null on miss or parse error (fail-open).
+     */
+    public <T> T getSilently(String key, Class<T> targetClass) {
+        try {
+            String json = redisTemplate.opsForValue().get(key);
+            if (json == null) {
+                return null;
+            }
+            return objectMapper.readValue(json, targetClass);
+        } catch (Exception e) {
+            log.warn("Redis silent get failed for key {}: {}", key, e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Cache write that never throws — no-op on failure (fail-open).
+     */
+    public <T> void setSilently(String key, T value, long timeout, TimeUnit unit) {
+        try {
+            String json = objectMapper.writeValueAsString(value);
+            redisTemplate.opsForValue().set(key, json, timeout, unit);
+            log.debug("Redis silent set key {} TTL {} {}", key, timeout, unit);
+        } catch (Exception e) {
+            log.warn("Redis silent set failed for key {}: {}", key, e.getMessage());
+        }
+    }
 }

@@ -7,6 +7,7 @@ import com.finflow.backend.finance.transaction.application.usecase.CreateCategor
 import com.finflow.backend.finance.transaction.application.usecase.DeleteCategoryUseCase;
 import com.finflow.backend.finance.transaction.application.usecase.GetCategoriesUseCase;
 import com.finflow.backend.finance.transaction.application.usecase.GetTransactionChartUseCase;
+import com.finflow.backend.finance.transaction.application.usecase.GetTransactionAnalyticsInsightsUseCase;
 import com.finflow.backend.finance.transaction.application.usecase.UpdateCategoryUseCase;
 import com.finflow.backend.finance.transaction.application.usecase.GetTransactionSummaryUseCase;
 import com.finflow.backend.finance.transaction.application.usecase.GetTransactionsUseCase;
@@ -19,6 +20,7 @@ import com.finflow.backend.finance.transaction.presentation.request.UpdateTransa
 import com.finflow.backend.finance.transaction.presentation.response.AnalyzeTransactionResponse;
 import com.finflow.backend.finance.transaction.presentation.response.CategoryResponse;
 import com.finflow.backend.finance.transaction.presentation.response.TransactionChartResponse;
+import com.finflow.backend.finance.transaction.presentation.response.TransactionAnalyticsInsightsResponse;
 import com.finflow.backend.finance.transaction.presentation.response.TransactionResponse;
 import com.finflow.backend.finance.transaction.presentation.response.TransactionSummaryResponse;
 import com.finflow.backend.common.versioning.ApiVersion;
@@ -53,6 +55,7 @@ public class TransactionController {
     private final DeleteCategoryUseCase deleteCategoryUseCase;
     private final AnalyzeTransactionUseCase analyzeTransactionUseCase;
     private final GetTransactionChartUseCase getTransactionChartUseCase;
+    private final GetTransactionAnalyticsInsightsUseCase getTransactionAnalyticsInsightsUseCase;
     private final UpdateTransactionUseCase updateTransactionUseCase;
     private final DeleteTransactionUseCase deleteTransactionUseCase;
 
@@ -112,6 +115,15 @@ public class TransactionController {
                 GetTransactionChartUseCase.ChartRange.valueOf(range.toUpperCase());
         LocalDate refDate = referenceDate != null ? LocalDate.parse(referenceDate) : null;
         TransactionChartResponse response = getTransactionChartUseCase.execute(userId, chartRange, refDate);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "Get AI analytics insights (read-only)")
+    @GetMapping("/analytics-insights")
+    public ResponseEntity<TransactionAnalyticsInsightsResponse> getAnalyticsInsights(
+            @AuthenticationPrincipal Jwt jwt) {
+        String userId = jwt.getSubject();
+        TransactionAnalyticsInsightsResponse response = getTransactionAnalyticsInsightsUseCase.execute(userId);
         return ResponseEntity.ok(response);
     }
 

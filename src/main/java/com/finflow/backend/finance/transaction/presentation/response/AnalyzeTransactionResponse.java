@@ -16,6 +16,7 @@ public class AnalyzeTransactionResponse {
     BigDecimal amount;
     CategoryType type;
     String suggestedCategoryId;
+    String suggestedAccountId;
     String note;
     LocalDateTime transactionDate;
 }
