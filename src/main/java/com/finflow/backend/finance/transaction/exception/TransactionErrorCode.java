@@ -27,6 +27,9 @@ public enum TransactionErrorCode implements ErrorCode {
     TRANSACTION_AMOUNT_REQUIRED(3014, "Transaction amount is required", HttpStatus.BAD_REQUEST),
     CATEGORY_NAME_REQUIRED(3015, "Category name is required", HttpStatus.BAD_REQUEST),
     CATEGORY_TYPE_REQUIRED(3016, "Category type is required", HttpStatus.BAD_REQUEST),
+
+    // Analytics upstream / integration -> 3020-3029
+    ANALYTICS_UPSTREAM_ERROR(3020, "Analytics AI service is temporarily unavailable", HttpStatus.BAD_GATEWAY),
     ;
 
     TransactionErrorCode(int code, String message, HttpStatusCode statusCode) {

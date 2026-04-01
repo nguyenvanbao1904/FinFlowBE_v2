@@ -2,10 +2,12 @@ package com.finflow.backend.finance.transaction.application.usecase;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.finflow.backend.common.exception.AppException;
 import com.finflow.backend.common.redis.RedisService;
 import com.finflow.backend.finance.transaction.domain.entity.Transaction;
 import com.finflow.backend.finance.transaction.domain.enums.CategoryType;
 import com.finflow.backend.finance.transaction.domain.repository.TransactionRepository;
+import com.finflow.backend.finance.transaction.exception.TransactionErrorCode;
 import com.finflow.backend.finance.transaction.presentation.response.TransactionAnalyticsInsightResponse;
 import com.finflow.backend.finance.transaction.presentation.response.TransactionAnalyticsInsightsResponse;
 import lombok.RequiredArgsConstructor;
@@ -108,6 +110,7 @@ public class GetTransactionAnalyticsInsightsUseCase {
                     recentTransactions,
                     insightTier,
                     (int) countLookback,
+                    now.getDayOfMonth(),
                     asOfDate,
                     currentMonthLabel,
                     previousMonthLabel,
@@ -116,8 +119,29 @@ public class GetTransactionAnalyticsInsightsUseCase {
             TransactionAnalyticsInsightsResponse result = mapResponse(aiResponse);
             redisService.setSilently(cacheKey, result, secondsUntilEndOfDayVn(), TimeUnit.SECONDS);
             return result;
-        } catch (Exception e) {
-            log.warn("Analytics insights AI failed, fallback to heuristic. userId={} reason={}", userId, e.getMessage());
+        } catch (AppException e) {
+            log.warn("Analytics insights upstream error, fallback to heuristic. userId={} code={}", userId, e.getErrorCode().getCode());
+            return fallbackResponse(
+                    recentTransactions,
+                    insightTier,
+                    lookbackLabel,
+                    currentMonthLabel,
+                    previousMonthLabel,
+                    (int) countLookback
+            );
+        } catch (java.io.IOException e) {
+            log.warn("Analytics insights IO error, fallback to heuristic. userId={} reason={}", userId, e.getMessage());
+            return fallbackResponse(
+                    recentTransactions,
+                    insightTier,
+                    lookbackLabel,
+                    currentMonthLabel,
+                    previousMonthLabel,
+                    (int) countLookback
+            );
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("Analytics insights interrupted, fallback to heuristic. userId={} reason={}", userId, e.getMessage());
             return fallbackResponse(
                     recentTransactions,
                     insightTier,
@@ -134,11 +158,12 @@ public class GetTransactionAnalyticsInsightsUseCase {
             List<Transaction> recentTransactions,
             String insightTier,
             int recentTransactionCount,
+            int currentDayOfMonth,
             String asOfDate,
             String currentMonthLabel,
             String previousMonthLabel,
             String lookbackLabel
-    ) throws Exception {
+    ) throws java.io.IOException, InterruptedException {
         double totalIncome = recentTransactions.stream()
                 .filter(t -> t.getType() == CategoryType.INCOME)
                 .mapToDouble(t -> t.getAmount().doubleValue())
@@ -149,27 +174,12 @@ public class GetTransactionAnalyticsInsightsUseCase {
                 .sum();
         double netCashflow = totalIncome - totalExpense;
 
-        Map<String, Double> byCategory = new LinkedHashMap<>();
-        for (Transaction t : recentTransactions) {
-            if (t.getType() != CategoryType.EXPENSE || t.getCategory() == null) continue;
-            String name = t.getCategory().getName();
-            byCategory.put(name, byCategory.getOrDefault(name, 0.0) + t.getAmount().doubleValue());
-        }
         List<Map<String, Object>> monthlySeries = buildMonthlySeries(recentTransactions);
-
-        List<Map<String, Object>> topCategories = byCategory.entrySet().stream()
-                .sorted(Map.Entry.<String, Double>comparingByValue().reversed())
-                .limit(5)
-                .map(e -> {
-                    double amount = e.getValue();
-                    double sharePct = totalExpense > 0 ? (amount / totalExpense) * 100.0 : 0.0;
-                    return Map.<String, Object>of(
-                            "name", e.getKey(),
-                            "amount", amount,
-                            "sharePct", sharePct
-                    );
-                })
-                .collect(Collectors.toList());
+        double avgIncomePrev2Months = averageForPreviousMonths(monthlySeries, "income", 2);
+        double avgExpensePrev2Months = averageForPreviousMonths(monthlySeries, "expense", 2);
+        List<Map<String, Object>> savingsRateSeries = buildSavingsRateSeries(monthlySeries);
+        List<Map<String, Object>> previousMonthCategoryDelta = buildPreviousMonthCategoryDelta(monthlySeries);
+        List<Map<String, Object>> previousMonthTopExpenseCategories = extractPreviousMonthTopExpenseCategories(monthlySeries);
 
         String cacheKey = userId + ":" + LocalDate.now();
         Map<String, Object> body = new HashMap<>();
@@ -180,14 +190,20 @@ public class GetTransactionAnalyticsInsightsUseCase {
         body.put("periodLabel", "THANG_NAY_VS_3_THANG_TRUOC");
         body.put("insightTier", insightTier);
         body.put("recentTransactionCount", recentTransactionCount);
+        body.put("currentDayOfMonth", currentDayOfMonth);
+        body.put("isBeginningOfMonth", currentDayOfMonth < 5);
         body.put("asOfDate", asOfDate);
         body.put("currentMonthLabel", currentMonthLabel);
         body.put("previousMonthLabel", previousMonthLabel);
         body.put("lookbackLabel", lookbackLabel);
-        body.put("totalIncome", totalIncome);
-        body.put("totalExpense", totalExpense);
-        body.put("netCashflow", netCashflow);
-        body.put("topExpenseCategories", topCategories);
+        body.put("totalIncomeLookback", totalIncome);
+        body.put("totalExpenseLookback", totalExpense);
+        body.put("netCashflowLookback", netCashflow);
+        body.put("avgIncomePrev2Months", avgIncomePrev2Months);
+        body.put("avgExpensePrev2Months", avgExpensePrev2Months);
+        body.put("savingsRateSeries", savingsRateSeries);
+        body.put("previousMonthCategoryDelta", previousMonthCategoryDelta);
+        body.put("previousMonthTopExpenseCategories", previousMonthTopExpenseCategories);
         body.put("monthlySeries", monthlySeries);
 
         HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
@@ -203,7 +219,7 @@ public class GetTransactionAnalyticsInsightsUseCase {
                 .send(requestBuilder.build(), HttpResponse.BodyHandlers.ofString());
 
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
-            throw new IllegalStateException("data_ai_service returned " + response.statusCode());
+            throw new AppException(TransactionErrorCode.ANALYTICS_UPSTREAM_ERROR);
         }
 
         return objectMapper.readValue(response.body(), new TypeReference<>() {});
@@ -387,6 +403,122 @@ public class GetTransactionAnalyticsInsightsUseCase {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    private double averageForPreviousMonths(List<Map<String, Object>> monthlySeries, String key, int monthCount) {
+        if (monthlySeries == null || monthlySeries.size() < monthCount + 1) {
+            return 0.0;
+        }
+        int endExclusive = monthlySeries.size() - 1; // exclude current month
+        int startInclusive = Math.max(0, endExclusive - monthCount);
+        List<Map<String, Object>> slice = monthlySeries.subList(startInclusive, endExclusive);
+        if (slice.isEmpty()) {
+            return 0.0;
+        }
+        double sum = slice.stream()
+                .mapToDouble(m -> asDouble(m.get(key)) == null ? 0.0 : asDouble(m.get(key)))
+                .sum();
+        return sum / slice.size();
+    }
+
+    private List<Map<String, Object>> buildSavingsRateSeries(List<Map<String, Object>> monthlySeries) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Map<String, Object> point : monthlySeries) {
+            double income = asDouble(point.get("income")) == null ? 0.0 : asDouble(point.get("income"));
+            double net = asDouble(point.get("net")) == null ? 0.0 : asDouble(point.get("net"));
+            double savingsRate = income > 0 ? (net / income) * 100.0 : 0.0;
+            result.add(Map.of(
+                    "month", String.valueOf(point.get("month")),
+                    "savingsRatePct", savingsRate
+            ));
+        }
+        return result;
+    }
+
+    private List<Map<String, Object>> buildPreviousMonthCategoryDelta(List<Map<String, Object>> monthlySeries) {
+        if (monthlySeries.size() < 3) {
+            return List.of();
+        }
+        Map<String, Object> previousMonth = monthlySeries.get(monthlySeries.size() - 2);
+        List<Map<String, Object>> baselineMonths = monthlySeries.subList(
+                Math.max(0, monthlySeries.size() - 4),
+                Math.max(0, monthlySeries.size() - 2)
+        );
+
+        Map<String, Double> previousCat = readCategoryAmountMap(previousMonth.get("topExpenseCategories"));
+        Map<String, List<Double>> baselineCat = new LinkedHashMap<>();
+        for (Map<String, Object> month : baselineMonths) {
+            Map<String, Double> cat = readCategoryAmountMap(month.get("topExpenseCategories"));
+            for (Map.Entry<String, Double> entry : cat.entrySet()) {
+                baselineCat.computeIfAbsent(entry.getKey(), k -> new ArrayList<>()).add(entry.getValue());
+            }
+        }
+
+        return previousCat.entrySet().stream()
+                .map(entry -> {
+                    String name = entry.getKey();
+                    double previousAmount = entry.getValue();
+                    List<Double> baseline = baselineCat.getOrDefault(name, List.of());
+                    double baselineAvg = baseline.isEmpty()
+                            ? 0.0
+                            : baseline.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
+                    double deltaPct = baselineAvg > 0 ? ((previousAmount - baselineAvg) / baselineAvg) * 100.0 : 0.0;
+                    Map<String, Object> row = new LinkedHashMap<>();
+                    row.put("name", name);
+                    row.put("previousAmount", previousAmount);
+                    row.put("baselineAvgAmount", baselineAvg);
+                    row.put("deltaPct", deltaPct);
+                    return row;
+                })
+                .sorted((a, b) -> {
+                    double ad = asDouble(a.get("deltaPct")) == null ? 0.0 : asDouble(a.get("deltaPct"));
+                    double bd = asDouble(b.get("deltaPct")) == null ? 0.0 : asDouble(b.get("deltaPct"));
+                    return Double.compare(bd, ad);
+                })
+                .limit(5)
+                .collect(Collectors.toList());
+    }
+
+    private Map<String, Double> readCategoryAmountMap(Object rawTopCategories) {
+        if (!(rawTopCategories instanceof List<?> rawList)) {
+            return Map.of();
+        }
+        Map<String, Double> out = new LinkedHashMap<>();
+        for (Object raw : rawList) {
+            if (!(raw instanceof Map<?, ?> item)) continue;
+            String name = asString(item.get("name"));
+            Double amount = asDouble(item.get("amount"));
+            if (name == null || amount == null) continue;
+            out.put(name, amount);
+        }
+        return out;
+    }
+
+    private List<Map<String, Object>> extractPreviousMonthTopExpenseCategories(List<Map<String, Object>> monthlySeries) {
+        if (monthlySeries.size() < 2) {
+            return List.of();
+        }
+        Object raw = monthlySeries.get(monthlySeries.size() - 2).get("topExpenseCategories");
+        if (!(raw instanceof List<?> list)) {
+            return List.of();
+        }
+        List<Map<String, Object>> out = new ArrayList<>();
+        for (Object item : list) {
+            if (item instanceof Map<?, ?> map) {
+                String name = asString(map.get("name"));
+                Double amount = asDouble(map.get("amount"));
+                Double sharePct = asDouble(map.get("sharePct"));
+                if (name == null || amount == null) continue;
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("name", name);
+                row.put("amount", amount);
+                if (sharePct != null) {
+                    row.put("sharePct", sharePct);
+                }
+                out.add(row);
+            }
+        }
+        return out;
     }
 
     private List<Map<String, Object>> buildMonthlySeries(List<Transaction> transactions) {
