@@ -1,6 +1,9 @@
-package com.finflow.backend.investment.market_data.application.usecase;
+package com.finflow.backend.investment.market_data.application.service;
 
 import com.finflow.backend.investment.market_data.domain.entity.*;
+import com.finflow.backend.investment.market_data.application.mapper.InvestmentFinancialPointMapper;
+import com.finflow.backend.investment.market_data.application.strategy.BankStatementStrategy;
+import com.finflow.backend.investment.market_data.application.strategy.NonBankStatementStrategy;
 import com.finflow.backend.investment.market_data.presentation.response.InvestmentAnalysisResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
@@ -57,4 +60,3 @@ public class InvestmentFinancialSeriesBuilder {
         return new InvestmentAnalysisResponse.FinancialSeries("NON_BANK", List.of(), points);
     }
 }
-

@@ -1,5 +1,6 @@
 package com.finflow.backend.investment.market_data.application.usecase;
 
+import com.finflow.backend.investment.market_data.application.service.InvestmentAnalysisService;
 import com.finflow.backend.investment.market_data.presentation.response.InvestmentAnalysisResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -24,4 +25,3 @@ public class GetInvestmentValuationsUseCase {
         return service.executeValuations(symbol, annualLimit, startDate, endDate, showQuarterly);
     }
 }
-

@@ -1,5 +1,6 @@
-package com.finflow.backend.investment.market_data.application.usecase;
+package com.finflow.backend.investment.market_data.application.strategy;
 
+import com.finflow.backend.investment.market_data.application.mapper.InvestmentFinancialPointMapper;
 import com.finflow.backend.investment.market_data.domain.entity.BankBalanceSheet;
 import com.finflow.backend.investment.market_data.domain.entity.BankIncomeStatement;
 import com.finflow.backend.investment.market_data.domain.entity.FinancialIndicator;
@@ -7,23 +8,23 @@ import com.finflow.backend.investment.market_data.presentation.response.Investme
 
 import java.util.*;
 
-import static com.finflow.backend.investment.market_data.application.usecase.InvestmentAnalysisNumberUtils.keepLatestQuarterByYear;
-import static com.finflow.backend.investment.market_data.application.usecase.InvestmentAnalysisNumberUtils.normalizeLimit;
-import static com.finflow.backend.investment.market_data.application.usecase.InvestmentAnalysisNumberUtils.sumBigDecimals;
-import static com.finflow.backend.investment.market_data.application.usecase.InvestmentAnalysisNumberUtils.toDouble;
+import static com.finflow.backend.investment.market_data.application.service.InvestmentAnalysisNumberUtils.keepLatestQuarterByYear;
+import static com.finflow.backend.investment.market_data.application.service.InvestmentAnalysisNumberUtils.normalizeLimit;
+import static com.finflow.backend.investment.market_data.application.service.InvestmentAnalysisNumberUtils.sumBigDecimals;
+import static com.finflow.backend.investment.market_data.application.service.InvestmentAnalysisNumberUtils.toDouble;
 
 /**
  * Strategy for building BANK financial series points.
  * Pure transformation: no repository access.
  */
-class BankStatementStrategy {
+public class BankStatementStrategy {
     private final InvestmentFinancialPointMapper pointMapper;
 
-    BankStatementStrategy(InvestmentFinancialPointMapper pointMapper) {
+    public BankStatementStrategy(InvestmentFinancialPointMapper pointMapper) {
         this.pointMapper = pointMapper;
     }
 
-    List<InvestmentAnalysisResponse.BankFinancialPoint> buildPoints(
+    public List<InvestmentAnalysisResponse.BankFinancialPoint> buildPoints(
             List<BankBalanceSheet> balances,
             List<BankIncomeStatement> incomes,
             List<FinancialIndicator> indicators,
@@ -152,4 +153,3 @@ class BankStatementStrategy {
         );
     }
 }
-

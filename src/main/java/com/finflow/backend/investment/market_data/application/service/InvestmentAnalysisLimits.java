@@ -1,4 +1,4 @@
-package com.finflow.backend.investment.market_data.application.usecase;
+package com.finflow.backend.investment.market_data.application.service;
 
 import com.finflow.backend.investment.market_data.presentation.response.InvestmentAnalysisResponse;
 
@@ -58,4 +58,3 @@ final class InvestmentAnalysisLimits {
                 .toList();
     }
 }
-

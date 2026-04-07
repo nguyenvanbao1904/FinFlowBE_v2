@@ -1,9 +1,10 @@
-package com.finflow.backend.investment.market_data.application.usecase;
+package com.finflow.backend.investment.market_data.application.service;
 
 import com.finflow.backend.investment.market_data.domain.entity.Company;
 import com.finflow.backend.investment.market_data.domain.entity.CompanyDividend;
 import com.finflow.backend.investment.market_data.domain.entity.CompanyShareholder;
 import com.finflow.backend.investment.market_data.domain.entity.FinancialIndicator;
+import com.finflow.backend.investment.market_data.application.mapper.InvestmentAnalysisPointMapper;
 import com.finflow.backend.investment.market_data.presentation.response.InvestmentAnalysisResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -26,7 +27,7 @@ import java.util.Optional;
  */
 @Component
 @RequiredArgsConstructor
-class InvestmentAnalysisService {
+public class InvestmentAnalysisService {
     private static final Comparator<InvestmentAnalysisResponse.ValuationPoint> VALUATION_ASC =
             Comparator.comparing(InvestmentAnalysisResponse.ValuationPoint::year, Comparator.nullsLast(Comparator.naturalOrder()))
                     .thenComparing(InvestmentAnalysisResponse.ValuationPoint::quarter, Comparator.nullsLast(Comparator.naturalOrder()));
@@ -141,4 +142,3 @@ class InvestmentAnalysisService {
         return InvestmentAnalysisLimits.applyDividendYearLimit(dividendPoints, annualLimit);
     }
 }
-

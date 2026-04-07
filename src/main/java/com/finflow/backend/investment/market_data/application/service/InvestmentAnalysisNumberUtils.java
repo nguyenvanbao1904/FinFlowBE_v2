@@ -1,4 +1,4 @@
-package com.finflow.backend.investment.market_data.application.usecase;
+package com.finflow.backend.investment.market_data.application.service;
 
 import com.finflow.backend.investment.market_data.presentation.response.InvestmentAnalysisResponse;
 
@@ -7,16 +7,16 @@ import java.time.LocalDate;
 import java.util.*;
 import java.util.function.Function;
 
-final class InvestmentAnalysisNumberUtils {
+public final class InvestmentAnalysisNumberUtils {
     private InvestmentAnalysisNumberUtils() {
     }
 
-    static Double toDouble(BigDecimal value) {
+    public static Double toDouble(BigDecimal value) {
         return value == null ? null : value.doubleValue();
     }
 
     /** SUM a nullable BigDecimal field across a list of items. Returns null if all values are null. */
-    static <T> Double sumBigDecimals(List<T> items, Function<T, BigDecimal> getter) {
+    public static <T> Double sumBigDecimals(List<T> items, Function<T, BigDecimal> getter) {
         BigDecimal sum = null;
         for (T item : items) {
             BigDecimal v = getter.apply(item);
@@ -27,7 +27,7 @@ final class InvestmentAnalysisNumberUtils {
         return sum == null ? null : sum.doubleValue();
     }
 
-    static <T> Map<Integer, T> keepLatestQuarterByYear(
+    public static <T> Map<Integer, T> keepLatestQuarterByYear(
             List<T> items,
             Function<T, Integer> yearFn,
             Function<T, Integer> quarterFn
@@ -43,14 +43,14 @@ final class InvestmentAnalysisNumberUtils {
         return map;
     }
 
-    static long normalizeLimit(Integer rawLimit) {
+    public static long normalizeLimit(Integer rawLimit) {
         if (rawLimit == null) {
             return Long.MAX_VALUE;
         }
         return Math.max(rawLimit, 0);
     }
 
-    static LocalDate parseDate(String raw) {
+    public static LocalDate parseDate(String raw) {
         if (raw == null || raw.isBlank()) return null;
         try {
             return LocalDate.parse(raw);
@@ -59,12 +59,12 @@ final class InvestmentAnalysisNumberUtils {
         }
     }
 
-    static Integer extractDividendYear(InvestmentAnalysisResponse.DividendPoint p) {
+    public static Integer extractDividendYear(InvestmentAnalysisResponse.DividendPoint p) {
         LocalDate d = extractDividendDateForSort(p);
         return d == null ? null : d.getYear();
     }
 
-    static LocalDate extractDividendDateForSort(InvestmentAnalysisResponse.DividendPoint p) {
+    public static LocalDate extractDividendDateForSort(InvestmentAnalysisResponse.DividendPoint p) {
         LocalDate record = parseDate(p.recordDate());
         if (record != null) return record;
         LocalDate exright = parseDate(p.exrightDate());
@@ -72,4 +72,3 @@ final class InvestmentAnalysisNumberUtils {
         return parseDate(p.issueDate());
     }
 }
-

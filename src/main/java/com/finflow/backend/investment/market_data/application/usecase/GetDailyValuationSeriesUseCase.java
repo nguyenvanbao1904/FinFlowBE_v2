@@ -1,6 +1,8 @@
 package com.finflow.backend.investment.market_data.application.usecase;
 
 import com.finflow.backend.common.exception.AppException;
+import com.finflow.backend.investment.market_data.application.service.InvestmentAnalysisRepositoryLoader;
+import com.finflow.backend.investment.market_data.application.service.InvestmentFinancialUtils;
 import com.finflow.backend.investment.market_data.domain.entity.Company;
 import com.finflow.backend.investment.market_data.domain.entity.BankIncomeStatement;
 import com.finflow.backend.investment.market_data.domain.entity.FinancialIndicator;

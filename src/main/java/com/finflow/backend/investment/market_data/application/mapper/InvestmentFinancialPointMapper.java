@@ -1,4 +1,4 @@
-package com.finflow.backend.investment.market_data.application.usecase;
+package com.finflow.backend.investment.market_data.application.mapper;
 
 import com.finflow.backend.investment.market_data.presentation.response.InvestmentAnalysisResponse;
 import org.mapstruct.Mapper;
@@ -10,7 +10,7 @@ import org.mapstruct.ReportingPolicy;
  * Strategy classes compute the numbers; this mapper creates the response DTOs.
  */
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
-interface InvestmentFinancialPointMapper {
+public interface InvestmentFinancialPointMapper {
 
     InvestmentAnalysisResponse.BankFinancialPoint toBankFinancialPoint(
             Integer year,
@@ -65,4 +65,3 @@ interface InvestmentFinancialPointMapper {
             Double totalRevenue
     );
 }
-

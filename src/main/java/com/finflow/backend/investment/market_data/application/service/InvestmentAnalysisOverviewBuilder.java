@@ -1,4 +1,4 @@
-package com.finflow.backend.investment.market_data.application.usecase;
+package com.finflow.backend.investment.market_data.application.service;
 
 import com.finflow.backend.investment.market_data.domain.entity.Company;
 import com.finflow.backend.investment.market_data.domain.entity.FinancialIndicator;
@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import static com.finflow.backend.investment.market_data.application.usecase.InvestmentAnalysisNumberUtils.toDouble;
+import static com.finflow.backend.investment.market_data.application.service.InvestmentAnalysisNumberUtils.toDouble;
 
 /**
  * Overview BCTC + bội số định giá theo chỉ số lưu trong DB; đồng thời tính thêm PE/PB/PS theo giá VPS gần nhất

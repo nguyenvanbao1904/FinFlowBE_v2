@@ -1,4 +1,4 @@
-package com.finflow.backend.investment.market_data.application.usecase;
+package com.finflow.backend.investment.market_data.application.mapper;
 
 import com.finflow.backend.investment.market_data.domain.entity.CompanyDividend;
 import com.finflow.backend.investment.market_data.domain.entity.CompanyShareholder;
@@ -16,7 +16,7 @@ import java.time.LocalDate;
         unmappedTargetPolicy = ReportingPolicy.IGNORE,
         unmappedSourcePolicy = ReportingPolicy.IGNORE
 )
-interface InvestmentAnalysisPointMapper {
+public interface InvestmentAnalysisPointMapper {
 
     InvestmentAnalysisResponse.ValuationPoint toValuationPoint(FinancialIndicator indicator);
 
@@ -39,4 +39,3 @@ interface InvestmentAnalysisPointMapper {
         return value == null ? null : value.toString();
     }
 }
-

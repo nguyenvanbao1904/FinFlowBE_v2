@@ -1,4 +1,4 @@
-package com.finflow.backend.investment.market_data.application.usecase;
+package com.finflow.backend.investment.market_data.application.service;
 
 import com.finflow.backend.investment.market_data.domain.entity.CompanyDividend;
 import com.finflow.backend.investment.market_data.domain.entity.FinancialIndicator;
@@ -13,7 +13,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiFunction;
 
-final class InvestmentFinancialUtils {
+public final class InvestmentFinancialUtils {
     private InvestmentFinancialUtils() {
     }
 
@@ -62,7 +62,7 @@ final class InvestmentFinancialUtils {
     /**
      * Đồng bộ với chuẩn hoá CPLH trên iOS ({@code InvestmentRepository.normalizeSharesToBillion}).
      */
-    static double absoluteSharesFromCplh(double raw) {
+    public static double absoluteSharesFromCplh(double raw) {
         double a = Math.abs(raw);
         if (a >= 1_000_000) {
             return raw;
@@ -175,7 +175,7 @@ final class InvestmentFinancialUtils {
     }
 
     /** Tổng top-line NH 4 quý gần nhất có quarterEnd ≤ {@code d}. */
-    static Double bankTopLineTtmAsOf(List<BankIncomeStatement> incomesAsc, LocalDate d) {
+    public static Double bankTopLineTtmAsOf(List<BankIncomeStatement> incomesAsc, LocalDate d) {
         if (incomesAsc == null || incomesAsc.isEmpty()) {
             return null;
         }
@@ -195,7 +195,7 @@ final class InvestmentFinancialUtils {
     /**
      * Bản ghi chỉ số mới nhất có ngày cuối kỳ ≤ {@code d} ({@code indicators} sort year asc, quarter asc).
      */
-    static FinancialIndicator latestIndicatorAsOf(List<FinancialIndicator> indicatorsAsc, LocalDate d) {
+    public static FinancialIndicator latestIndicatorAsOf(List<FinancialIndicator> indicatorsAsc, LocalDate d) {
         if (indicatorsAsc == null || indicatorsAsc.isEmpty()) {
             return null;
         }
@@ -209,7 +209,7 @@ final class InvestmentFinancialUtils {
     }
 
     /** Tổng EPS 4 quý gần nhất có quarterEnd ≤ {@code d}. */
-    static Double epsTtmAsOf(List<FinancialIndicator> indicatorsAsc, LocalDate d) {
+    public static Double epsTtmAsOf(List<FinancialIndicator> indicatorsAsc, LocalDate d) {
         if (indicatorsAsc == null || indicatorsAsc.isEmpty()) {
             return null;
         }
@@ -229,7 +229,7 @@ final class InvestmentFinancialUtils {
     }
 
     /** Tổng doanh thu thuần 4 quý gần nhất có quarterEnd ≤ {@code d} (chỉ {@code netRevenue}). */
-    static Double netRevenueTtmAsOf(List<NonBankIncomeStatement> incomesAsc, LocalDate d) {
+    public static Double netRevenueTtmAsOf(List<NonBankIncomeStatement> incomesAsc, LocalDate d) {
         if (incomesAsc == null || incomesAsc.isEmpty()) {
             return null;
         }
@@ -296,4 +296,3 @@ final class InvestmentFinancialUtils {
         return m;
     }
 }
-

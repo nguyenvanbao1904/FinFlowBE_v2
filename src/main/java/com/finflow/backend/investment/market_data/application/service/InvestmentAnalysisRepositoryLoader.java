@@ -1,4 +1,4 @@
-package com.finflow.backend.investment.market_data.application.usecase;
+package com.finflow.backend.investment.market_data.application.service;
 
 import com.finflow.backend.common.exception.AppException;
 import com.finflow.backend.investment.market_data.domain.entity.*;
@@ -18,7 +18,7 @@ import java.util.*;
  */
 @Component
 @RequiredArgsConstructor
-class InvestmentAnalysisRepositoryLoader {
+public class InvestmentAnalysisRepositoryLoader {
     private final CompanyRepository companyRepository;
     private final CompanyShareholderRepository companyShareholderRepository;
     private final CompanyDividendRepository companyDividendRepository;
@@ -28,7 +28,7 @@ class InvestmentAnalysisRepositoryLoader {
     private final BankIncomeStatementRepository bankIncomeStatementRepository;
     private final NonBankIncomeStatementRepository nonBankIncomeStatementRepository;
 
-    Company resolveCompany(String rawSymbol) {
+    public Company resolveCompany(String rawSymbol) {
         String symbol = Optional.ofNullable(rawSymbol).orElse("").trim().toUpperCase();
         if (symbol.isEmpty()) {
             throw new AppException(MarketDataErrorCode.INVALID_SYMBOL);
@@ -45,15 +45,15 @@ class InvestmentAnalysisRepositoryLoader {
         return companyDividendRepository.findByCompanyIdOrderByRecordDateAsc(companyId);
     }
 
-    List<FinancialIndicator> loadAllFinancialIndicatorsAsc(String companyId) {
+    public List<FinancialIndicator> loadAllFinancialIndicatorsAsc(String companyId) {
         return financialIndicatorRepository.findByCompanyIdOrderByYearAscQuarterAsc(companyId);
     }
 
-    List<NonBankIncomeStatement> loadAllNonBankIncomesAsc(String companyId) {
+    public List<NonBankIncomeStatement> loadAllNonBankIncomesAsc(String companyId) {
         return nonBankIncomeStatementRepository.findByCompanyIdOrderByYearAscQuarterAsc(companyId);
     }
 
-    List<BankIncomeStatement> loadAllBankIncomesAsc(String companyId) {
+    public List<BankIncomeStatement> loadAllBankIncomesAsc(String companyId) {
         return bankIncomeStatementRepository.findByCompanyIdOrderByYearAscQuarterAsc(companyId);
     }
 
@@ -239,7 +239,7 @@ class InvestmentAnalysisRepositoryLoader {
         );
     }
 
-    LocalDate parseIsoDate(String raw, String paramName) {
+    public LocalDate parseIsoDate(String raw, String paramName) {
         try {
             return LocalDate.parse(raw);
         } catch (Exception e) {
@@ -294,4 +294,3 @@ class InvestmentAnalysisRepositoryLoader {
         return (int) Math.min(800L, Math.max(24L, (long) computeTimeSeriesCap(annualLimit, quarterlyLimit) + 32L));
     }
 }
-

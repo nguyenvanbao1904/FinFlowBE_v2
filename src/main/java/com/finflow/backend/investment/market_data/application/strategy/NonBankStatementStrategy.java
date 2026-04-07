@@ -1,5 +1,6 @@
-package com.finflow.backend.investment.market_data.application.usecase;
+package com.finflow.backend.investment.market_data.application.strategy;
 
+import com.finflow.backend.investment.market_data.application.mapper.InvestmentFinancialPointMapper;
 import com.finflow.backend.investment.market_data.domain.entity.FinancialIndicator;
 import com.finflow.backend.investment.market_data.domain.entity.NonBankBalanceSheet;
 import com.finflow.backend.investment.market_data.domain.entity.NonBankIncomeStatement;
@@ -7,23 +8,23 @@ import com.finflow.backend.investment.market_data.presentation.response.Investme
 
 import java.util.*;
 
-import static com.finflow.backend.investment.market_data.application.usecase.InvestmentAnalysisNumberUtils.keepLatestQuarterByYear;
-import static com.finflow.backend.investment.market_data.application.usecase.InvestmentAnalysisNumberUtils.normalizeLimit;
-import static com.finflow.backend.investment.market_data.application.usecase.InvestmentAnalysisNumberUtils.sumBigDecimals;
-import static com.finflow.backend.investment.market_data.application.usecase.InvestmentAnalysisNumberUtils.toDouble;
+import static com.finflow.backend.investment.market_data.application.service.InvestmentAnalysisNumberUtils.keepLatestQuarterByYear;
+import static com.finflow.backend.investment.market_data.application.service.InvestmentAnalysisNumberUtils.normalizeLimit;
+import static com.finflow.backend.investment.market_data.application.service.InvestmentAnalysisNumberUtils.sumBigDecimals;
+import static com.finflow.backend.investment.market_data.application.service.InvestmentAnalysisNumberUtils.toDouble;
 
 /**
  * Strategy for building NON_BANK financial series points.
  * Pure transformation: no repository access.
  */
-class NonBankStatementStrategy {
+public class NonBankStatementStrategy {
     private final InvestmentFinancialPointMapper pointMapper;
 
-    NonBankStatementStrategy(InvestmentFinancialPointMapper pointMapper) {
+    public NonBankStatementStrategy(InvestmentFinancialPointMapper pointMapper) {
         this.pointMapper = pointMapper;
     }
 
-    List<InvestmentAnalysisResponse.NonBankFinancialPoint> buildPoints(
+    public List<InvestmentAnalysisResponse.NonBankFinancialPoint> buildPoints(
             List<NonBankBalanceSheet> balances,
             List<NonBankIncomeStatement> incomes,
             List<FinancialIndicator> indicators,
@@ -180,4 +181,3 @@ class NonBankStatementStrategy {
         );
     }
 }
-
