@@ -1,5 +1,7 @@
 package com.finflow.backend.investment.portfolio.application.usecase;
 
+import com.finflow.backend.investment.portfolio.application.port.in.GetPortfoliosPort;
+
 import com.finflow.backend.investment.portfolio.application.mapper.PortfolioMapper;
 import com.finflow.backend.investment.portfolio.domain.repository.PortfolioAssetRepository;
 import com.finflow.backend.investment.portfolio.domain.repository.PortfolioRepository;
@@ -19,7 +21,7 @@ import java.util.stream.Collectors;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class GetPortfoliosUseCase {
+public class GetPortfoliosUseCase implements GetPortfoliosPort {
 
     private final PortfolioRepository portfolioRepository;
     private final PortfolioAssetRepository portfolioAssetRepository;
@@ -27,6 +29,7 @@ public class GetPortfoliosUseCase {
 
     @Transactional(readOnly = true)
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @Override
     public List<PortfolioResponse> execute(String userId) {
         log.info("Getting portfolios for user: {}", userId);
         var portfolios = portfolioRepository.findByUserIdOrderByCreatedAtDesc(userId);

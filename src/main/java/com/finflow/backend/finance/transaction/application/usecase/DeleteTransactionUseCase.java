@@ -1,10 +1,13 @@
 package com.finflow.backend.finance.transaction.application.usecase;
 
+import com.finflow.backend.finance.transaction.application.port.in.DeleteTransactionPort;
+
 import com.finflow.backend.common.exception.AppException;
 import com.finflow.backend.finance.transaction.domain.entity.Transaction;
 import com.finflow.backend.finance.transaction.domain.enums.CategoryType;
 import com.finflow.backend.finance.transaction.domain.repository.TransactionRepository;
 import com.finflow.backend.finance.transaction.exception.TransactionErrorCode;
+import com.finflow.backend.finance.transaction.application.command.DeleteTransactionCommand;
 import com.finflow.backend.finance.wealth.domain.repository.WealthAccountRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,14 +21,17 @@ import java.util.UUID;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class DeleteTransactionUseCase {
+public class DeleteTransactionUseCase implements DeleteTransactionPort {
 
     private final TransactionRepository transactionRepository;
     private final WealthAccountRepository wealthAccountRepository;
 
     @Transactional
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public void execute(String userId, UUID transactionId) {
+    @Override
+    public void execute(DeleteTransactionCommand command) {
+        String userId = command.userId();
+        UUID transactionId = command.transactionId();
         log.info("Deleting transaction {} for userId: {}", transactionId, userId);
 
         Transaction transaction = transactionRepository.findById(transactionId)

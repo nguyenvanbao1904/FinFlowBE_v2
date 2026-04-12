@@ -1,5 +1,7 @@
 package com.finflow.backend.identity.application.usecase;
 
+import com.finflow.backend.identity.application.port.in.DeleteAccountPort;
+
 import com.finflow.backend.identity.domain.entity.User;
 import com.finflow.backend.identity.domain.repository.UserRepository;
 import com.finflow.backend.identity.exception.IdentityErrorCode;
@@ -10,33 +12,34 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.finflow.backend.identity.presentation.request.DeleteAccountRequest;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import com.finflow.backend.identity.application.command.DeleteAccountCommand;
+import com.finflow.backend.identity.application.port.out.PasswordEncoderPort;
 
 @Component
 @RequiredArgsConstructor
-public class DeleteAccountUseCase {
+public class DeleteAccountUseCase implements DeleteAccountPort {
     private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
+    private final PasswordEncoderPort passwordEncoder;
     private final org.springframework.context.ApplicationEventPublisher eventPublisher;
 
     @Transactional
     @PreAuthorize("hasAnyRole('USER','ADMIN')")
-    public void execute(String userId, DeleteAccountRequest request) {
-        User user = userRepository.findById(userId)
+    @Override
+    public void execute(DeleteAccountCommand command) {
+        User user = userRepository.findById(command.userId())
                 .orElseThrow(() -> new AppException(IdentityErrorCode.USER_NOT_FOUND));
 
         // Logic:
-        // 1. If user has password (local user) -> request.password is MANDATORY and MUST match.
-        // 2. If user has NO password (google user) -> request.password is IGNORED (assumed frontend verified PIN).
+        // 1. If user has password (local user) -> command.password is MANDATORY and MUST match.
+        // 2. If user has NO password (google user) -> command.password is IGNORED.
         
         boolean hasPasswordInDb = user.getPassword() != null && !user.getPassword().isEmpty();
 
         if (hasPasswordInDb) {
-            if (request.getPassword() == null || request.getPassword().isEmpty()) {
+            if (command.password() == null || command.password().isEmpty()) {
                 throw new AppException(IdentityErrorCode.PASSWORD_REQUIRED);
             }
-            if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            if (!passwordEncoder.matches(command.password(), user.getPassword())) {
                 throw new AppException(IdentityErrorCode.INVALID_PASSWORD);
             }
         }

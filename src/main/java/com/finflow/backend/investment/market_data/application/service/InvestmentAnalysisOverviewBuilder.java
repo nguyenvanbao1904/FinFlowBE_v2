@@ -25,12 +25,12 @@ import static com.finflow.backend.investment.market_data.application.service.Inv
 @Slf4j
 @Component
 @RequiredArgsConstructor
-class InvestmentAnalysisOverviewBuilder {
+public class InvestmentAnalysisOverviewBuilder {
 
     private final VpsMarketPriceClient vpsMarketPriceClient;
-    private final InvestmentAnalysisRepositoryLoader repositoryLoader;
+    private final MarketDataReadService readService;
 
-    InvestmentAnalysisResponse.Overview build(Company company, List<FinancialIndicator> indicators) {
+    public InvestmentAnalysisResponse.Overview build(Company company, List<FinancialIndicator> indicators) {
         FinancialIndicator latest = selectOverviewIndicator(indicators);
         String industryLabel = company.getIndustryNode() == null || company.getIndustryNode().getNameVi() == null
                 ? ""
@@ -105,10 +105,10 @@ class InvestmentAnalysisOverviewBuilder {
                 if (shares > 0 && !Double.isNaN(shares)) {
                     Double ttmBase = null;
                     if ("BANK".equalsIgnoreCase(type)) {
-                        List<BankIncomeStatement> bankInc = repositoryLoader.loadBankIncomesLastQuarters(company.getId(), 4);
+                        List<BankIncomeStatement> bankInc = readService.loadBankIncomesLastQuarters(company.getId(), 4);
                         ttmBase = InvestmentFinancialUtils.computeBankTopLineTtm(bankInc);
                     } else {
-                        List<NonBankIncomeStatement> incomes = repositoryLoader.loadNonBankIncomesLastQuarters(company.getId(), 4);
+                        List<NonBankIncomeStatement> incomes = readService.loadNonBankIncomesLastQuarters(company.getId(), 4);
                         ttmBase = InvestmentFinancialUtils.computeNetRevenueTtm(incomes);
                     }
                     if (ttmBase != null && ttmBase > 0) {

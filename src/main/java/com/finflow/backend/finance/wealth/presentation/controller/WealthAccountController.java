@@ -1,11 +1,14 @@
 package com.finflow.backend.finance.wealth.presentation.controller;
 
 import com.finflow.backend.common.versioning.ApiVersion;
-import com.finflow.backend.finance.wealth.application.usecase.CreateWealthAccountUseCase;
-import com.finflow.backend.finance.wealth.application.usecase.DeleteWealthAccountUseCase;
-import com.finflow.backend.finance.wealth.application.usecase.GetWealthAccountTypesUseCase;
-import com.finflow.backend.finance.wealth.application.usecase.GetWealthAccountsUseCase;
-import com.finflow.backend.finance.wealth.application.usecase.UpdateWealthAccountUseCase;
+import com.finflow.backend.finance.wealth.application.command.CreateWealthAccountCommand;
+import com.finflow.backend.finance.wealth.application.command.DeleteWealthAccountCommand;
+import com.finflow.backend.finance.wealth.application.command.UpdateWealthAccountCommand;
+import com.finflow.backend.finance.wealth.application.port.in.CreateWealthAccountPort;
+import com.finflow.backend.finance.wealth.application.port.in.DeleteWealthAccountPort;
+import com.finflow.backend.finance.wealth.application.port.in.GetWealthAccountTypesPort;
+import com.finflow.backend.finance.wealth.application.port.in.GetWealthAccountsPort;
+import com.finflow.backend.finance.wealth.application.port.in.UpdateWealthAccountPort;
 import com.finflow.backend.finance.wealth.presentation.request.CreateWealthAccountRequest;
 import com.finflow.backend.finance.wealth.presentation.request.UpdateWealthAccountRequest;
 import com.finflow.backend.finance.wealth.presentation.response.WealthAccountTypeOptionResponse;
@@ -37,11 +40,11 @@ import java.util.UUID;
 @Tag(name = "WealthAccount", description = "Wealth account (wallet + asset) management APIs")
 public class WealthAccountController {
 
-    private final GetWealthAccountTypesUseCase getWealthAccountTypesUseCase;
-    private final GetWealthAccountsUseCase getWealthAccountsUseCase;
-    private final CreateWealthAccountUseCase createWealthAccountUseCase;
-    private final UpdateWealthAccountUseCase updateWealthAccountUseCase;
-    private final DeleteWealthAccountUseCase deleteWealthAccountUseCase;
+    private final GetWealthAccountTypesPort getWealthAccountTypesUseCase;
+    private final GetWealthAccountsPort getWealthAccountsUseCase;
+    private final CreateWealthAccountPort createWealthAccountUseCase;
+    private final UpdateWealthAccountPort updateWealthAccountUseCase;
+    private final DeleteWealthAccountPort deleteWealthAccountUseCase;
 
     @Operation(summary = "Get all wealth account types (for pickers and transaction-eligibility)")
     @GetMapping("/types")
@@ -63,7 +66,10 @@ public class WealthAccountController {
             @Valid @RequestBody CreateWealthAccountRequest request
     ) {
         String userId = jwt.getSubject();
-        WealthAccountResponse response = createWealthAccountUseCase.execute(userId, request);
+        WealthAccountResponse response = createWealthAccountUseCase.execute(
+            new CreateWealthAccountCommand(userId, request.getName(), request.getAccountTypeId(),
+                request.getBalance(), request.getIncludeInNetWorth())
+        );
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -75,7 +81,10 @@ public class WealthAccountController {
             @Valid @RequestBody UpdateWealthAccountRequest request
     ) {
         String userId = jwt.getSubject();
-        WealthAccountResponse response = updateWealthAccountUseCase.execute(userId, id, request);
+        WealthAccountResponse response = updateWealthAccountUseCase.execute(
+            new UpdateWealthAccountCommand(userId, id, request.getName(), request.getAccountTypeId(),
+                request.getBalance(), request.getIncludeInNetWorth())
+        );
         return ResponseEntity.ok(response);
     }
 
@@ -86,7 +95,7 @@ public class WealthAccountController {
             @PathVariable UUID id
     ) {
         String userId = jwt.getSubject();
-        deleteWealthAccountUseCase.execute(userId, id);
+        deleteWealthAccountUseCase.execute(new DeleteWealthAccountCommand(userId, id));
         return ResponseEntity.noContent().build();
     }
 }

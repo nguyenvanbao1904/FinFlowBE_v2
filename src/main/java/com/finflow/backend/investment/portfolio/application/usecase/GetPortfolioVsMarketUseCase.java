@@ -1,8 +1,10 @@
 package com.finflow.backend.investment.portfolio.application.usecase;
 
+import com.finflow.backend.investment.portfolio.application.port.in.GetPortfolioVsMarketPort;
+
+import com.finflow.backend.investment.portfolio.application.result.PortfolioHealthResult;
 import com.finflow.backend.investment.portfolio.application.service.PortfolioHealthComputationService;
 import com.finflow.backend.investment.portfolio.infrastructure.VndirectRatiosClient;
-import com.finflow.backend.investment.portfolio.presentation.response.PortfolioHealthResponse;
 import com.finflow.backend.investment.portfolio.presentation.response.PortfolioMarketBenchmarkResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -15,7 +17,7 @@ import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
-public class GetPortfolioVsMarketUseCase {
+public class GetPortfolioVsMarketUseCase implements GetPortfolioVsMarketPort {
 
     private static final String PE_CODE = "81007";
     private static final String PB_CODE = "81013";
@@ -27,24 +29,23 @@ public class GetPortfolioVsMarketUseCase {
     private final VndirectRatiosClient vndirectRatiosClient;
 
     @Transactional(readOnly = true)
+    @Override
     public PortfolioMarketBenchmarkResponse execute(String userId, UUID portfolioId, String benchmarkCode) {
         String code = benchmarkCode == null || benchmarkCode.isBlank()
                 ? "VNINDEX"
                 : benchmarkCode.trim().toUpperCase();
 
-        PortfolioHealthResponse health = portfolioHealthComputationService.compute(userId, portfolioId, 20);
+        PortfolioHealthResult health = portfolioHealthComputationService.compute(userId, portfolioId, 20);
         Map<String, Double> benchmark = vndirectRatiosClient.getLatestRatios(
-                code,
-                List.of(PE_CODE, PB_CODE, PS_CODE, ROE_CODE, ROA_CODE)
-        );
+                code, List.of(PE_CODE, PB_CODE, PS_CODE, ROE_CODE, ROA_CODE));
 
         Double portfolioPe = health.current().pe();
         Double portfolioPb = health.current().pb();
         Double portfolioPs = health.current().ps();
 
-        PortfolioHealthResponse.HistoryPoint latestHistory = health.history().stream()
-                .max(Comparator.comparingInt(PortfolioHealthResponse.HistoryPoint::year)
-                        .thenComparingInt(PortfolioHealthResponse.HistoryPoint::quarter))
+        PortfolioHealthResult.HistoryPoint latestHistory = health.history().stream()
+                .max(Comparator.comparingInt(PortfolioHealthResult.HistoryPoint::year)
+                        .thenComparingInt(PortfolioHealthResult.HistoryPoint::quarter))
                 .orElse(null);
 
         Double portfolioRoe = latestHistory != null ? latestHistory.roe() : null;

@@ -1,5 +1,7 @@
 package com.finflow.backend.investment.portfolio.application.usecase;
 
+import com.finflow.backend.investment.portfolio.application.port.in.CreatePortfolioAssetPort;
+
 import com.finflow.backend.common.exception.AppException;
 import com.finflow.backend.investment.portfolio.application.mapper.PortfolioAssetMapper;
 import com.finflow.backend.investment.portfolio.domain.entity.Portfolio;
@@ -8,7 +10,7 @@ import com.finflow.backend.investment.portfolio.domain.repository.PortfolioAsset
 import com.finflow.backend.investment.portfolio.domain.repository.PortfolioRepository;
 import com.finflow.backend.investment.portfolio.exception.PortfolioAssetErrorCode;
 import com.finflow.backend.investment.portfolio.exception.PortfolioErrorCode;
-import com.finflow.backend.investment.portfolio.presentation.request.CreatePortfolioAssetRequest;
+import com.finflow.backend.investment.portfolio.application.command.CreatePortfolioAssetCommand;
 import com.finflow.backend.investment.portfolio.presentation.response.PortfolioAssetResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,7 +25,7 @@ import java.util.UUID;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class CreatePortfolioAssetUseCase {
+public class CreatePortfolioAssetUseCase implements CreatePortfolioAssetPort {
 
     private final PortfolioRepository portfolioRepository;
     private final PortfolioAssetRepository portfolioAssetRepository;
@@ -31,10 +33,13 @@ public class CreatePortfolioAssetUseCase {
 
     @Transactional
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public PortfolioAssetResponse execute(String userId, UUID portfolioId, CreatePortfolioAssetRequest request) {
-        String symbol = request.getSymbol().trim().toUpperCase();
-        BigDecimal quantity = request.getQuantity();
-        BigDecimal averagePrice = request.getAveragePrice();
+    @Override
+    public PortfolioAssetResponse execute(CreatePortfolioAssetCommand command) {
+        String userId = command.userId();
+        UUID portfolioId = command.portfolioId();
+        String symbol = command.symbol().trim().toUpperCase();
+        BigDecimal quantity = command.quantity();
+        BigDecimal averagePrice = command.averagePrice();
 
         if (symbol.isBlank()) {
             throw new AppException(PortfolioAssetErrorCode.PORTFOLIO_ASSET_SYMBOL_BLANK);

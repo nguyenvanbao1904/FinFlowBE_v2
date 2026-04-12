@@ -1,7 +1,10 @@
 package com.finflow.backend.finance.transaction.application.usecase;
 
+import com.finflow.backend.finance.transaction.application.port.in.DeleteCategoryPort;
+
 import com.finflow.backend.common.exception.AppException;
 import com.finflow.backend.finance.budget.domain.repository.BudgetRepository;
+import com.finflow.backend.finance.transaction.application.command.DeleteCategoryCommand;
 import com.finflow.backend.finance.transaction.domain.entity.Category;
 import com.finflow.backend.finance.transaction.domain.repository.CategoryRepository;
 import com.finflow.backend.finance.transaction.domain.repository.TransactionRepository;
@@ -17,7 +20,7 @@ import java.util.UUID;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class DeleteCategoryUseCase {
+public class DeleteCategoryUseCase implements DeleteCategoryPort {
 
     private final CategoryRepository categoryRepository;
     private final TransactionRepository transactionRepository;
@@ -25,7 +28,10 @@ public class DeleteCategoryUseCase {
 
     @Transactional
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public void execute(String userId, UUID categoryId) {
+    @Override
+    public void execute(DeleteCategoryCommand command) {
+        String userId = command.userId();
+        UUID categoryId = command.categoryId();
         log.info("Deleting category {} for userId: {}", categoryId, userId);
 
         Category category = categoryRepository.findByIdAndUserId(categoryId, userId)

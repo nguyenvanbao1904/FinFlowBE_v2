@@ -1,8 +1,10 @@
 package com.finflow.backend.identity.presentation.controller;
 
+import com.finflow.backend.identity.application.command.*;
+import com.finflow.backend.identity.domain.enums.OtpPurpose;
 import com.finflow.backend.identity.presentation.request.*;
 import com.finflow.backend.identity.presentation.response.*;
-import com.finflow.backend.identity.application.usecase.*;
+import com.finflow.backend.identity.application.port.in.*;
 import com.finflow.backend.common.versioning.ApiVersion;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -24,18 +26,18 @@ import jakarta.servlet.http.HttpServletRequest;
 public class AuthController {
 
     // Inject Use Cases instead of Services
-    private final RegisterUseCase registerUseCase;
-    private final LoginUseCase loginUseCase;
-    private final LogoutUseCase logoutUseCase;
-    private final RefreshTokenUseCase refreshTokenUseCase;
-    private final GoogleLoginUseCase googleLoginUseCase;
-    private final SendOtpUseCase sendOtpUseCase;
-    private final VerifyOtpUseCase verifyOtpUseCase;
-    private final ResetPasswordUseCase resetPasswordUseCase;
-    private final CheckUserExistenceUseCase checkUserExistenceUseCase;
-    private final ToggleBiometricUseCase toggleBiometricUseCase;
-    private final ChangePasswordUseCase changePasswordUseCase;
-    private final DeleteAccountUseCase deleteAccountUseCase;
+    private final RegisterUserPort registerUserPort;
+    private final LoginPort loginPort;
+    private final LogoutPort logoutPort;
+    private final RefreshTokenPort refreshTokenPort;
+    private final GoogleLoginPort googleLoginPort;
+    private final SendOtpPort sendOtpPort;
+    private final VerifyOtpPort verifyOtpPort;
+    private final ResetPasswordPort resetPasswordPort;
+    private final CheckUserExistencePort checkUserExistencePort;
+    private final ToggleBiometricPort toggleBiometricPort;
+    private final ChangePasswordPort changePasswordPort;
+    private final DeleteAccountPort deleteAccountPort;
 
     @Operation(summary = "Register a new user (requires X-Registration-Token)")
     @PostMapping("/register")
@@ -44,7 +46,15 @@ public class AuthController {
             @RequestHeader("X-Registration-Token") String registrationToken
     ) {
         log.info("Register request received for username: {}", request.getUsername());
-        registerUseCase.execute(request, registrationToken);
+        registerUserPort.execute(new RegisterCommand(
+                request.getUsername(),
+                request.getEmail(),
+                request.getPassword(),
+                request.getFirstName(),
+                request.getLastName(),
+                request.getDob(),
+                registrationToken
+        ));
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new MessageResponse("User registered successfully!"));
     }
@@ -53,7 +63,8 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         log.info("Login request received for username: {}", request.getUsername());
-        AuthResponse response = loginUseCase.execute(request);
+        AuthResponse response = loginPort.execute(
+                new LoginCommand(request.getUsername(), request.getPassword()));
         return ResponseEntity.ok(response);
     }
 
@@ -61,7 +72,8 @@ public class AuthController {
     @PostMapping("/refresh")
     public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshTokenRequest request) {
         log.info("Refresh token request received");
-        AuthResponse response = refreshTokenUseCase.execute(request.getRefreshToken());
+        AuthResponse response = refreshTokenPort.execute(
+                new RefreshTokenCommand(request.getRefreshToken()));
         return ResponseEntity.ok(response);
     }
 
@@ -69,7 +81,8 @@ public class AuthController {
     @PostMapping("/google")
     public ResponseEntity<AuthResponse> googleLogin(@RequestBody @Valid GoogleLoginRequest request) {
         log.info("Google login request received");
-        AuthResponse response = googleLoginUseCase.execute(request);
+        AuthResponse response = googleLoginPort.execute(
+                new GoogleLoginCommand(request.getIdToken()));
         return ResponseEntity.ok(response);
     }
 
@@ -77,7 +90,7 @@ public class AuthController {
     @PostMapping("/send-otp")
     public ResponseEntity<MessageResponse> sendOtp(@RequestBody @Valid SendOtpRequest request) {
         log.info("Send OTP request for: {} with purpose: {}", request.getEmail(), request.getPurpose());
-        sendOtpUseCase.execute(request.getEmail(), request.getPurpose());
+        sendOtpPort.execute(request.getEmail(), request.getPurpose());
         return ResponseEntity.ok(new MessageResponse("OTP sent successfully"));
     }
 
@@ -85,7 +98,8 @@ public class AuthController {
     @PostMapping("/verify-otp")
     public ResponseEntity<VerifyOtpResponse> verifyOtp(@RequestBody @Valid VerifyOtpRequest request) {
         log.info("Verify OTP request for: {} with purpose: {}", request.getEmail(), request.getPurpose());
-        VerifyOtpResponse response = verifyOtpUseCase.execute(request.getEmail(), request.getOtp(), request.getPurpose());
+        VerifyOtpResponse response = verifyOtpPort.execute(
+                request.getEmail(), request.getOtp(), request.getPurpose());
         return ResponseEntity.ok(response);
     }
 
@@ -96,7 +110,11 @@ public class AuthController {
             @RequestHeader("X-Reset-Token") String token
     ) {
         log.info("Reset password request received");
-        resetPasswordUseCase.execute(request, token);
+        resetPasswordPort.execute(new ResetPasswordCommand(
+                request.getPassword(),
+                request.getConfirmPassword(),
+                token
+        ));
         return ResponseEntity.ok(new MessageResponse("Password reset successfully"));
     }
 
@@ -113,7 +131,7 @@ public class AuthController {
             String token = authHeader.substring(7);
 
             // 3. Execute logout use case
-            logoutUseCase.execute(token);
+            logoutPort.execute(new LogoutCommand(token));
         }
 
         return ResponseEntity.noContent().build();
@@ -121,9 +139,10 @@ public class AuthController {
     
     @Operation(summary = "Check if user exists by email (e.g. for forgot password)")
     @PostMapping("/check-user-existence")
-    public ResponseEntity<CheckUserExistenceResponse> checkUserExistence(@RequestBody @Valid CheckUserExistenceRequest request) {
+    public ResponseEntity<CheckUserExistenceResponse> checkUserExistence(
+            @RequestBody @Valid CheckUserExistenceRequest request) {
         log.info("Check user existence request received for email: {}", request.getEmail());
-        CheckUserExistenceResponse response = checkUserExistenceUseCase.execute(request);
+        CheckUserExistenceResponse response = checkUserExistencePort.execute(request);
         return ResponseEntity.ok(response);
     }
 
@@ -136,7 +155,7 @@ public class AuthController {
                 .getContext().getAuthentication().getName();
         
         log.info("Toggle biometric request for userId: {}", userId);
-        toggleBiometricUseCase.execute(userId, request);
+        toggleBiometricPort.execute(new ToggleBiometricCommand(userId, request.getEnabled()));
         
         return ResponseEntity.ok(new MessageResponse(
             request.getEnabled() 
@@ -144,6 +163,7 @@ public class AuthController {
                 : "Biometric authentication disabled successfully"
         ));
     }
+
     @Operation(summary = "Change password for authenticated user")
     @PostMapping("/change-password")
     public ResponseEntity<MessageResponse> changePassword(
@@ -153,24 +173,27 @@ public class AuthController {
                 .getContext().getAuthentication().getName();
         
         log.info("Change password request for userId: {}", userId);
-        changePasswordUseCase.execute(userId, request);
+        changePasswordPort.execute(new ChangePasswordCommand(
+                userId, request.getOldPassword(), request.getNewPassword()));
         
         return ResponseEntity.ok(new MessageResponse("Password changed successfully"));
     }
 
     @Operation(summary = "Soft delete current user account")
     @DeleteMapping("/delete-account")
-    public ResponseEntity<MessageResponse> deleteAccount(@RequestBody(required = false) DeleteAccountRequest request) {
+    public ResponseEntity<MessageResponse> deleteAccount(
+            @RequestBody(required = false) DeleteAccountRequest request) {
         String userId = org.springframework.security.core.context.SecurityContextHolder
                 .getContext().getAuthentication().getName();
         
-        // Handle null request body (if frontend sends nothing for google users, though standard is sending empty json)
+        // Handle null request body (if frontend sends nothing for google users)
         if (request == null) {
             request = new DeleteAccountRequest();
         }
 
         log.info("Delete account request for userId: {}", userId);
-        deleteAccountUseCase.execute(userId, request);
+        deleteAccountPort.execute(new DeleteAccountCommand(
+                userId, request.getPassword(), request.getVerificationToken()));
         
         return ResponseEntity.ok(new MessageResponse("Account deleted successfully"));
     }

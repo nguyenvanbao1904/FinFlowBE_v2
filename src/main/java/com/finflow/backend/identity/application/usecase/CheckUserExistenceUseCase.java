@@ -1,5 +1,7 @@
 package com.finflow.backend.identity.application.usecase;
 
+import com.finflow.backend.identity.application.port.in.CheckUserExistencePort;
+
 import com.finflow.backend.identity.domain.repository.UserRepository;
 import com.finflow.backend.identity.presentation.request.CheckUserExistenceRequest;
 import com.finflow.backend.identity.presentation.response.CheckUserExistenceResponse;
@@ -9,10 +11,11 @@ import org.springframework.util.StringUtils;
 
 @Component
 @RequiredArgsConstructor
-public class CheckUserExistenceUseCase {
+public class CheckUserExistenceUseCase implements CheckUserExistencePort {
 
     private final UserRepository userRepository;
 
+    @Override
     public CheckUserExistenceResponse execute(CheckUserExistenceRequest request) {
         boolean emailExists = false;
         boolean usernameExists = false;

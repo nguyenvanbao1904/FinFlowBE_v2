@@ -1,5 +1,7 @@
 package com.finflow.backend.identity.application.usecase;
 
+import com.finflow.backend.identity.application.port.in.VerifyOtpPort;
+
 import com.finflow.backend.common.exception.AppException;
 import com.finflow.backend.common.redis.RedisService;
 import com.finflow.backend.identity.application.dto.OtpData;
@@ -8,9 +10,9 @@ import com.finflow.backend.identity.exception.IdentityErrorCode;
 import com.finflow.backend.identity.presentation.response.VerifyOtpResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.oauth2.jwt.JwtClaimsSet;
-import org.springframework.security.oauth2.jwt.JwtEncoder;
-import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
+
+import com.finflow.backend.identity.application.port.out.TokenServicePort;
+
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -21,12 +23,13 @@ import java.util.UUID;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class VerifyOtpUseCase {
+public class VerifyOtpUseCase implements VerifyOtpPort {
     private final RedisService redisService;
-    private final JwtEncoder jwtEncoder;
+    private final TokenServicePort tokenServicePort;
     
     private static final String OTP_KEY_PREFIX = "otp:";
 
+    @Override
     public VerifyOtpResponse execute(String email, String code, OtpPurpose purpose) {
         String redisKey = OTP_KEY_PREFIX + email;
         
@@ -65,7 +68,7 @@ public class VerifyOtpUseCase {
                 throw new AppException(IdentityErrorCode.INVALID_OTP);
             }
                 
-            String token = generateToken(email, tokenType);
+            String token = tokenServicePort.generateToken(email, "", 300, tokenType);
             
             return VerifyOtpResponse.builder()
                 .message("OTP Verified Successfully")
@@ -74,18 +77,5 @@ public class VerifyOtpUseCase {
         }
         
         throw new AppException(IdentityErrorCode.INVALID_OTP);
-    }
-
-    private String generateToken(String email, String type) {
-        Instant now = Instant.now();
-        JwtClaimsSet claims = JwtClaimsSet.builder()
-                .issuer("FinFlow")
-                .issuedAt(now)
-                .expiresAt(now.plus(15, ChronoUnit.MINUTES))
-                .subject(email)
-                .id(UUID.randomUUID().toString())
-                .claim("type", type)
-                .build();
-        return jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
     }
 }

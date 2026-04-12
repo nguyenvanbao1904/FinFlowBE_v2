@@ -1,9 +1,11 @@
 package com.finflow.backend.identity.application.usecase;
 
+import com.finflow.backend.identity.application.port.in.ToggleBiometricPort;
+
 import com.finflow.backend.common.exception.AppException;
 import com.finflow.backend.identity.domain.entity.User;
 import com.finflow.backend.identity.domain.repository.UserRepository;
-import com.finflow.backend.identity.presentation.request.ToggleBiometricRequest;
+import com.finflow.backend.identity.application.command.ToggleBiometricCommand;
 import com.finflow.backend.identity.exception.IdentityErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,20 +16,21 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class ToggleBiometricUseCase {
+public class ToggleBiometricUseCase implements ToggleBiometricPort {
 
     private final UserRepository userRepository;
 
     @Transactional
     @PreAuthorize("hasAnyRole('USER','ADMIN')")
-    public void execute(String userId, ToggleBiometricRequest request) {
-        User user = userRepository.findById(userId)
+    @Override
+    public void execute(ToggleBiometricCommand command) {
+        User user = userRepository.findById(command.userId())
                 .orElseThrow(() -> new AppException(IdentityErrorCode.USER_NOT_FOUND));
 
-        user.setIsBiometricEnabled(request.getEnabled());
+        user.setIsBiometricEnabled(command.enabled());
         userRepository.save(user);
 
         log.info("Biometric authentication {} for userId: {}", 
-            request.getEnabled() ? "enabled" : "disabled", userId);
+            command.enabled() ? "enabled" : "disabled", command.userId());
     }
 }

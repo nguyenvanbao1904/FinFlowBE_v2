@@ -1,5 +1,7 @@
 package com.finflow.backend.investment.portfolio.application.usecase;
 
+import com.finflow.backend.investment.portfolio.application.port.in.ImportPortfolioSnapshotPort;
+
 import com.finflow.backend.common.exception.AppException;
 import com.finflow.backend.investment.portfolio.domain.entity.Portfolio;
 import com.finflow.backend.investment.portfolio.domain.entity.PortfolioAsset;
@@ -7,7 +9,7 @@ import com.finflow.backend.investment.portfolio.domain.repository.PortfolioAsset
 import com.finflow.backend.investment.portfolio.domain.repository.PortfolioRepository;
 import com.finflow.backend.investment.portfolio.exception.ImportPortfolioSnapshotErrorCode;
 import com.finflow.backend.investment.portfolio.exception.PortfolioErrorCode;
-import com.finflow.backend.investment.portfolio.presentation.request.ImportPortfolioSnapshotRequest;
+import com.finflow.backend.investment.portfolio.application.command.ImportPortfolioSnapshotCommand;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -27,15 +29,18 @@ import java.util.stream.Collectors;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class ImportPortfolioSnapshotUseCase {
+public class ImportPortfolioSnapshotUseCase implements ImportPortfolioSnapshotPort {
 
     private final PortfolioRepository portfolioRepository;
     private final PortfolioAssetRepository portfolioAssetRepository;
 
     @Transactional
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public void execute(String userId, UUID portfolioId, ImportPortfolioSnapshotRequest request) {
-        BigDecimal cashBalance = request.getCashBalance();
+    @Override
+    public void execute(ImportPortfolioSnapshotCommand command) {
+        String userId = command.userId();
+        UUID portfolioId = command.portfolioId();
+        BigDecimal cashBalance = command.cashBalance();
         if (cashBalance == null) {
             throw new AppException(ImportPortfolioSnapshotErrorCode.CASH_BALANCE_REQUIRED);
         }
@@ -47,16 +52,16 @@ public class ImportPortfolioSnapshotUseCase {
                 .findByIdAndUserId(portfolioId, userId)
                 .orElseThrow(() -> new AppException(PortfolioErrorCode.PORTFOLIO_NOT_FOUND));
 
-        List<ImportPortfolioSnapshotRequest.HoldingSnapshotRequest> holdings = request.getHoldings();
+        List<ImportPortfolioSnapshotCommand.HoldingSnapshot> holdings = command.holdings();
         if (holdings == null) {
             holdings = List.of();
         }
 
         // Normalize holdings: symbol -> holding
-        Map<String, ImportPortfolioSnapshotRequest.HoldingSnapshotRequest> holdingBySymbol = holdings.stream()
+        Map<String, ImportPortfolioSnapshotCommand.HoldingSnapshot> holdingBySymbol = holdings.stream()
                 .map(h -> {
                     if (h == null) return null;
-                    String symbol = normalizeSymbol(h.getSymbol());
+                    String symbol = normalizeSymbol(h.symbol());
                     return symbol == null ? null : new NormalizedHolding(symbol, h);
                 })
                 .filter(x -> x != null)
@@ -80,10 +85,10 @@ public class ImportPortfolioSnapshotUseCase {
         // 2) Upsert incoming assets
         for (var entry : holdingBySymbol.entrySet()) {
             String symbol = entry.getKey();
-            ImportPortfolioSnapshotRequest.HoldingSnapshotRequest h = entry.getValue();
+            ImportPortfolioSnapshotCommand.HoldingSnapshot h = entry.getValue();
 
-            BigDecimal totalQuantity = h.getTotalQuantity();
-            BigDecimal averagePrice = h.getAveragePrice();
+            BigDecimal totalQuantity = h.totalQuantity();
+            BigDecimal averagePrice = h.averagePrice();
 
             if (symbol == null || symbol.isBlank()) {
                 throw new AppException(ImportPortfolioSnapshotErrorCode.HOLDING_SYMBOL_BLANK);
@@ -140,9 +145,9 @@ public class ImportPortfolioSnapshotUseCase {
 
     private static class NormalizedHolding {
         final String symbol;
-        final ImportPortfolioSnapshotRequest.HoldingSnapshotRequest original;
+        final ImportPortfolioSnapshotCommand.HoldingSnapshot original;
 
-        NormalizedHolding(String symbol, ImportPortfolioSnapshotRequest.HoldingSnapshotRequest original) {
+        NormalizedHolding(String symbol, ImportPortfolioSnapshotCommand.HoldingSnapshot original) {
             this.symbol = symbol;
             this.original = original;
         }

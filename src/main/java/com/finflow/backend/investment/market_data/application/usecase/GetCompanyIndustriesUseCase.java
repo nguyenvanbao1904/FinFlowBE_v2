@@ -1,6 +1,7 @@
 package com.finflow.backend.investment.market_data.application.usecase;
 
-import com.finflow.backend.investment.market_data.domain.repository.CompanyRepository;
+import com.finflow.backend.investment.market_data.application.port.in.GetCompanyIndustriesPort;
+import com.finflow.backend.investment.market_data.application.service.MarketDataReadService;
 import com.finflow.backend.investment.market_data.presentation.response.CompanyIndustryResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -9,17 +10,17 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
-public class GetCompanyIndustriesUseCase {
+public class GetCompanyIndustriesUseCase implements GetCompanyIndustriesPort {
     private static final String UNKNOWN_INDUSTRY = "Khác";
 
-    private final CompanyRepository companyRepository;
+    private final MarketDataReadService readService;
 
     @Transactional(readOnly = true)
+    @Override
     public List<CompanyIndustryResponse> execute(List<String> symbols) {
         if (symbols == null || symbols.isEmpty()) {
             return List.of();
@@ -34,7 +35,7 @@ public class GetCompanyIndustriesUseCase {
             return List.of();
         }
 
-        Map<String, String> industryBySymbol = companyRepository.findByIdInUppercase(normalizedSymbols)
+        Map<String, String> industryBySymbol = readService.loadCompaniesBySymbolsUpper(normalizedSymbols)
                 .stream()
                 .collect(Collectors.toMap(
                         company -> company.getId().toUpperCase(Locale.ROOT),

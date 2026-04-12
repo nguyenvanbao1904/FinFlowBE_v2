@@ -1,10 +1,13 @@
 package com.finflow.backend.finance.wealth.application.usecase;
 
+import com.finflow.backend.finance.wealth.application.port.in.DeleteWealthAccountPort;
+
 import com.finflow.backend.common.exception.AppException;
 import com.finflow.backend.finance.transaction.domain.repository.TransactionRepository;
 import com.finflow.backend.finance.wealth.domain.entity.WealthAccount;
 import com.finflow.backend.finance.wealth.domain.repository.WealthAccountRepository;
 import com.finflow.backend.finance.wealth.exception.WealthErrorCode;
+import com.finflow.backend.finance.wealth.application.command.DeleteWealthAccountCommand;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -16,14 +19,17 @@ import java.util.UUID;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class DeleteWealthAccountUseCase {
+public class DeleteWealthAccountUseCase implements DeleteWealthAccountPort {
 
     private final WealthAccountRepository wealthAccountRepository;
     private final TransactionRepository transactionRepository;
 
     @Transactional
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public void execute(String userId, UUID accountId) {
+    @Override
+    public void execute(DeleteWealthAccountCommand command) {
+        String userId = command.userId();
+        UUID accountId = command.accountId();
         log.info("Deleting wealth account {} for user: {}", accountId, userId);
 
         WealthAccount account = wealthAccountRepository.findByIdAndUserId(accountId, userId)

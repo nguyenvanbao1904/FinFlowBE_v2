@@ -1,7 +1,10 @@
 package com.finflow.backend.identity.application.usecase;
+import com.finflow.backend.identity.application.port.out.TokenServicePort;
+
+import com.finflow.backend.identity.application.port.in.RegisterUserPort;
 
 import com.finflow.backend.common.exception.AppException;
-import com.finflow.backend.identity.presentation.request.RegisterRequest;
+import com.finflow.backend.identity.application.command.RegisterCommand;
 import com.finflow.backend.identity.exception.IdentityErrorCode;
 import com.finflow.backend.identity.domain.entity.Role;
 import com.finflow.backend.identity.domain.entity.User;
@@ -10,7 +13,7 @@ import com.finflow.backend.identity.domain.repository.UserRepository;
 import com.finflow.backend.identity.domain.enums.AuthProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import com.finflow.backend.identity.application.port.out.PasswordEncoderPort;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,31 +23,33 @@ import java.util.Set;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class RegisterUseCase {
+public class RegisterUseCase implements RegisterUserPort {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final org.springframework.security.oauth2.jwt.JwtDecoder jwtDecoder;
+    private final PasswordEncoderPort passwordEncoder;
+    private final TokenServicePort tokenServicePort;
 
     @Transactional
-    public void execute(RegisterRequest request, String registrationToken) {
-        log.info("Executing register use case for user: {}", request.getUsername());
+    @Override
+    public void execute(RegisterCommand command) {
+        String registrationToken = command.registrationToken();
+        log.info("Executing register use case for user: {}", command.username());
 
         // 1. Validate username is unique
-        if (userRepository.existsByUsername(request.getUsername())) {
-            log.warn("Registration failed: Username {} already exists", request.getUsername());
+        if (userRepository.existsByUsername(command.username())) {
+            log.warn("Registration failed: Username {} already exists", command.username());
             throw new AppException(IdentityErrorCode.USERNAME_ALREADY_EXISTS);
         }
 
         // 2. Validate email is unique
-        if (userRepository.existsByEmail(request.getEmail())) {
-            log.warn("Registration failed: Email {} already in use", request.getEmail());
+        if (userRepository.existsByEmail(command.email())) {
+            log.warn("Registration failed: Email {} already in use", command.email());
             throw new AppException(IdentityErrorCode.EMAIL_ALREADY_EXISTS);
         }
 
         // 3. Verify Registration Token (Stateless)
-        validateRegistrationToken(registrationToken, request.getEmail());
+        validateRegistrationToken(registrationToken, command.email());
         
         // 4. Get or create default USER role
         Role userRole = roleRepository.findById("ROLE_USER")
@@ -52,12 +57,12 @@ public class RegisterUseCase {
 
         // 5. Create user entity
         User newUser = new User();
-        newUser.setUsername(request.getUsername());
-        newUser.setEmail(request.getEmail());
-        newUser.setPassword(passwordEncoder.encode(request.getPassword()));
-        newUser.setFirstName(request.getFirstName());
-        newUser.setLastName(request.getLastName());
-        newUser.setDob(request.getDob());
+        newUser.setUsername(command.username());
+        newUser.setEmail(command.email());
+        newUser.setPassword(passwordEncoder.encode(command.password()));
+        newUser.setFirstName(command.firstName());
+        newUser.setLastName(command.lastName());
+        newUser.setDob(command.dob());
         newUser.setRoles(new HashSet<>(Set.of(userRole)));
         newUser.setProvider(AuthProvider.LOCAL);
         newUser.setIsActive(true);
@@ -66,22 +71,22 @@ public class RegisterUseCase {
         // 6. Save to database
         userRepository.save(newUser);
         
-        log.info("User {} registered successfully", request.getUsername());
+        log.info("User {} registered successfully", command.username());
     }
 
     private void validateRegistrationToken(String token, String email) {
         try {
-            org.springframework.security.oauth2.jwt.Jwt jwt = jwtDecoder.decode(token);
+            TokenServicePort.DecodedToken decoded = tokenServicePort.decodeToken(token);
             
             // Validate Token Type
-            String type = jwt.getClaimAsString("type");
+            String type = decoded.type();
             if (!"REGISTRATION_TOKEN".equals(type)) {
                 log.warn("Invalid token type: {}", type);
                 throw new AppException(IdentityErrorCode.INVALID_TOKEN);
             }
 
             // Validate Email (Subject)
-            String subject = jwt.getSubject();
+            String subject = decoded.subject();
             if (!email.equals(subject)) {
                 log.warn("Token subject {} does not match email {}", subject, email);
                 throw new AppException(IdentityErrorCode.INVALID_TOKEN);

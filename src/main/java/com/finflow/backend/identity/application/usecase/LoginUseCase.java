@@ -1,7 +1,9 @@
 package com.finflow.backend.identity.application.usecase;
 
+import com.finflow.backend.identity.application.port.in.LoginPort;
+
 import com.finflow.backend.identity.infrastructure.configuration.TokenConfig;
-import com.finflow.backend.identity.presentation.request.LoginRequest;
+import com.finflow.backend.identity.application.command.LoginCommand;
 import com.finflow.backend.identity.presentation.response.AuthResponse;
 import com.finflow.backend.identity.domain.entity.User;
 import com.finflow.backend.identity.domain.repository.UserRepository;
@@ -12,9 +14,9 @@ import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.oauth2.jwt.JwtClaimsSet;
-import org.springframework.security.oauth2.jwt.JwtEncoder;
-import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
+
+import com.finflow.backend.identity.application.port.out.TokenServicePort;
+
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -25,15 +27,16 @@ import java.util.stream.Collectors;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class LoginUseCase {
+public class LoginUseCase implements LoginPort {
 
     private final AuthenticationManager authenticationManager;
-    private final JwtEncoder jwtEncoder;
+    private final TokenServicePort tokenServicePort;
     private final UserRepository userRepository;
 
    
-    public AuthResponse execute(LoginRequest request) {
-        log.info("Executing login use case for user: {}", request.getUsername());
+    @Override
+    public AuthResponse execute(LoginCommand command) {
+        log.info("Executing login use case for user: {}", command.username());
 
         Authentication authentication;
         boolean isReactivated = false;
@@ -41,15 +44,15 @@ public class LoginUseCase {
             // 1. Authenticate user (will throw AuthenticationException if invalid)
             authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
-                            request.getUsername(),
-                            request.getPassword()
+                            command.username(),
+                            command.password()
                     )
             );
         } catch (LockedException e) {
             log.warn("Account is locked (possibly soft-deleted). Checking for reactivation...");
             // Handle reactivation logic if user is soft-deleted
-            User user = userRepository.findByUsername(request.getUsername())
-                    .or(() -> userRepository.findByEmail(request.getUsername()))
+            User user = userRepository.findByUsername(command.username())
+                    .or(() -> userRepository.findByEmail(command.username()))
                     .orElseThrow(() -> e); // Should not happen if locked
 
             if (user.getDeletedAt() != null) {
@@ -63,8 +66,8 @@ public class LoginUseCase {
                 // Retry authentication
                 authentication = authenticationManager.authenticate(
                         new UsernamePasswordAuthenticationToken(
-                                request.getUsername(),
-                                request.getPassword()
+                                command.username(),
+                                command.password()
                         )
                 );
             } else {
@@ -73,18 +76,18 @@ public class LoginUseCase {
         }
 
         // 3. Get user details from database
-        User user = userRepository.findByUsername(request.getUsername())
-                .or(() -> userRepository.findByEmail(request.getUsername()))
+        User user = userRepository.findByUsername(command.username())
+                .or(() -> userRepository.findByEmail(command.username()))
                 .orElseThrow(); // This should never throw since authentication succeeded
 
         // 2. Generate Access & Refresh Tokens
-        String accessToken = generateToken(
+        String accessToken = tokenServicePort.generateToken(
                 user.getId(),
                 getScope(authentication),
                 TokenConfig.ACCESS_TOKEN_EXPIRY_SECONDS,
                 "access"
         );
-        String refreshToken = generateToken(
+        String refreshToken = tokenServicePort.generateToken(
                 user.getId(),
                 getScope(authentication),
                 TokenConfig.REFRESH_TOKEN_EXPIRY_SECONDS,
@@ -105,7 +108,7 @@ public class LoginUseCase {
                 .isReactivated(isReactivated) // Set the flag
                 .build();
 
-        log.info("Login successful for user: {}", request.getUsername());
+        log.info("Login successful for user: {}", command.username());
         return response;
     }
 
@@ -126,24 +129,5 @@ public class LoginUseCase {
         return authority.startsWith("ROLE_ROLE_")
                 ? authority.replaceFirst("ROLE_ROLE_", "ROLE_")
                 : authority;
-    }
-
-    /**
-     * Generate JWT token with type and expiry
-     */
-    private String generateToken(String subject, String scope, long expirySeconds, String type) {
-        Instant now = Instant.now();
-
-        JwtClaimsSet claims = JwtClaimsSet.builder()
-                .issuer("self")
-                .issuedAt(now)
-                .expiresAt(now.plus(expirySeconds, ChronoUnit.SECONDS))
-                .subject(subject)
-                .claim("scope", scope)
-                .claim("type", type)
-                .id(UUID.randomUUID().toString())
-                .build();
-
-        return jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
     }
 }

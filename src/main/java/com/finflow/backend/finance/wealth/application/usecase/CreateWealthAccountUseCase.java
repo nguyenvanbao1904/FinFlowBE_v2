@@ -1,5 +1,7 @@
 package com.finflow.backend.finance.wealth.application.usecase;
 
+import com.finflow.backend.finance.wealth.application.port.in.CreateWealthAccountPort;
+
 import com.finflow.backend.common.exception.AppException;
 import com.finflow.backend.finance.wealth.application.mapper.WealthAccountMapper;
 import com.finflow.backend.finance.wealth.domain.entity.WealthAccountType;
@@ -7,7 +9,7 @@ import com.finflow.backend.finance.wealth.domain.entity.WealthAccount;
 import com.finflow.backend.finance.wealth.domain.repository.WealthAccountRepository;
 import com.finflow.backend.finance.wealth.domain.repository.WealthAccountTypeRepository;
 import com.finflow.backend.finance.wealth.exception.WealthErrorCode;
-import com.finflow.backend.finance.wealth.presentation.request.CreateWealthAccountRequest;
+import com.finflow.backend.finance.wealth.application.command.CreateWealthAccountCommand;
 import com.finflow.backend.finance.wealth.presentation.response.WealthAccountResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,7 +22,7 @@ import java.math.BigDecimal;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class CreateWealthAccountUseCase {
+public class CreateWealthAccountUseCase implements CreateWealthAccountPort {
 
     private final WealthAccountRepository wealthAccountRepository;
     private final WealthAccountTypeRepository wealthAccountTypeRepository;
@@ -28,22 +30,23 @@ public class CreateWealthAccountUseCase {
 
     @Transactional
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public WealthAccountResponse execute(String userId, CreateWealthAccountRequest request) {
+    @Override
+    public WealthAccountResponse execute(CreateWealthAccountCommand command) {
+        String userId = command.userId();
         log.info("Creating wealth account for user: {}", userId);
 
-        WealthAccountType wealthAccountType = wealthAccountTypeRepository.findById(request.getAccountTypeId())
+        WealthAccountType wealthAccountType = wealthAccountTypeRepository.findById(command.accountTypeId())
                 .orElseThrow(() -> new AppException(WealthErrorCode.WEALTH_ACCOUNT_TYPE_NOT_FOUND));
 
-        BigDecimal balance = request.getBalance() != null ? request.getBalance() : BigDecimal.ZERO;
+        BigDecimal balance = command.balance() != null ? command.balance() : BigDecimal.ZERO;
         if (Boolean.FALSE.equals(wealthAccountType.getIsDebt()) && balance.compareTo(BigDecimal.ZERO) < 0) {
             throw new AppException(WealthErrorCode.BALANCE_NEGATIVE_FOR_NON_DEBT_TYPE);
         }
 
-        Boolean includeInNetWorth = request.getIncludeInNetWorth();
-
+        Boolean includeInNetWorth = command.includeInNetWorth();
         WealthAccount account = WealthAccount.builder()
                 .userId(userId)
-                .name(request.getName())
+                .name(command.name())
                 .wealthAccountType(wealthAccountType)
                 .balance(balance)
                 .isSynced(false)

@@ -1,5 +1,7 @@
 package com.finflow.backend.identity.application.usecase;
 
+import com.finflow.backend.identity.application.port.in.RefreshTokenPort;
+
 import com.finflow.backend.common.exception.AppException;
 import com.finflow.backend.identity.infrastructure.configuration.TokenConfig;
 import com.finflow.backend.identity.presentation.response.AuthResponse;
@@ -9,13 +11,14 @@ import com.finflow.backend.identity.domain.entity.Role;
 import com.finflow.backend.identity.domain.repository.InvalidatedTokenRepository;
 import com.finflow.backend.identity.domain.entity.User;
 import com.finflow.backend.identity.domain.repository.UserRepository;
+import com.finflow.backend.identity.application.command.RefreshTokenCommand;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.jwt.JwtClaimsSet;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.security.oauth2.jwt.JwtEncoder;
-import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
+
+
+import com.finflow.backend.identity.application.port.out.TokenServicePort;
+
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -27,43 +30,43 @@ import java.util.stream.Collectors;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class RefreshTokenUseCase {
+public class RefreshTokenUseCase implements RefreshTokenPort {
 
-    private final JwtDecoder jwtDecoder;
-    private final JwtEncoder jwtEncoder;
+    private final TokenServicePort tokenServicePort;
     private final UserRepository userRepository;
     private final InvalidatedTokenRepository invalidatedTokenRepository;
 
-    public AuthResponse execute(String refreshToken) {
+    @Override
+    public AuthResponse execute(RefreshTokenCommand command) {
         log.info("Executing refresh token use case");
 
-        Jwt jwt;
+        TokenServicePort.DecodedToken decoded;
         try {
             // Validate signature, expiry, and blacklist (via SecurityConfig validator)
-            jwt = jwtDecoder.decode(refreshToken);
+            decoded = tokenServicePort.decodeToken(command.refreshToken());
         } catch (Exception ex) {
             log.warn("Refresh token invalid: {}", ex.getMessage());
             throw new AppException(IdentityErrorCode.INVALID_TOKEN);
         }
 
         // Enforce token type
-        String type = jwt.getClaimAsString("type");
+        String type = decoded.type();
         if (!"refresh".equals(type)) {
             log.warn("Token type is not refresh");
             throw new AppException(IdentityErrorCode.INVALID_TOKEN);
         }
 
-        String userId = jwt.getSubject();
+        String userId = decoded.subject();
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(IdentityErrorCode.USER_NOT_FOUND));
 
         String scope = buildScope(user);
 
         // Rotate refresh token: blacklist old token
-        blacklistToken(jwt);
+        blacklistToken(decoded);
 
-        String newAccessToken = generateToken(userId, scope, TokenConfig.ACCESS_TOKEN_EXPIRY_SECONDS, "access");
-        String newRefreshToken = generateToken(userId, scope, TokenConfig.REFRESH_TOKEN_EXPIRY_SECONDS, "refresh");
+        String newAccessToken = tokenServicePort.generateToken(userId, scope, TokenConfig.ACCESS_TOKEN_EXPIRY_SECONDS, "access");
+        String newRefreshToken = tokenServicePort.generateToken(userId, scope, TokenConfig.REFRESH_TOKEN_EXPIRY_SECONDS, "refresh");
 
         return AuthResponse.builder()
                 .token(newAccessToken)
@@ -83,9 +86,15 @@ public class RefreshTokenUseCase {
                 .collect(Collectors.joining(" "));
     }
 
-    private void blacklistToken(Jwt jwt) {
-        String jti = jwt.getId();
-        Instant expiry = jwt.getExpiresAt();
+    private void blacklistToken(TokenServicePort.DecodedToken decoded) {
+        Object jtiObj = decoded.claims().get("jti");
+        Object expObj = decoded.claims().get("exp");
+        
+        String jti = jtiObj != null ? jtiObj.toString() : null;
+        Instant expiry = null;
+        if (expObj instanceof Instant) expiry = (Instant) expObj;
+        else if (expObj instanceof Date) expiry = ((Date) expObj).toInstant();
+
         if (jti != null && expiry != null) {
             invalidatedTokenRepository.save(
                     InvalidatedToken.builder()
@@ -97,27 +106,8 @@ public class RefreshTokenUseCase {
         }
     }
 
-    private String generateToken(String subject, String scope, long expirySeconds, String type) {
-        Instant now = Instant.now();
-
-        JwtClaimsSet claims = JwtClaimsSet.builder()
-                .issuer("self")
-                .issuedAt(now)
-                .expiresAt(now.plus(expirySeconds, ChronoUnit.SECONDS))
-                .subject(subject)
-                .claim("scope", scope)
-                .claim("type", type)
-                .id(UUID.randomUUID().toString())
-                .build();
-
-        return jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
-    }
-
-    private String normalizeRole(String roleName) {
-        if (roleName == null || roleName.isBlank()) {
-            return "ROLE_USER";
-        }
-        return roleName.startsWith("ROLE_") ? roleName : "ROLE_" + roleName;
+    private String normalizeRole(String role) {
+        if (role == null) return "";
+        return role.startsWith("ROLE_") ? role : "ROLE_" + role;
     }
 }
-

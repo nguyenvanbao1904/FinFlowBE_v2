@@ -10,11 +10,11 @@ import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
-class InvestmentAnalysisFinancialSeriesLoader {
-    private final InvestmentAnalysisRepositoryLoader repositoryLoader;
+public class InvestmentAnalysisFinancialSeriesLoader {
+    private final MarketDataReadService readService;
     private final InvestmentFinancialSeriesBuilder financialSeriesBuilder;
 
-    InvestmentAnalysisResponse.FinancialSeries build(
+    public InvestmentAnalysisResponse.FinancialSeries build(
             String companyId,
             String companyType,
             List<FinancialIndicator> indicators,
@@ -23,8 +23,8 @@ class InvestmentAnalysisFinancialSeriesLoader {
     ) {
         String normalizedType = Optional.ofNullable(companyType).orElse("").toUpperCase();
         if ("BANK".equals(normalizedType)) {
-            List<BankBalanceSheet> balances = repositoryLoader.loadBankBalances(companyId, annualLimit, quarterlyLimit);
-            List<BankIncomeStatement> incomes = repositoryLoader.loadBankIncomes(companyId, annualLimit, quarterlyLimit);
+            List<BankBalanceSheet> balances = readService.loadBankBalances(companyId, annualLimit, quarterlyLimit);
+            List<BankIncomeStatement> incomes = readService.loadBankIncomes(companyId, annualLimit, quarterlyLimit);
             return financialSeriesBuilder.build(
                     companyType,
                     indicators,
@@ -37,8 +37,8 @@ class InvestmentAnalysisFinancialSeriesLoader {
             );
         }
 
-        List<NonBankBalanceSheet> balances = repositoryLoader.loadNonBankBalances(companyId, annualLimit, quarterlyLimit);
-        List<NonBankIncomeStatement> incomes = repositoryLoader.loadNonBankIncomes(companyId, annualLimit, quarterlyLimit);
+        List<NonBankBalanceSheet> balances = readService.loadNonBankBalances(companyId, annualLimit, quarterlyLimit);
+        List<NonBankIncomeStatement> incomes = readService.loadNonBankIncomes(companyId, annualLimit, quarterlyLimit);
         return financialSeriesBuilder.build(
                 companyType,
                 indicators,

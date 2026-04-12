@@ -35,5 +35,12 @@ class ArchitectureTests {
             noClasses().that().haveSimpleNameEndingWith("UseCase")
                     .should().dependOnClassesThat().haveSimpleNameEndingWith("UseCase")
                     .because("Micro-UseCases rule: UseCases must not call other UseCases directly. Use Spring Events instead!");
+
+    @ArchTest
+    static final ArchRule controllers_must_not_depend_on_usecase_classes =
+            noClasses().that().resideInAPackage(BASE + "..presentation.controller..")
+                    .should().dependOnClassesThat()
+                    .resideInAPackage(BASE + "..application.usecase..")
+                    .because("Controllers depend on port.in interfaces, not concrete UseCase classes");
 }
 

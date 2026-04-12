@@ -1,5 +1,6 @@
 package com.finflow.backend.finance.transaction.application.usecase;
 
+import com.finflow.backend.finance.transaction.application.port.in.GetTransactionSummaryPort;
 import com.finflow.backend.finance.transaction.domain.repository.TransactionRepository;
 import com.finflow.backend.finance.transaction.presentation.response.TransactionSummaryResponse;
 import lombok.RequiredArgsConstructor;
@@ -13,12 +14,13 @@ import java.math.BigDecimal;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class GetTransactionSummaryUseCase {
+public class GetTransactionSummaryUseCase implements GetTransactionSummaryPort {
 
     private final TransactionRepository transactionRepository;
 
     @Transactional(readOnly = true)
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @Override
     public TransactionSummaryResponse execute(String userId) {
         log.info("Calculating transaction summary for userId: {}", userId);
 

@@ -179,6 +179,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Public Endpoints
                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
+                        .requestMatchers("/api/internal/**").permitAll()
                         // Any other request must be authenticated
                         .anyRequest().authenticated()
                 )

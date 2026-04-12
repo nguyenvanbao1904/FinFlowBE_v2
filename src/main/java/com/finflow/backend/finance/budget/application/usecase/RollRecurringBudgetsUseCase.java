@@ -1,5 +1,7 @@
 package com.finflow.backend.finance.budget.application.usecase;
 
+import com.finflow.backend.finance.budget.application.port.in.RollRecurringBudgetsPort;
+
 import com.finflow.backend.finance.budget.domain.entity.Budget;
 import com.finflow.backend.finance.budget.domain.repository.BudgetRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,13 +22,14 @@ import java.util.List;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class RollRecurringBudgetsUseCase {
+public class RollRecurringBudgetsUseCase implements RollRecurringBudgetsPort {
 
     private static final int ROLL_BATCH_SIZE = 500;
 
     private final BudgetRepository budgetRepository;
 
     @Transactional
+    @Override
     public void execute() {
         LocalDate today = LocalDate.now();
         LocalDate from = today.minusDays(2);

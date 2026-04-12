@@ -1,5 +1,7 @@
 package com.finflow.backend.investment.portfolio.application.usecase;
 
+import com.finflow.backend.investment.portfolio.application.port.in.GetPortfolioAssetsPort;
+
 import com.finflow.backend.investment.portfolio.application.mapper.PortfolioAssetMapper;
 import com.finflow.backend.investment.portfolio.domain.entity.PortfolioAsset;
 import com.finflow.backend.investment.portfolio.domain.repository.PortfolioAssetRepository;
@@ -20,7 +22,7 @@ import java.util.Map;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class GetPortfolioAssetsUseCase {
+public class GetPortfolioAssetsUseCase implements GetPortfolioAssetsPort {
 
     private final PortfolioAssetRepository portfolioAssetRepository;
     private final PortfolioAssetMapper portfolioAssetMapper;
@@ -28,6 +30,7 @@ public class GetPortfolioAssetsUseCase {
 
     @Transactional(readOnly = true)
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @Override
     public List<PortfolioAssetResponse> execute(String userId, java.util.UUID portfolioId) {
         log.info("Getting portfolio assets for user: {} portfolioId: {}", userId, portfolioId);
         List<PortfolioAsset> assets = portfolioAssetRepository

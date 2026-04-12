@@ -20,6 +20,11 @@ public enum MarketDataErrorCode implements ErrorCode {
             6005,
             "startDate must be on or after 2010-01-01",
             HttpStatus.BAD_REQUEST),
+    INVALID_READ_SECTION(
+            6007,
+            "Invalid market data section. Use one of: company, shareholders, dividends, financialIndicators, "
+                    + "bankBalanceSheets, nonBankBalanceSheets, bankIncomeStatements, nonBankIncomeStatements, all",
+            HttpStatus.BAD_REQUEST),
 
     // DTO validation / required fields -> 6006-6099 (non-overlapping with existing ones)
     // Chỉ dùng làm "message key" cho Bean Validation mapping trong GlobalExceptionHandler.
@@ -36,4 +41,3 @@ public enum MarketDataErrorCode implements ErrorCode {
         this.statusCode = statusCode;
     }
 }
-

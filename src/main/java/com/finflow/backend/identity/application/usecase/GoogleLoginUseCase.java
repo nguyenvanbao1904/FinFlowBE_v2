@@ -1,10 +1,12 @@
 package com.finflow.backend.identity.application.usecase;
 
+import com.finflow.backend.identity.application.port.in.GoogleLoginPort;
+
 import com.finflow.backend.common.exception.AppException;
 import com.finflow.backend.identity.exception.IdentityErrorCode;
 import com.finflow.backend.identity.infrastructure.configuration.TokenConfig;
 import com.finflow.backend.identity.presentation.response.AuthResponse;
-import com.finflow.backend.identity.presentation.request.GoogleLoginRequest;
+import com.finflow.backend.identity.application.command.GoogleLoginCommand;
 import com.finflow.backend.identity.domain.entity.Role;
 import com.finflow.backend.identity.domain.entity.User;
 import com.finflow.backend.identity.domain.repository.RoleRepository;
@@ -14,9 +16,9 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.security.oauth2.jwt.JwtClaimsSet;
-import org.springframework.security.oauth2.jwt.JwtEncoder;
-import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
+
+import com.finflow.backend.identity.application.port.out.TokenServicePort;
+
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -27,17 +29,18 @@ import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
-public class GoogleLoginUseCase {
+public class GoogleLoginUseCase implements GoogleLoginPort {
 
     private final GoogleTokenVerifier googleTokenVerifier;
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
-    private final JwtEncoder jwtEncoder;
+    private final TokenServicePort tokenServicePort;
 
     @Transactional
-    public AuthResponse execute(GoogleLoginRequest request) {
+    @Override
+    public AuthResponse execute(GoogleLoginCommand command) {
         // 1. Verify Google Token
-        GoogleIdToken.Payload payload = googleTokenVerifier.verify(request.getIdToken());
+        GoogleIdToken.Payload payload = googleTokenVerifier.verify(command.idToken());
         String email = payload.getEmail();
 
     // 2. Find or Create User
@@ -61,8 +64,8 @@ public class GoogleLoginUseCase {
                 .map(this::normalizeRole)
                 .collect(Collectors.joining(" "));
 
-        String accessToken = generateToken(user.getId(), scope, TokenConfig.ACCESS_TOKEN_EXPIRY_SECONDS, "access");
-        String refreshToken = generateToken(user.getId(), scope, TokenConfig.REFRESH_TOKEN_EXPIRY_SECONDS, "refresh");
+        String accessToken = tokenServicePort.generateToken(user.getId(), scope, TokenConfig.ACCESS_TOKEN_EXPIRY_SECONDS, "access");
+        String refreshToken = tokenServicePort.generateToken(user.getId(), scope, TokenConfig.REFRESH_TOKEN_EXPIRY_SECONDS, "refresh");
 
         return AuthResponse.builder()
                 .token(accessToken)
@@ -99,27 +102,9 @@ public class GoogleLoginUseCase {
         
         return userRepository.save(user);
     }
-    
-    private String generateToken(String subject, String scope, long expirySeconds, String type) {
-        Instant now = Instant.now();
 
-        JwtClaimsSet claims = JwtClaimsSet.builder()
-                .issuer("self")
-                .issuedAt(now)
-                .expiresAt(now.plus(expirySeconds, ChronoUnit.SECONDS))
-                .subject(subject)
-                .claim("scope", scope)
-                .claim("type", type)
-                .id(UUID.randomUUID().toString())
-                .build();
-
-        return jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
-    }
-
-    private String normalizeRole(String roleName) {
-        if (roleName == null || roleName.isBlank()) {
-            return "ROLE_USER";
-        }
-        return roleName.startsWith("ROLE_") ? roleName : "ROLE_" + roleName;
+    private String normalizeRole(String role) {
+        if (role == null) return "";
+        return role.startsWith("ROLE_") ? role : "ROLE_" + role;
     }
 }

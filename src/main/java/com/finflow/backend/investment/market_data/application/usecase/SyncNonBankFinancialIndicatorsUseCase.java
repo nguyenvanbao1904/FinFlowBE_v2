@@ -1,6 +1,7 @@
 package com.finflow.backend.investment.market_data.application.usecase;
 
 import com.finflow.backend.investment.market_data.application.mapper.InvestmentDataMapper;
+import com.finflow.backend.investment.market_data.application.port.in.SyncNonBankFinancialIndicatorsPort;
 import com.finflow.backend.investment.market_data.domain.entity.NonBankFinancialIndicator;
 import com.finflow.backend.investment.market_data.domain.repository.FinancialIndicatorRepository;
 import com.finflow.backend.investment.market_data.presentation.request.NonBankFinancialIndicatorRequestDTO;
@@ -15,12 +16,13 @@ import java.util.stream.Collectors;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class SyncNonBankFinancialIndicatorsUseCase {
+public class SyncNonBankFinancialIndicatorsUseCase implements SyncNonBankFinancialIndicatorsPort {
 
     private final FinancialIndicatorRepository repository;
     private final InvestmentDataMapper mapper;
 
     @Transactional
+    @Override
     public void execute(List<NonBankFinancialIndicatorRequestDTO> requestList) {
         if (requestList == null || requestList.isEmpty()) return;
 

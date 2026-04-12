@@ -1,16 +1,20 @@
 package com.finflow.backend.investment.market_data.presentation.controller;
 
 import com.finflow.backend.common.versioning.ApiVersion;
-import com.finflow.backend.investment.market_data.application.usecase.GetDailyValuationSeriesUseCase;
-import com.finflow.backend.investment.market_data.application.usecase.GetInvestmentDividendsUseCase;
-import com.finflow.backend.investment.market_data.application.usecase.GetInvestmentFinancialSeriesUseCase;
-import com.finflow.backend.investment.market_data.application.usecase.GetInvestmentFullAnalysisUseCase;
-import com.finflow.backend.investment.market_data.application.usecase.GetInvestmentValuationsUseCase;
-import com.finflow.backend.investment.market_data.application.usecase.GetCompanyIndustriesUseCase;
-import com.finflow.backend.investment.market_data.application.usecase.SuggestCompaniesUseCase;
+import com.finflow.backend.investment.market_data.application.port.in.GetCompanyIndustriesPort;
+import com.finflow.backend.investment.market_data.application.port.in.GetCompanyMarketDataPort;
+import com.finflow.backend.investment.market_data.application.port.in.GetDailyValuationSeriesPort;
+import com.finflow.backend.investment.market_data.application.port.in.GetIndustryNodesPort;
+import com.finflow.backend.investment.market_data.application.port.in.GetInvestmentDividendsPort;
+import com.finflow.backend.investment.market_data.application.port.in.GetInvestmentFinancialSeriesPort;
+import com.finflow.backend.investment.market_data.application.port.in.GetInvestmentFullAnalysisPort;
+import com.finflow.backend.investment.market_data.application.port.in.GetInvestmentValuationsPort;
+import com.finflow.backend.investment.market_data.application.port.in.SuggestCompaniesPort;
+import com.finflow.backend.investment.market_data.presentation.response.CompanyMarketDataResponse;
 import com.finflow.backend.investment.market_data.presentation.response.InvestmentAnalysisResponse;
 import com.finflow.backend.investment.market_data.presentation.response.CompanySuggestionResponse;
 import com.finflow.backend.investment.market_data.presentation.response.CompanyIndustryResponse;
+import com.finflow.backend.investment.market_data.presentation.response.IndustryNodeReadResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -25,13 +29,15 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "Investment", description = "Investment market analysis APIs")
 public class InvestmentQueryController {
 
-    private final GetInvestmentFullAnalysisUseCase fullAnalysisUseCase;
-    private final GetInvestmentFinancialSeriesUseCase financialSeriesUseCase;
-    private final GetInvestmentValuationsUseCase valuationsUseCase;
-    private final GetDailyValuationSeriesUseCase dailyValuationSeriesUseCase;
-    private final GetInvestmentDividendsUseCase dividendsUseCase;
-    private final GetCompanyIndustriesUseCase getCompanyIndustriesUseCase;
-    private final SuggestCompaniesUseCase suggestCompaniesUseCase;
+    private final GetInvestmentFullAnalysisPort fullAnalysisPort;
+    private final GetInvestmentFinancialSeriesPort financialSeriesPort;
+    private final GetInvestmentValuationsPort valuationsPort;
+    private final GetDailyValuationSeriesPort dailyValuationSeriesPort;
+    private final GetInvestmentDividendsPort dividendsPort;
+    private final GetCompanyIndustriesPort getCompanyIndustriesPort;
+    private final GetCompanyMarketDataPort getCompanyMarketDataPort;
+    private final GetIndustryNodesPort getIndustryNodesPort;
+    private final SuggestCompaniesPort suggestCompaniesPort;
 
     @Operation(summary = "Suggest companies by ticker prefix (fallback by companyName)")
     @GetMapping("/companies/suggest")
@@ -39,7 +45,7 @@ public class InvestmentQueryController {
             @RequestParam(name = "q") String q,
             @RequestParam(required = false) Integer limit
     ) {
-        return ResponseEntity.ok(suggestCompaniesUseCase.execute(q, limit));
+        return ResponseEntity.ok(suggestCompaniesPort.execute(q, limit));
     }
 
     @Operation(summary = "Get industry labels for a list of company symbols")
@@ -47,7 +53,32 @@ public class InvestmentQueryController {
     public ResponseEntity<java.util.List<CompanyIndustryResponse>> getCompanyIndustries(
             @RequestParam(name = "symbols") java.util.List<String> symbols
     ) {
-        return ResponseEntity.ok(getCompanyIndustriesUseCase.execute(symbols));
+        return ResponseEntity.ok(getCompanyIndustriesPort.execute(symbols));
+    }
+
+    @Operation(summary = "Get raw market-data sections for one company (AI/function-calling friendly)")
+    @GetMapping("/companies/{symbol}/market-data")
+    public ResponseEntity<CompanyMarketDataResponse> getCompanyMarketData(
+            @PathVariable String symbol,
+            @Parameter(
+                    description = "Danh sách section cần lấy. Hỗ trợ: company, shareholders, dividends, "
+                            + "financialIndicators, bankBalanceSheets, nonBankBalanceSheets, "
+                            + "bankIncomeStatements, nonBankIncomeStatements, all. "
+                            + "Có thể truyền nhiều lần hoặc comma-separated."
+            )
+            @RequestParam(name = "include", required = false) java.util.List<String> include,
+            @Parameter(description = "Giới hạn dữ liệu theo năm cho sections dạng time-series.")
+            @RequestParam(required = false) Integer annualLimit,
+            @Parameter(description = "Giới hạn dữ liệu theo quý cho sections dạng time-series.")
+            @RequestParam(required = false) Integer quarterlyLimit
+    ) {
+        return ResponseEntity.ok(getCompanyMarketDataPort.execute(symbol, include, annualLimit, quarterlyLimit));
+    }
+
+    @Operation(summary = "Get industry-node list (raw tree nodes)")
+    @GetMapping("/industries/nodes")
+    public ResponseEntity<java.util.List<IndustryNodeReadResponse>> getIndustryNodes() {
+        return ResponseEntity.ok(getIndustryNodesPort.execute());
     }
 
     @Operation(summary = "Get stock analysis data for one company symbol")
@@ -60,7 +91,7 @@ public class InvestmentQueryController {
             @RequestParam(required = false) Integer quarterlyLimit
     ) {
         return ResponseEntity.ok(
-                fullAnalysisUseCase.execute(symbol, annualLimit, quarterlyLimit)
+                fullAnalysisPort.execute(symbol, annualLimit, quarterlyLimit)
         );
     }
 
@@ -74,7 +105,7 @@ public class InvestmentQueryController {
             @RequestParam(required = false) Integer quarterlyLimit
     ) {
         return ResponseEntity.ok(
-                financialSeriesUseCase.execute(symbol, annualLimit, quarterlyLimit)
+                financialSeriesPort.execute(symbol, annualLimit, quarterlyLimit)
         );
     }
 
@@ -92,7 +123,7 @@ public class InvestmentQueryController {
             @RequestParam(required = false) Boolean showQuarterly
     ) {
         return ResponseEntity.ok(
-                valuationsUseCase.execute(symbol, annualLimit, startDate, endDate, showQuarterly)
+                valuationsPort.execute(symbol, annualLimit, startDate, endDate, showQuarterly)
         );
     }
 
@@ -105,7 +136,7 @@ public class InvestmentQueryController {
             @Parameter(description = "yyyy-MM-dd", required = true)
             @RequestParam String endDate
     ) {
-        return ResponseEntity.ok(dailyValuationSeriesUseCase.execute(symbol, startDate, endDate));
+        return ResponseEntity.ok(dailyValuationSeriesPort.execute(symbol, startDate, endDate));
     }
 
     @Operation(summary = "Get dividend chart series only")
@@ -116,7 +147,7 @@ public class InvestmentQueryController {
             @RequestParam(required = false) Integer annualLimit
     ) {
         return ResponseEntity.ok(
-                dividendsUseCase.execute(symbol, annualLimit)
+                dividendsPort.execute(symbol, annualLimit)
         );
     }
 }

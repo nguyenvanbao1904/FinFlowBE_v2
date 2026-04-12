@@ -1,6 +1,7 @@
 package com.finflow.backend.investment.market_data.application.usecase;
 
 import com.finflow.backend.investment.market_data.application.mapper.InvestmentDataMapper;
+import com.finflow.backend.investment.market_data.application.port.in.SyncCompanyDividendsPort;
 import com.finflow.backend.investment.market_data.domain.entity.CompanyDividend;
 import com.finflow.backend.investment.market_data.domain.repository.CompanyDividendRepository;
 import com.finflow.backend.investment.market_data.presentation.request.CompanyDividendRequestDTO;
@@ -14,12 +15,13 @@ import java.util.List;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class SyncCompanyDividendsUseCase {
+public class SyncCompanyDividendsUseCase implements SyncCompanyDividendsPort {
 
     private final CompanyDividendRepository repository;
     private final InvestmentDataMapper mapper;
 
     @Transactional
+    @Override
     public void execute(String companyId, List<CompanyDividendRequestDTO> requests) {
         log.info("Syncing {} dividend events for company {}", requests.size(), companyId);
         

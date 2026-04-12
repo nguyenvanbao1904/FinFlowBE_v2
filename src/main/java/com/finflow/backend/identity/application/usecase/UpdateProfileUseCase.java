@@ -1,9 +1,11 @@
 package com.finflow.backend.identity.application.usecase;
 
+import com.finflow.backend.identity.application.port.in.UpdateProfilePort;
+
 import com.finflow.backend.common.exception.AppException;
 import com.finflow.backend.identity.domain.entity.User;
 import com.finflow.backend.identity.domain.repository.UserRepository;
-import com.finflow.backend.identity.presentation.request.UpdateProfileRequest;
+import com.finflow.backend.identity.application.command.UpdateProfileCommand;
 import com.finflow.backend.identity.presentation.response.UserResponse;
 import com.finflow.backend.identity.exception.IdentityErrorCode;
 import com.finflow.backend.identity.application.mapper.UserMapper;
@@ -18,25 +20,26 @@ import java.util.stream.Collectors;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class UpdateProfileUseCase {
+public class UpdateProfileUseCase implements UpdateProfilePort {
 
     private final UserRepository userRepository;
     private final UserMapper userMapper;
 
     @Transactional
     @PreAuthorize("hasAnyRole('USER','ADMIN')")
-    public UserResponse execute(String userId, UpdateProfileRequest request) {
-        User user = userRepository.findById(userId)
+    @Override
+    public UserResponse execute(UpdateProfileCommand command) {
+        User user = userRepository.findById(command.userId())
                 .orElseThrow(() -> new AppException(IdentityErrorCode.USER_NOT_FOUND));
 
-        if (request.getFirstName() != null) {
-            user.setFirstName(request.getFirstName());
+        if (command.firstName() != null) {
+            user.setFirstName(command.firstName());
         }
-        if (request.getLastName() != null) {
-            user.setLastName(request.getLastName());
+        if (command.lastName() != null) {
+            user.setLastName(command.lastName());
         }
-        if (request.getDob() != null) {
-            user.setDob(request.getDob());
+        if (command.dob() != null) {
+            user.setDob(command.dob());
         }
 
         User savedUser = userRepository.save(user);

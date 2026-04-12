@@ -1,11 +1,13 @@
 package com.finflow.backend.finance.budget.application.usecase;
 
+import com.finflow.backend.finance.budget.application.port.in.CreateBudgetPort;
+
 import com.finflow.backend.common.exception.AppException;
 import com.finflow.backend.finance.budget.application.mapper.BudgetMapper;
 import com.finflow.backend.finance.budget.domain.entity.Budget;
 import com.finflow.backend.finance.budget.domain.repository.BudgetRepository;
 import com.finflow.backend.finance.budget.exception.BudgetErrorCode;
-import com.finflow.backend.finance.budget.presentation.request.CreateBudgetRequest;
+import com.finflow.backend.finance.budget.application.command.CreateBudgetCommand;
 import com.finflow.backend.finance.budget.presentation.response.BudgetResponse;
 import com.finflow.backend.finance.transaction.domain.entity.Category;
 import com.finflow.backend.finance.transaction.domain.repository.CategoryRepository;
@@ -21,7 +23,7 @@ import java.time.LocalDate;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class CreateBudgetUseCase {
+public class CreateBudgetUseCase implements CreateBudgetPort {
 
     private final BudgetRepository budgetRepository;
     private final CategoryRepository categoryRepository;
@@ -29,32 +31,29 @@ public class CreateBudgetUseCase {
 
     @Transactional
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public BudgetResponse execute(String userId, CreateBudgetRequest request) {
-        log.info("Creating budget for user: {}", userId);
+    @Override
+    public BudgetResponse execute(CreateBudgetCommand command) {
+        String userId = command.userId();
+        log.info("Creating budget for userId: {}", userId);
 
-        if (request.getStartDate().isAfter(request.getEndDate())) {
+        // Validate date range
+        if (command.startDate().isAfter(command.endDate())) {
             throw new AppException(BudgetErrorCode.BUDGET_INVALID_DATE_RANGE);
         }
-        if (request.getEndDate().isBefore(LocalDate.now())) {
-            throw new AppException(BudgetErrorCode.BUDGET_END_DATE_IN_PAST);
-        }
 
-        Category category = categoryRepository.findByIdAndUserIdOrSystem(request.getCategoryId(), userId)
+        // Validate category ownership
+        Category category = categoryRepository.findByIdAndUserIdOrSystem(command.categoryId(), userId)
                 .orElseThrow(() -> new AppException(TransactionErrorCode.CATEGORY_NOT_FOUND));
 
-        LocalDate recurringStart = request.getRecurringStartDate();
-        if (Boolean.TRUE.equals(request.getIsRecurring()) && recurringStart == null) {
-            recurringStart = request.getStartDate();
-        }
-
+        // Create budget entity
         Budget budget = Budget.builder()
                 .userId(userId)
                 .category(category)
-                .targetAmount(request.getTargetAmount())
-                .startDate(request.getStartDate())
-                .endDate(request.getEndDate())
-                .isRecurring(request.getIsRecurring())
-                .recurringStartDate(recurringStart)
+                .targetAmount(command.targetAmount())
+                .startDate(command.startDate())
+                .endDate(command.endDate())
+                .isRecurring(command.isRecurring() != null ? command.isRecurring() : false)
+                .recurringStartDate(command.recurringStartDate())
                 .build();
 
         Budget saved = budgetRepository.save(budget);

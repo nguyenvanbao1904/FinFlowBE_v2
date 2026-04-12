@@ -1,5 +1,7 @@
 package com.finflow.backend.investment.portfolio.application.usecase;
 
+import com.finflow.backend.investment.portfolio.application.port.in.CreateTradeTransactionPort;
+
 import com.finflow.backend.common.exception.AppException;
 import com.finflow.backend.investment.portfolio.domain.entity.Portfolio;
 import com.finflow.backend.investment.portfolio.domain.entity.PortfolioAsset;
@@ -8,9 +10,8 @@ import com.finflow.backend.investment.portfolio.domain.entity.TradeType;
 import com.finflow.backend.investment.portfolio.domain.repository.PortfolioAssetRepository;
 import com.finflow.backend.investment.portfolio.domain.repository.PortfolioRepository;
 import com.finflow.backend.investment.portfolio.domain.repository.TradeTransactionRepository;
-import com.finflow.backend.investment.portfolio.exception.ImportPortfolioSnapshotErrorCode;
+import com.finflow.backend.investment.portfolio.application.command.CreateTradeTransactionCommand;
 import com.finflow.backend.investment.portfolio.exception.TradeTransactionErrorCode;
-import com.finflow.backend.investment.portfolio.presentation.request.CreateTradeTransactionRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -22,13 +23,12 @@ import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
-import java.util.Optional;
 import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class CreateTradeTransactionUseCase {
+public class CreateTradeTransactionUseCase implements CreateTradeTransactionPort {
 
     private final PortfolioRepository portfolioRepository;
     private final PortfolioAssetRepository portfolioAssetRepository;
@@ -36,8 +36,11 @@ public class CreateTradeTransactionUseCase {
 
     @Transactional
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public void execute(String userId, UUID portfolioId, CreateTradeTransactionRequest request) {
-        TradeType tradeType = request.getTradeType();
+    @Override
+    public void execute(CreateTradeTransactionCommand command) {
+        String userId = command.userId();
+        UUID portfolioId = command.portfolioId();
+        TradeType tradeType = command.tradeType();
         if (tradeType == null) {
             throw new AppException(TradeTransactionErrorCode.TRADE_TYPE_REQUIRED);
         }
@@ -46,10 +49,10 @@ public class CreateTradeTransactionUseCase {
                 .findByIdAndUserId(portfolioId, userId)
                 .orElseThrow(() -> new AppException(com.finflow.backend.investment.portfolio.exception.PortfolioErrorCode.PORTFOLIO_NOT_FOUND));
 
-        LocalDateTime transactionDate = parseDateOrNow(request.getTransactionDate());
+        LocalDateTime transactionDate = parseDateOrNow(command.transactionDate());
 
-        BigDecimal feePercent = defaultIfNull(request.getFeePercent(), BigDecimal.ZERO);
-        BigDecimal taxPercent = request.getTaxPercent();
+        BigDecimal feePercent = defaultIfNull(command.feePercent(), BigDecimal.ZERO);
+        BigDecimal taxPercent = command.taxPercent();
         if (taxPercent == null) {
             taxPercent = tradeType == TradeType.SELL ? new BigDecimal("0.1") : BigDecimal.ZERO;
         }
@@ -69,7 +72,7 @@ public class CreateTradeTransactionUseCase {
 
         switch (tradeType) {
             case DEPOSIT -> {
-                amount = request.getAmount();
+                amount = command.amount();
                 if (amount == null) throw new AppException(TradeTransactionErrorCode.TRADE_AMOUNT_REQUIRED);
                 if (amount.compareTo(BigDecimal.ZERO) <= 0) throw new AppException(TradeTransactionErrorCode.INVALID_TRADE_AMOUNT_NON_POSITIVE);
 
@@ -93,7 +96,7 @@ public class CreateTradeTransactionUseCase {
                 );
             }
             case WITHDRAW -> {
-                amount = request.getAmount();
+                amount = command.amount();
                 if (amount == null) throw new AppException(TradeTransactionErrorCode.TRADE_AMOUNT_REQUIRED);
                 if (amount.compareTo(BigDecimal.ZERO) <= 0) throw new AppException(TradeTransactionErrorCode.INVALID_TRADE_AMOUNT_NON_POSITIVE);
 
@@ -121,9 +124,9 @@ public class CreateTradeTransactionUseCase {
                 );
             }
             case BUY -> {
-                symbol = normalizeSymbol(request.getSymbol());
-                quantity = request.getQuantity();
-                price = request.getPrice();
+                symbol = normalizeSymbol(command.symbol());
+                quantity = command.quantity();
+                price = command.price();
 
                 if (symbol == null) throw new AppException(TradeTransactionErrorCode.TRADE_SYMBOL_REQUIRED);
                 if (quantity == null) throw new AppException(TradeTransactionErrorCode.TRADE_QUANTITY_REQUIRED);
@@ -180,9 +183,9 @@ public class CreateTradeTransactionUseCase {
                 );
             }
             case SELL -> {
-                symbol = normalizeSymbol(request.getSymbol());
-                quantity = request.getQuantity();
-                price = request.getPrice();
+                symbol = normalizeSymbol(command.symbol());
+                quantity = command.quantity();
+                price = command.price();
 
                 if (symbol == null) throw new AppException(TradeTransactionErrorCode.TRADE_SYMBOL_REQUIRED);
                 if (quantity == null) throw new AppException(TradeTransactionErrorCode.TRADE_QUANTITY_REQUIRED);
@@ -235,18 +238,16 @@ public class CreateTradeTransactionUseCase {
             case DIVIDEND -> {
                 // For now: treat DIVIDEND as snapshot-only; no cash update yet (unless UI adds it later).
                 // If you want cash update for dividend, tell me and we’ll extend.
-                symbol = normalizeSymbol(request.getSymbol());
-                quantity = request.getQuantity();
-                price = request.getPrice();
+                symbol = normalizeSymbol(command.symbol());
+                quantity = command.quantity();
+                price = command.price();
 
                 if (symbol == null) throw new AppException(TradeTransactionErrorCode.TRADE_SYMBOL_REQUIRED);
 
                 BigDecimal totalAmount;
-                if (request.getAmount() != null) {
-                    // optionally support dividend as 'amount'
-                    totalAmount = request.getAmount().setScale(2, RoundingMode.HALF_UP);
+                if (command.amount() != null) {
+                    totalAmount = command.amount().setScale(2, RoundingMode.HALF_UP);
                 } else {
-                    // fallback: 0 amount
                     totalAmount = BigDecimal.ZERO.setScale(2);
                 }
 

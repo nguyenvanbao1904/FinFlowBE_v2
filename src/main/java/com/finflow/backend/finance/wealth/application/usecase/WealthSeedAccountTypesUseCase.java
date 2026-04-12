@@ -1,5 +1,7 @@
 package com.finflow.backend.finance.wealth.application.usecase;
 
+import com.finflow.backend.finance.wealth.application.port.in.WealthSeedAccountTypesPort;
+
 import com.finflow.backend.finance.wealth.domain.entity.WealthAccountType;
 import com.finflow.backend.finance.wealth.domain.repository.WealthAccountTypeRepository;
 import lombok.RequiredArgsConstructor;
@@ -12,7 +14,7 @@ import java.util.List;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class WealthSeedAccountTypesUseCase {
+public class WealthSeedAccountTypesUseCase implements WealthSeedAccountTypesPort {
 
     private final WealthAccountTypeRepository wealthAccountTypeRepository;
 
@@ -31,6 +33,7 @@ public class WealthSeedAccountTypesUseCase {
     );
 
     @Transactional
+    @Override
     public void execute() {
         if (wealthAccountTypeRepository.count() > 0) {
             log.debug("Wealth account types already seeded, skipping");

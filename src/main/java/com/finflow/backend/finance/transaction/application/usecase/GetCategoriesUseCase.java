@@ -1,5 +1,7 @@
 package com.finflow.backend.finance.transaction.application.usecase;
 
+import com.finflow.backend.finance.transaction.application.port.in.GetCategoriesPort;
+
 import com.finflow.backend.finance.transaction.application.mapper.CategoryMapper;
 import com.finflow.backend.finance.transaction.domain.entity.Category;
 import com.finflow.backend.finance.transaction.domain.repository.CategoryRepository;
@@ -16,13 +18,14 @@ import java.util.stream.Collectors;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class GetCategoriesUseCase {
+public class GetCategoriesUseCase implements GetCategoriesPort {
 
     private final CategoryRepository categoryRepository;
     private final CategoryMapper categoryMapper;
 
     @Transactional(readOnly = true)
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @Override
     public List<CategoryResponse> execute(String userId) {
         log.info("Fetching categories for userId: {}", userId);
         List<Category> categories = categoryRepository.findByUserIdOrSystem(userId);

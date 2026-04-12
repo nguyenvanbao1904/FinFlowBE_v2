@@ -1,6 +1,7 @@
 package com.finflow.backend.investment.market_data.application.usecase;
 
 import com.finflow.backend.investment.market_data.application.mapper.InvestmentDataMapper;
+import com.finflow.backend.investment.market_data.application.port.in.SyncCompanyShareholdersPort;
 import com.finflow.backend.investment.market_data.domain.entity.CompanyShareholder;
 import com.finflow.backend.investment.market_data.domain.repository.CompanyShareholderRepository;
 import com.finflow.backend.investment.market_data.presentation.request.CompanyShareholderRequestDTO;
@@ -14,12 +15,13 @@ import java.util.List;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class SyncCompanyShareholdersUseCase {
+public class SyncCompanyShareholdersUseCase implements SyncCompanyShareholdersPort {
 
     private final CompanyShareholderRepository repository;
     private final InvestmentDataMapper mapper;
 
     @Transactional
+    @Override
     public void execute(String companyId, List<CompanyShareholderRequestDTO> requests) {
         log.info("Syncing {} shareholders for company {}", requests.size(), companyId);
         

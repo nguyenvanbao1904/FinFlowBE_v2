@@ -1,6 +1,7 @@
 package com.finflow.backend.investment.market_data.application.usecase;
 
 import com.finflow.backend.investment.market_data.application.mapper.InvestmentDataMapper;
+import com.finflow.backend.investment.market_data.application.port.in.SyncCompaniesPort;
 import com.finflow.backend.investment.market_data.domain.entity.Company;
 import com.finflow.backend.investment.market_data.domain.repository.CompanyRepository;
 import com.finflow.backend.investment.market_data.presentation.request.CompanyRequestDTO;
@@ -14,12 +15,13 @@ import java.util.List;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class SyncCompaniesUseCase {
+public class SyncCompaniesUseCase implements SyncCompaniesPort {
 
     private final CompanyRepository companyRepository;
     private final InvestmentDataMapper mapper;
 
     @Transactional
+    @Override
     public void execute(List<CompanyRequestDTO> requests) {
         log.info("Syncing {} companies data...", requests.size());
         // Since id is string (symbol), we can just saveAll which will do an UPSERT (insert or update)

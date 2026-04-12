@@ -7,11 +7,11 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
-final class InvestmentAnalysisLimits {
+public final class InvestmentAnalysisLimits {
     private InvestmentAnalysisLimits() {
     }
 
-    static List<InvestmentAnalysisResponse.ValuationPoint> applyValuationYearLimit(
+    public static List<InvestmentAnalysisResponse.ValuationPoint> applyValuationYearLimit(
             List<InvestmentAnalysisResponse.ValuationPoint> points,
             Integer annualLimit,
             Comparator<InvestmentAnalysisResponse.ValuationPoint> valuationAsc
@@ -32,7 +32,7 @@ final class InvestmentAnalysisLimits {
                 .toList();
     }
 
-    static List<InvestmentAnalysisResponse.DividendPoint> applyDividendYearLimit(
+    public static List<InvestmentAnalysisResponse.DividendPoint> applyDividendYearLimit(
             List<InvestmentAnalysisResponse.DividendPoint> points,
             Integer annualLimit
     ) {

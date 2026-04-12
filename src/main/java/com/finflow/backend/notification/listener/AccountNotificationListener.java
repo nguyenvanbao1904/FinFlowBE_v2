@@ -3,7 +3,7 @@ package com.finflow.backend.notification.listener;
 import com.finflow.backend.identity.application.event.AccountHardDeletedEvent;
 import com.finflow.backend.identity.application.event.AccountSoftDeletedEvent;
 import com.finflow.backend.notification.MdcCorrelationSupport;
-import com.finflow.backend.notification.mail.EmailService;
+import com.finflow.backend.notification.application.port.out.EmailNotificationPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class AccountNotificationListener {
 
-    private final EmailService emailService;
+    private final EmailNotificationPort emailNotificationPort;
 
     @Async
     @EventListener
@@ -28,7 +28,7 @@ public class AccountNotificationListener {
                     "If this was you, no further action is needed.\n" +
                     "If you changed your mind, you can simply log in again within the next 30 days to restore your account instantly.\n\n" +
                     "Best regards,\nFinFlow Team";
-            emailService.sendSimpleMessage(event.getEmail(), subject, text);
+            emailNotificationPort.sendSimpleMessage(event.getEmail(), subject, text);
         });
     }
 
@@ -42,7 +42,7 @@ public class AccountNotificationListener {
                     "Your FinFlow account and all associated data have been permanently deleted as scheduled.\n" +
                     "We are sorry to see you go and hope to welcome you back in the future.\n\n" +
                     "Best regards,\nFinFlow Team";
-            emailService.sendSimpleMessage(event.getEmail(), subject, text);
+            emailNotificationPort.sendSimpleMessage(event.getEmail(), subject, text);
         });
     }
 }

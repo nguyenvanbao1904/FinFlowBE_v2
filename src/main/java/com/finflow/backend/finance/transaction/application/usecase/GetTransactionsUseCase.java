@@ -1,5 +1,7 @@
 package com.finflow.backend.finance.transaction.application.usecase;
 
+import com.finflow.backend.finance.transaction.application.port.in.GetTransactionsPort;
+
 import com.finflow.backend.finance.transaction.application.mapper.TransactionMapper;
 import com.finflow.backend.finance.transaction.domain.entity.Transaction;
 import com.finflow.backend.finance.transaction.domain.repository.TransactionRepository;
@@ -18,13 +20,14 @@ import java.time.LocalDate;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class GetTransactionsUseCase {
+public class GetTransactionsUseCase implements GetTransactionsPort {
 
     private final TransactionRepository transactionRepository;
     private final TransactionMapper transactionMapper;
 
     @Transactional(readOnly = true)
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @Override
     public Page<TransactionResponse> execute(String userId, int page, int size,
                                              LocalDate startDate, LocalDate endDate, String keyword) {
         log.info("Fetching transactions userId={}, page={}, size={}, start={}, end={}, keyword={}",

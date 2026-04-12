@@ -1,16 +1,19 @@
 package com.finflow.backend.investment.portfolio.presentation.controller;
 
 import com.finflow.backend.common.versioning.ApiVersion;
-import com.finflow.backend.investment.portfolio.application.usecase.CreateTradeTransactionUseCase;
-import com.finflow.backend.investment.portfolio.application.usecase.GetPortfolioHealthUseCase;
-import com.finflow.backend.investment.portfolio.application.usecase.GetPortfolioPerformanceUseCase;
-import com.finflow.backend.investment.portfolio.application.usecase.GetPortfolioVsMarketUseCase;
-import com.finflow.backend.investment.portfolio.application.usecase.ImportPortfolioSnapshotUseCase;
+import com.finflow.backend.investment.portfolio.application.command.CreatePortfolioCommand;
+import com.finflow.backend.investment.portfolio.application.command.CreatePortfolioAssetCommand;
+import com.finflow.backend.investment.portfolio.application.command.CreateTradeTransactionCommand;
+import com.finflow.backend.investment.portfolio.application.command.ImportPortfolioSnapshotCommand;
+import com.finflow.backend.investment.portfolio.application.port.in.CreateTradeTransactionPort;
+import com.finflow.backend.investment.portfolio.application.port.in.GetPortfolioHealthPort;
+import com.finflow.backend.investment.portfolio.application.port.in.GetPortfolioVsMarketPort;
+import com.finflow.backend.investment.portfolio.application.port.in.ImportPortfolioSnapshotPort;
         
-import com.finflow.backend.investment.portfolio.application.usecase.CreatePortfolioAssetUseCase;
-import com.finflow.backend.investment.portfolio.application.usecase.GetPortfolioAssetsUseCase;
-import com.finflow.backend.investment.portfolio.application.usecase.CreatePortfolioUseCase;
-import com.finflow.backend.investment.portfolio.application.usecase.GetPortfoliosUseCase;
+import com.finflow.backend.investment.portfolio.application.port.in.CreatePortfolioAssetPort;
+import com.finflow.backend.investment.portfolio.application.port.in.GetPortfolioAssetsPort;
+import com.finflow.backend.investment.portfolio.application.port.in.CreatePortfolioPort;
+import com.finflow.backend.investment.portfolio.application.port.in.GetPortfoliosPort;
 import com.finflow.backend.investment.portfolio.presentation.request.CreatePortfolioRequest;
 import com.finflow.backend.investment.portfolio.presentation.request.CreatePortfolioAssetRequest;
 import com.finflow.backend.investment.portfolio.presentation.request.CreateTradeTransactionRequest;
@@ -18,13 +21,11 @@ import com.finflow.backend.investment.portfolio.presentation.request.ImportPortf
 import com.finflow.backend.investment.portfolio.presentation.response.PortfolioAssetResponse;
 import com.finflow.backend.investment.portfolio.presentation.response.PortfolioHealthResponse;
 import com.finflow.backend.investment.portfolio.presentation.response.PortfolioMarketBenchmarkResponse;
-import com.finflow.backend.investment.portfolio.presentation.response.PortfolioPerformanceResponse;
 import com.finflow.backend.investment.portfolio.presentation.response.PortfolioResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -37,7 +38,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -48,16 +48,14 @@ import java.util.UUID;
 @Tag(name = "Portfolio", description = "Investment portfolio management APIs")
 public class PortfolioController {
 
-    private final CreatePortfolioUseCase createPortfolioUseCase;
-    private final GetPortfoliosUseCase getPortfoliosUseCase;
-    private final GetPortfolioAssetsUseCase getPortfolioAssetsUseCase;
-    private final CreatePortfolioAssetUseCase createPortfolioAssetUseCase;
-    private final CreateTradeTransactionUseCase createTradeTransactionUseCase;
-    private final ImportPortfolioSnapshotUseCase importPortfolioSnapshotUseCase;
-    private final GetPortfolioHealthUseCase getPortfolioHealthUseCase;
-    private final GetPortfolioVsMarketUseCase getPortfolioVsMarketUseCase;
-    private final GetPortfolioPerformanceUseCase getPortfolioPerformanceUseCase;
-
+    private final CreatePortfolioPort createPortfolioUseCase;
+    private final GetPortfoliosPort getPortfoliosUseCase;
+    private final GetPortfolioAssetsPort getPortfolioAssetsUseCase;
+    private final CreatePortfolioAssetPort createPortfolioAssetUseCase;
+    private final CreateTradeTransactionPort createTradeTransactionUseCase;
+    private final ImportPortfolioSnapshotPort importPortfolioSnapshotUseCase;
+    private final GetPortfolioHealthPort getPortfolioHealthUseCase;
+    private final GetPortfolioVsMarketPort getPortfolioVsMarketUseCase;
     @Operation(summary = "Get all portfolios of current user")
     @GetMapping
     public ResponseEntity<List<PortfolioResponse>> getPortfolios(@AuthenticationPrincipal Jwt jwt) {
@@ -83,7 +81,10 @@ public class PortfolioController {
             @Valid @RequestBody CreatePortfolioAssetRequest request
     ) {
         String userId = jwt.getSubject();
-        PortfolioAssetResponse response = createPortfolioAssetUseCase.execute(userId, portfolioId, request);
+        PortfolioAssetResponse response = createPortfolioAssetUseCase.execute(
+            new CreatePortfolioAssetCommand(userId, portfolioId, request.getSymbol(), 
+                request.getQuantity(), request.getAveragePrice())
+        );
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -94,7 +95,9 @@ public class PortfolioController {
             @Valid @RequestBody CreatePortfolioRequest request
     ) {
         String userId = jwt.getSubject();
-        PortfolioResponse response = createPortfolioUseCase.execute(userId, request);
+        PortfolioResponse response = createPortfolioUseCase.execute(
+            new CreatePortfolioCommand(userId, request.getName())
+        );
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -106,7 +109,19 @@ public class PortfolioController {
             @Valid @RequestBody CreateTradeTransactionRequest request
     ) {
         String userId = jwt.getSubject();
-        createTradeTransactionUseCase.execute(userId, portfolioId, request);
+        CreateTradeTransactionCommand command = new CreateTradeTransactionCommand(
+                userId,
+                portfolioId,
+                request.getTradeType(),
+                request.getSymbol(),
+                request.getQuantity(),
+                request.getPrice(),
+                request.getAmount(),
+                request.getFeePercent(),
+                request.getTaxPercent(),
+                request.getTransactionDate()
+        );
+        createTradeTransactionUseCase.execute(command);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
@@ -118,7 +133,13 @@ public class PortfolioController {
             @Valid @RequestBody ImportPortfolioSnapshotRequest request
     ) {
         String userId = jwt.getSubject();
-        importPortfolioSnapshotUseCase.execute(userId, portfolioId, request);
+        importPortfolioSnapshotUseCase.execute(new ImportPortfolioSnapshotCommand(
+            userId, portfolioId, request.getCashBalance(),
+            request.getHoldings() != null ? request.getHoldings().stream()
+                .map(h -> new ImportPortfolioSnapshotCommand.HoldingSnapshot(
+                    h.getSymbol(), h.getTotalQuantity(), h.getAveragePrice()
+                )).toList() : java.util.List.of()
+        ));
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
@@ -131,7 +152,22 @@ public class PortfolioController {
     ) {
         String userId = jwt.getSubject();
         int safeQuarters = Math.max(1, Math.min(quarters, 40));
-        return ResponseEntity.ok(getPortfolioHealthUseCase.execute(userId, portfolioId, safeQuarters));
+        var result = getPortfolioHealthUseCase.execute(userId, portfolioId, safeQuarters);
+        return ResponseEntity.ok(toHealthResponse(result));
+    }
+
+    private static PortfolioHealthResponse toHealthResponse(
+            com.finflow.backend.investment.portfolio.application.result.PortfolioHealthResult result
+    ) {
+        var snap = result.current();
+        var current = new PortfolioHealthResponse.CurrentSnapshot(
+                snap.totalValueClose(), snap.stockValueClose(), snap.cashBalance(),
+                snap.pe(), snap.pb(), snap.ps(), snap.priceType());
+        var history = result.history().stream()
+                .map(h -> new PortfolioHealthResponse.HistoryPoint(
+                        h.year(), h.quarter(), h.pe(), h.pb(), h.ps(), h.roe(), h.roa(), h.coverage()))
+                .toList();
+        return new PortfolioHealthResponse(result.latestYear(), result.latestQuarter(), current, history);
     }
 
     @Operation(summary = "Compare portfolio metrics against market benchmark (default VNINDEX)")
@@ -143,20 +179,6 @@ public class PortfolioController {
     ) {
         String userId = jwt.getSubject();
         return ResponseEntity.ok(getPortfolioVsMarketUseCase.execute(userId, portfolioId, code));
-    }
-
-    @Operation(summary = "NAV vs VNINDEX time series (snapshot DB) for chart; returnPct neo 0% tại điểm đầu chuỗi")
-    @GetMapping("/{portfolioId}/performance")
-    public ResponseEntity<PortfolioPerformanceResponse> getPortfolioPerformance(
-            @AuthenticationPrincipal Jwt jwt,
-            @PathVariable UUID portfolioId,
-            @RequestParam(defaultValue = "1Y") String range,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
-    ) {
-        String userId = jwt.getSubject();
-        GetPortfolioPerformanceUseCase.PerformanceRange r = GetPortfolioPerformanceUseCase.PerformanceRange.fromParam(range);
-        return ResponseEntity.ok(getPortfolioPerformanceUseCase.execute(userId, portfolioId, r, startDate, endDate));
     }
 }
 

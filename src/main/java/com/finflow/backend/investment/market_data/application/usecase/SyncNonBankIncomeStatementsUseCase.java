@@ -1,6 +1,7 @@
 package com.finflow.backend.investment.market_data.application.usecase;
 
 import com.finflow.backend.investment.market_data.application.mapper.InvestmentDataMapper;
+import com.finflow.backend.investment.market_data.application.port.in.SyncNonBankIncomeStatementsPort;
 import com.finflow.backend.investment.market_data.domain.entity.NonBankIncomeStatement;
 import com.finflow.backend.investment.market_data.domain.repository.NonBankIncomeStatementRepository;
 import com.finflow.backend.investment.market_data.presentation.request.NonBankIncomeStatementRequestDTO;
@@ -15,12 +16,13 @@ import java.util.stream.Collectors;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class SyncNonBankIncomeStatementsUseCase {
+public class SyncNonBankIncomeStatementsUseCase implements SyncNonBankIncomeStatementsPort {
 
     private final NonBankIncomeStatementRepository repository;
     private final InvestmentDataMapper mapper;
 
     @Transactional
+    @Override
     public void execute(List<NonBankIncomeStatementRequestDTO> requestList) {
         if (requestList == null || requestList.isEmpty()) return;
 

@@ -1,5 +1,6 @@
 package com.finflow.backend.investment.market_data.application.usecase;
 
+import com.finflow.backend.investment.market_data.application.service.StockDividendAdjustmentParser;
 import org.junit.jupiter.api.Test;
 
 import java.util.Optional;

@@ -1,8 +1,9 @@
 package com.finflow.backend.investment.portfolio.application.service;
 
 import com.finflow.backend.common.exception.AppException;
-import com.finflow.backend.investment.market_data.domain.entity.FinancialIndicator;
-import com.finflow.backend.investment.market_data.domain.repository.FinancialIndicatorRepository;
+import com.finflow.backend.investment.portfolio.application.port.out.MarketIndicatorQueryPort;
+import com.finflow.backend.investment.portfolio.application.result.MarketIndicatorData;
+import com.finflow.backend.investment.portfolio.application.result.PortfolioHealthResult;
 import com.finflow.backend.investment.portfolio.domain.entity.Portfolio;
 import com.finflow.backend.investment.portfolio.domain.entity.PortfolioAsset;
 import com.finflow.backend.investment.portfolio.domain.repository.PortfolioAssetRepository;
@@ -10,9 +11,6 @@ import com.finflow.backend.investment.portfolio.domain.repository.PortfolioRepos
 import com.finflow.backend.investment.portfolio.exception.PortfolioErrorCode;
 import com.finflow.backend.investment.portfolio.infrastructure.VpsMarketPriceClient;
 import com.finflow.backend.investment.portfolio.infrastructure.VpsMarketPriceClient.MarketPriceQuote;
-import com.finflow.backend.investment.portfolio.presentation.response.PortfolioHealthResponse;
-import com.finflow.backend.investment.portfolio.presentation.response.PortfolioHealthResponse.CurrentSnapshot;
-import com.finflow.backend.investment.portfolio.presentation.response.PortfolioHealthResponse.HistoryPoint;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -21,8 +19,10 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Core P/E, P/B, P/S and history math for a portfolio. Invoked from {@link com.finflow.backend.investment.portfolio.application.usecase.GetPortfolioHealthUseCase}
- * and {@link com.finflow.backend.investment.portfolio.application.usecase.GetPortfolioVsMarketUseCase} so use cases do not call each other (ArchUnit).
+ * Core P/E, P/B, P/S and history math for a portfolio. Invoked from
+ * {@link com.finflow.backend.investment.portfolio.application.usecase.GetPortfolioHealthUseCase}
+ * and {@link com.finflow.backend.investment.portfolio.application.usecase.GetPortfolioVsMarketUseCase}
+ * so use cases do not call each other (ArchUnit).
  *
  * <p><strong>Wall Street–style weighting:</strong>
  * <ul>
@@ -40,13 +40,13 @@ public class PortfolioHealthComputationService {
 
     private final PortfolioRepository portfolioRepository;
     private final PortfolioAssetRepository assetRepository;
-    private final FinancialIndicatorRepository indicatorRepository;
+    private final MarketIndicatorQueryPort marketIndicatorQueryPort;
     private final VpsMarketPriceClient vpsClient;
 
     /**
      * Loads portfolio data, prices, and indicators; returns aggregated health view.
      */
-    public PortfolioHealthResponse compute(String userId, UUID portfolioId, int quartersLimit) {
+    public PortfolioHealthResult compute(String userId, UUID portfolioId, int quartersLimit) {
         int safeQuartersLimit = Math.max(1, Math.min(quartersLimit, 40));
 
         Portfolio portfolio = portfolioRepository
@@ -55,30 +55,29 @@ public class PortfolioHealthComputationService {
 
         List<PortfolioAsset> assets = assetRepository.findByPortfolio_IdAndPortfolio_UserId(portfolioId, userId);
         if (assets.isEmpty()) {
-            return emptyResponse(portfolio);
+            return emptyResult(portfolio);
         }
 
         List<String> symbols = assets.stream().map(PortfolioAsset::getSymbol).toList();
         Map<String, MarketPriceQuote> closePrices = vpsClient.getClosePrices(symbols);
 
-        List<FinancialIndicator> allIndicators =
-                indicatorRepository.findByCompanyIdInOrderByCompanyIdAscYearDescQuarterDesc(symbols);
+        List<MarketIndicatorData> allIndicators = marketIndicatorQueryPort.findAllByCompanyIds(symbols);
 
-        Map<String, List<FinancialIndicator>> bySymbol = allIndicators.stream()
+        Map<String, List<MarketIndicatorData>> bySymbol = allIndicators.stream()
                 .collect(Collectors.groupingBy(
-                        FinancialIndicator::getCompanyId,
+                        MarketIndicatorData::companyId,
                         Collectors.collectingAndThen(Collectors.toList(),
                                 list -> list.stream()
-                                        .sorted(Comparator.comparingInt(FinancialIndicator::getYear).reversed()
-                                                .thenComparing(Comparator.comparingInt(FinancialIndicator::getQuarter).reversed()))
+                                        .sorted(Comparator.comparingInt(MarketIndicatorData::year).reversed()
+                                                .thenComparing(Comparator.comparingInt(MarketIndicatorData::quarter).reversed()))
                                         .limit(safeQuartersLimit)
                                         .toList())
                 ));
 
-        OptionalInt maxYear = allIndicators.stream().mapToInt(FinancialIndicator::getYear).max();
+        OptionalInt maxYear = allIndicators.stream().mapToInt(MarketIndicatorData::year).max();
         OptionalInt maxQ = allIndicators.stream()
-                .filter(i -> maxYear.isPresent() && i.getYear() == maxYear.getAsInt())
-                .mapToInt(FinancialIndicator::getQuarter).max();
+                .filter(i -> maxYear.isPresent() && i.year() == maxYear.getAsInt())
+                .mapToInt(MarketIndicatorData::quarter).max();
         int latestYear = maxYear.orElse(0);
         int latestQuarter = maxQ.orElse(0);
 
@@ -107,18 +106,18 @@ public class PortfolioHealthComputationService {
             marketWeight.put(a.getSymbol(), w);
         }
 
-        CurrentSnapshot current =
+        PortfolioHealthResult.CurrentSnapshot current =
                 buildCurrentSnapshot(assets, closePrices, bySymbol, marketWeight, costWeight, portfolio);
 
-        List<HistoryPoint> history = buildHistory(assets, bySymbol, costWeight, safeQuartersLimit);
+        List<PortfolioHealthResult.HistoryPoint> history = buildHistory(assets, bySymbol, costWeight, safeQuartersLimit);
 
-        return new PortfolioHealthResponse(latestYear, latestQuarter, current, history);
+        return new PortfolioHealthResult(latestYear, latestQuarter, current, history);
     }
 
-    private CurrentSnapshot buildCurrentSnapshot(
+    private PortfolioHealthResult.CurrentSnapshot buildCurrentSnapshot(
             List<PortfolioAsset> assets,
             Map<String, MarketPriceQuote> closePrices,
-            Map<String, List<FinancialIndicator>> bySymbol,
+            Map<String, List<MarketIndicatorData>> bySymbol,
             Map<String, Double> marketWeight,
             Map<String, Double> costWeight,
             Portfolio portfolio
@@ -139,8 +138,8 @@ public class PortfolioHealthComputationService {
         double cashBalance = portfolio.getCashBalance().doubleValue();
         double totalValueClose = stockValueClose + cashBalance;
 
-        Map<String, FinancialIndicator> latest = new HashMap<>();
-        for (Map.Entry<String, List<FinancialIndicator>> e : bySymbol.entrySet()) {
+        Map<String, MarketIndicatorData> latest = new HashMap<>();
+        for (Map.Entry<String, List<MarketIndicatorData>> e : bySymbol.entrySet()) {
             if (!e.getValue().isEmpty()) {
                 latest.put(e.getKey(), e.getValue().get(0));
             }
@@ -151,19 +150,19 @@ public class PortfolioHealthComputationService {
         Double ps = null;
         if (hasSufficientClose) {
             pe = harmonicMean(assets.stream().map(PortfolioAsset::getSymbol).toList(),
-                    marketWeight, latest, fi -> safeDouble(fi.getPe()));
+                    marketWeight, latest, fi -> safeDouble(fi.pe()));
             pb = harmonicMean(assets.stream().map(PortfolioAsset::getSymbol).toList(),
-                    marketWeight, latest, fi -> safeDouble(fi.getPb()));
+                    marketWeight, latest, fi -> safeDouble(fi.pb()));
             ps = arithmeticMean(assets.stream().map(PortfolioAsset::getSymbol).toList(),
-                    marketWeight, latest, fi -> safeDouble(fi.getPs()));
+                    marketWeight, latest, fi -> safeDouble(fi.ps()));
         }
 
-        return new CurrentSnapshot(totalValueClose, stockValueClose, cashBalance, pe, pb, ps, priceType);
+        return new PortfolioHealthResult.CurrentSnapshot(totalValueClose, stockValueClose, cashBalance, pe, pb, ps, priceType);
     }
 
-    private List<HistoryPoint> buildHistory(
+    private List<PortfolioHealthResult.HistoryPoint> buildHistory(
             List<PortfolioAsset> assets,
-            Map<String, List<FinancialIndicator>> bySymbol,
+            Map<String, List<MarketIndicatorData>> bySymbol,
             Map<String, Double> costWeight,
             int quartersLimit
     ) {
@@ -174,8 +173,8 @@ public class PortfolioHealthComputationService {
         }
 
         Set<Quarter> quarters = new TreeSet<>();
-        for (List<FinancialIndicator> list : bySymbol.values()) {
-            list.forEach(fi -> quarters.add(new Quarter(fi.getYear(), fi.getQuarter())));
+        for (List<MarketIndicatorData> list : bySymbol.values()) {
+            list.forEach(fi -> quarters.add(new Quarter(fi.year(), fi.quarter())));
         }
 
         List<Quarter> sortedQuarters = quarters.stream()
@@ -185,39 +184,39 @@ public class PortfolioHealthComputationService {
                 .toList();
 
         List<String> symbols = assets.stream().map(PortfolioAsset::getSymbol).toList();
-        List<HistoryPoint> points = new ArrayList<>();
+        List<PortfolioHealthResult.HistoryPoint> points = new ArrayList<>();
 
         for (Quarter q : sortedQuarters) {
-            Map<String, FinancialIndicator> snap = new HashMap<>();
+            Map<String, MarketIndicatorData> snap = new HashMap<>();
             for (String sym : symbols) {
-                List<FinancialIndicator> list = bySymbol.getOrDefault(sym, List.of());
+                List<MarketIndicatorData> list = bySymbol.getOrDefault(sym, List.of());
                 list.stream()
-                        .filter(fi -> fi.getYear() == q.year() && fi.getQuarter() == q.quarter())
+                        .filter(fi -> fi.year() == q.year() && fi.quarter() == q.quarter())
                         .findFirst()
                         .ifPresent(fi -> snap.put(sym, fi));
             }
 
             double coverage = symbols.stream()
                     .filter(s -> {
-                        FinancialIndicator fi = snap.get(s);
+                        MarketIndicatorData fi = snap.get(s);
                         return fi != null && (
-                                positiveDouble(fi.getPe()) ||
-                                        positiveDouble(fi.getPb()) ||
-                                        safeDouble(fi.getPs()) != null ||
-                                        safeDouble(fi.getRoe()) != null ||
-                                        safeDouble(fi.getRoa()) != null
+                                positiveDouble(fi.pe()) ||
+                                        positiveDouble(fi.pb()) ||
+                                        safeDouble(fi.ps()) != null ||
+                                        safeDouble(fi.roe()) != null ||
+                                        safeDouble(fi.roa()) != null
                         );
                     })
                     .mapToDouble(s -> costWeight.getOrDefault(s, 0.0))
                     .sum();
 
-            Double pe = harmonicMeanSnap(symbols, costWeight, snap, fi -> safeDouble(fi.getPe()));
-            Double pb = harmonicMeanSnap(symbols, costWeight, snap, fi -> safeDouble(fi.getPb()));
-            Double ps = arithmeticMeanSnap(symbols, costWeight, snap, fi -> safeDouble(fi.getPs()));
-            Double roe = arithmeticMeanSnap(symbols, costWeight, snap, fi -> safeDouble(fi.getRoe()));
-            Double roa = arithmeticMeanSnap(symbols, costWeight, snap, fi -> safeDouble(fi.getRoa()));
+            Double pe = harmonicMeanSnap(symbols, costWeight, snap, fi -> safeDouble(fi.pe()));
+            Double pb = harmonicMeanSnap(symbols, costWeight, snap, fi -> safeDouble(fi.pb()));
+            Double ps = arithmeticMeanSnap(symbols, costWeight, snap, fi -> safeDouble(fi.ps()));
+            Double roe = arithmeticMeanSnap(symbols, costWeight, snap, fi -> safeDouble(fi.roe()));
+            Double roa = arithmeticMeanSnap(symbols, costWeight, snap, fi -> safeDouble(fi.roa()));
 
-            points.add(new HistoryPoint(q.year(), q.quarter(), pe, pb, ps, roe, roa, coverage));
+            points.add(new PortfolioHealthResult.HistoryPoint(q.year(), q.quarter(), pe, pb, ps, roe, roa, coverage));
         }
 
         return points;
@@ -225,41 +224,33 @@ public class PortfolioHealthComputationService {
 
     @FunctionalInterface
     private interface IndicatorExtractor {
-        Double extract(FinancialIndicator fi);
+        Double extract(MarketIndicatorData fi);
     }
 
     private Double harmonicMean(
             List<String> symbols,
             Map<String, Double> weights,
-            Map<String, FinancialIndicator> indicators,
+            Map<String, MarketIndicatorData> indicators,
             IndicatorExtractor extractor
     ) {
         double sumInverseWeighted = 0;
         double sumWeight = 0;
         for (String s : symbols) {
-            FinancialIndicator fi = indicators.get(s);
-            if (fi == null) {
-                continue;
-            }
+            MarketIndicatorData fi = indicators.get(s);
+            if (fi == null) continue;
             Double v = extractor.extract(fi);
-            if (v == null || v <= 0) {
-                continue;
-            }
+            if (v == null || v <= 0) continue;
             double w = weights.getOrDefault(s, 0.0);
             sumInverseWeighted += w / v;
             sumWeight += w;
         }
-        if (sumWeight < MIN_COVERAGE || sumInverseWeighted == 0) {
-            return null;
-        }
+        if (sumWeight < MIN_COVERAGE || sumInverseWeighted == 0) return null;
         return sumWeight / sumInverseWeighted;
     }
 
     private Double harmonicMeanSnap(
-            List<String> symbols,
-            Map<String, Double> weights,
-            Map<String, FinancialIndicator> snap,
-            IndicatorExtractor extractor
+            List<String> symbols, Map<String, Double> weights,
+            Map<String, MarketIndicatorData> snap, IndicatorExtractor extractor
     ) {
         return harmonicMean(symbols, weights, snap, extractor);
     }
@@ -267,35 +258,27 @@ public class PortfolioHealthComputationService {
     private Double arithmeticMean(
             List<String> symbols,
             Map<String, Double> weights,
-            Map<String, FinancialIndicator> indicators,
+            Map<String, MarketIndicatorData> indicators,
             IndicatorExtractor extractor
     ) {
         double sumWeighted = 0;
         double sumWeight = 0;
         for (String s : symbols) {
-            FinancialIndicator fi = indicators.get(s);
-            if (fi == null) {
-                continue;
-            }
+            MarketIndicatorData fi = indicators.get(s);
+            if (fi == null) continue;
             Double v = extractor.extract(fi);
-            if (v == null) {
-                continue;
-            }
+            if (v == null) continue;
             double w = weights.getOrDefault(s, 0.0);
             sumWeighted += w * v;
             sumWeight += w;
         }
-        if (sumWeight < MIN_COVERAGE) {
-            return null;
-        }
+        if (sumWeight < MIN_COVERAGE) return null;
         return sumWeighted / sumWeight;
     }
 
     private Double arithmeticMeanSnap(
-            List<String> symbols,
-            Map<String, Double> weights,
-            Map<String, FinancialIndicator> snap,
-            IndicatorExtractor extractor
+            List<String> symbols, Map<String, Double> weights,
+            Map<String, MarketIndicatorData> snap, IndicatorExtractor extractor
     ) {
         return arithmeticMean(symbols, weights, snap, extractor);
     }
@@ -308,13 +291,11 @@ public class PortfolioHealthComputationService {
         return bd != null && bd.doubleValue() > 0;
     }
 
-    private PortfolioHealthResponse emptyResponse(Portfolio portfolio) {
-        CurrentSnapshot empty = new CurrentSnapshot(
-                portfolio.getCashBalance().doubleValue(),
-                0,
-                portfolio.getCashBalance().doubleValue(),
-                null, null, null, "INSUFFICIENT"
+    private PortfolioHealthResult emptyResult(Portfolio portfolio) {
+        PortfolioHealthResult.CurrentSnapshot empty = new PortfolioHealthResult.CurrentSnapshot(
+                portfolio.getCashBalance().doubleValue(), 0,
+                portfolio.getCashBalance().doubleValue(), null, null, null, "INSUFFICIENT"
         );
-        return new PortfolioHealthResponse(0, 0, empty, List.of());
+        return new PortfolioHealthResult(0, 0, empty, List.of());
     }
 }

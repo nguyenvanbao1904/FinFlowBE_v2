@@ -1,5 +1,8 @@
 package com.finflow.backend.identity.application.usecase;
 
+import com.finflow.backend.identity.application.port.in.LogoutPort;
+
+import com.finflow.backend.identity.application.command.LogoutCommand;
 import com.finflow.backend.identity.domain.entity.InvalidatedToken;
 import com.finflow.backend.identity.domain.repository.InvalidatedTokenRepository;
 import com.nimbusds.jwt.SignedJWT;
@@ -14,17 +17,18 @@ import java.util.Date;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class LogoutUseCase {
+public class LogoutUseCase implements LogoutPort {
 
     private final InvalidatedTokenRepository invalidatedTokenRepository;
 
     @PreAuthorize("hasAnyRole('USER','ADMIN')")
-    public void execute(String token) {
+    @Override
+    public void execute(LogoutCommand command) {
         log.info("Executing logout use case");
 
         try {
             // 1. Parse JWT token
-            SignedJWT signedJWT = SignedJWT.parse(token);
+            SignedJWT signedJWT = SignedJWT.parse(command.accessToken());
 
             // 2. Extract token ID and expiration
             String jti = signedJWT.getJWTClaimsSet().getJWTID();

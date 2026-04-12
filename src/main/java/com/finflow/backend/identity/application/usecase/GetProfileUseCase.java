@@ -1,5 +1,7 @@
 package com.finflow.backend.identity.application.usecase;
 
+import com.finflow.backend.identity.application.port.in.GetProfilePort;
+
 import com.finflow.backend.common.exception.AppException;
 import com.finflow.backend.identity.domain.entity.User;
 import com.finflow.backend.identity.domain.repository.UserRepository;
@@ -16,12 +18,13 @@ import java.util.stream.Collectors;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class GetProfileUseCase {
+public class GetProfileUseCase implements GetProfilePort {
 
     private final UserRepository userRepository;
     private final UserMapper userMapper;
 
     @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    @Override
     public UserResponse execute(String userId) {
         log.info("Executing GetProfileUseCase for userId: {}", userId);
 

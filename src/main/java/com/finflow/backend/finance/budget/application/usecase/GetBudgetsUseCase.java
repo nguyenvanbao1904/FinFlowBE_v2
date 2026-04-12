@@ -1,5 +1,7 @@
 package com.finflow.backend.finance.budget.application.usecase;
 
+import com.finflow.backend.finance.budget.application.port.in.GetBudgetsPort;
+
 import com.finflow.backend.finance.budget.application.mapper.BudgetMapper;
 import com.finflow.backend.finance.budget.domain.entity.Budget;
 import com.finflow.backend.finance.budget.domain.repository.BudgetRepository;
@@ -18,7 +20,7 @@ import java.util.List;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class GetBudgetsUseCase {
+public class GetBudgetsUseCase implements GetBudgetsPort {
 
     private final BudgetRepository budgetRepository;
     private final BudgetMapper budgetMapper;
@@ -26,6 +28,7 @@ public class GetBudgetsUseCase {
 
     @Transactional(readOnly = true)
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @Override
     public List<BudgetResponse> execute(String userId) {
         log.info("Getting budgets for user: {}", userId);
 

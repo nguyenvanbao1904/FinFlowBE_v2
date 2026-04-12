@@ -1,28 +1,15 @@
 package com.finflow.backend.finance.transaction.presentation.controller;
 
-import com.finflow.backend.finance.transaction.application.usecase.AddTransactionUseCase;
-import com.finflow.backend.finance.transaction.application.usecase.AnalyzeTransactionUseCase;
-import com.finflow.backend.finance.transaction.application.usecase.DeleteTransactionUseCase;
-import com.finflow.backend.finance.transaction.application.usecase.CreateCategoryUseCase;
-import com.finflow.backend.finance.transaction.application.usecase.DeleteCategoryUseCase;
-import com.finflow.backend.finance.transaction.application.usecase.GetCategoriesUseCase;
-import com.finflow.backend.finance.transaction.application.usecase.GetTransactionChartUseCase;
-import com.finflow.backend.finance.transaction.application.usecase.GetTransactionAnalyticsInsightsUseCase;
-import com.finflow.backend.finance.transaction.application.usecase.UpdateCategoryUseCase;
-import com.finflow.backend.finance.transaction.application.usecase.GetTransactionSummaryUseCase;
-import com.finflow.backend.finance.transaction.application.usecase.GetTransactionsUseCase;
-import com.finflow.backend.finance.transaction.application.usecase.UpdateTransactionUseCase;
+import com.finflow.backend.finance.transaction.application.command.AddTransactionCommand;
+import com.finflow.backend.finance.transaction.application.command.DeleteTransactionCommand;
+import com.finflow.backend.finance.transaction.application.command.UpdateTransactionCommand;
+import com.finflow.backend.finance.transaction.application.port.in.AddTransactionPort;
+import com.finflow.backend.finance.transaction.application.port.in.DeleteTransactionPort;
+import com.finflow.backend.finance.transaction.application.port.in.GetTransactionsPort;
+import com.finflow.backend.finance.transaction.application.port.in.UpdateTransactionPort;
 import com.finflow.backend.finance.transaction.presentation.request.AddTransactionRequest;
-import com.finflow.backend.finance.transaction.presentation.request.AnalyzeTransactionRequest;
-import com.finflow.backend.finance.transaction.presentation.request.CreateCategoryRequest;
-import com.finflow.backend.finance.transaction.presentation.request.UpdateCategoryRequest;
 import com.finflow.backend.finance.transaction.presentation.request.UpdateTransactionRequest;
-import com.finflow.backend.finance.transaction.presentation.response.AnalyzeTransactionResponse;
-import com.finflow.backend.finance.transaction.presentation.response.CategoryResponse;
-import com.finflow.backend.finance.transaction.presentation.response.TransactionChartResponse;
-import com.finflow.backend.finance.transaction.presentation.response.TransactionAnalyticsInsightsResponse;
 import com.finflow.backend.finance.transaction.presentation.response.TransactionResponse;
-import com.finflow.backend.finance.transaction.presentation.response.TransactionSummaryResponse;
 import com.finflow.backend.common.versioning.ApiVersion;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -36,28 +23,19 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
-import java.util.List;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/transactions")
 @RequiredArgsConstructor
 @ApiVersion("1")
-@Tag(name = "Transaction", description = "Transaction and category management APIs")
+@Tag(name = "Transaction", description = "Transaction CRUD APIs")
 public class TransactionController {
 
-    private final AddTransactionUseCase addTransactionUseCase;
-    private final GetTransactionsUseCase getTransactionsUseCase;
-    private final GetTransactionSummaryUseCase getTransactionSummaryUseCase;
-    private final GetCategoriesUseCase getCategoriesUseCase;
-    private final CreateCategoryUseCase createCategoryUseCase;
-    private final UpdateCategoryUseCase updateCategoryUseCase;
-    private final DeleteCategoryUseCase deleteCategoryUseCase;
-    private final AnalyzeTransactionUseCase analyzeTransactionUseCase;
-    private final GetTransactionChartUseCase getTransactionChartUseCase;
-    private final GetTransactionAnalyticsInsightsUseCase getTransactionAnalyticsInsightsUseCase;
-    private final UpdateTransactionUseCase updateTransactionUseCase;
-    private final DeleteTransactionUseCase deleteTransactionUseCase;
+    private final AddTransactionPort addTransactionUseCase;
+    private final GetTransactionsPort getTransactionsUseCase;
+    private final UpdateTransactionPort updateTransactionUseCase;
+    private final DeleteTransactionPort deleteTransactionUseCase;
 
     @Operation(summary = "Create a new transaction")
     @PostMapping
@@ -65,18 +43,11 @@ public class TransactionController {
             @AuthenticationPrincipal Jwt jwt,
             @Valid @RequestBody AddTransactionRequest request) {
         String userId = jwt.getSubject();
-        TransactionResponse response = addTransactionUseCase.execute(userId, request);
+        TransactionResponse response = addTransactionUseCase.execute(
+            new AddTransactionCommand(userId, request.getAmount(), request.getType(), 
+                request.getCategoryId(), request.getAccountId(), request.getNote(), request.getTransactionDate())
+        );
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
-
-    @Operation(summary = "Analyze transaction text and suggest category")
-    @PostMapping("/analyze")
-    public ResponseEntity<AnalyzeTransactionResponse> analyzeTransaction(
-            @AuthenticationPrincipal Jwt jwt,
-            @Valid @RequestBody AnalyzeTransactionRequest request) {
-        String userId = jwt.getSubject();
-        AnalyzeTransactionResponse response = analyzeTransactionUseCase.execute(userId, request);
-        return ResponseEntity.ok(response);
     }
 
     @Operation(summary = "Get paginated transactions with optional date range and keyword")
@@ -95,78 +66,6 @@ public class TransactionController {
         return ResponseEntity.ok(response);
     }
 
-    @Operation(summary = "Get transaction summary (income/expense totals)")
-    @GetMapping("/summary")
-    public ResponseEntity<TransactionSummaryResponse> getTransactionSummary(
-            @AuthenticationPrincipal Jwt jwt) {
-        String userId = jwt.getSubject();
-        TransactionSummaryResponse response = getTransactionSummaryUseCase.execute(userId);
-        return ResponseEntity.ok(response);
-    }
-
-    @Operation(summary = "Get transaction chart data by range (MONTH, etc.)")
-    @GetMapping("/chart")
-    public ResponseEntity<TransactionChartResponse> getTransactionChart(
-            @AuthenticationPrincipal Jwt jwt,
-            @RequestParam(defaultValue = "MONTH") String range,
-            @RequestParam(required = false) String referenceDate) {
-        String userId = jwt.getSubject();
-        GetTransactionChartUseCase.ChartRange chartRange =
-                GetTransactionChartUseCase.ChartRange.valueOf(range.toUpperCase());
-        LocalDate refDate = referenceDate != null ? LocalDate.parse(referenceDate) : null;
-        TransactionChartResponse response = getTransactionChartUseCase.execute(userId, chartRange, refDate);
-        return ResponseEntity.ok(response);
-    }
-
-    @Operation(summary = "Get AI analytics insights (read-only)")
-    @GetMapping("/analytics-insights")
-    public ResponseEntity<TransactionAnalyticsInsightsResponse> getAnalyticsInsights(
-            @AuthenticationPrincipal Jwt jwt) {
-        String userId = jwt.getSubject();
-        TransactionAnalyticsInsightsResponse response = getTransactionAnalyticsInsightsUseCase.execute(userId);
-        return ResponseEntity.ok(response);
-    }
-
-    @Operation(summary = "Get all categories of current user (including system categories)")
-    @GetMapping("/categories")
-    public ResponseEntity<List<CategoryResponse>> getCategories(
-            @AuthenticationPrincipal Jwt jwt) {
-        String userId = jwt.getSubject();
-        List<CategoryResponse> response = getCategoriesUseCase.execute(userId);
-        return ResponseEntity.ok(response);
-    }
-
-    @Operation(summary = "Create a new category")
-    @PostMapping("/categories")
-    public ResponseEntity<CategoryResponse> createCategory(
-            @AuthenticationPrincipal Jwt jwt,
-            @Valid @RequestBody CreateCategoryRequest request) {
-        String userId = jwt.getSubject();
-        CategoryResponse response = createCategoryUseCase.execute(userId, request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
-
-    @Operation(summary = "Update a category (own categories only)")
-    @PutMapping("/categories/{id}")
-    public ResponseEntity<CategoryResponse> updateCategory(
-            @AuthenticationPrincipal Jwt jwt,
-            @PathVariable UUID id,
-            @Valid @RequestBody UpdateCategoryRequest request) {
-        String userId = jwt.getSubject();
-        CategoryResponse response = updateCategoryUseCase.execute(userId, id, request);
-        return ResponseEntity.ok(response);
-    }
-
-    @Operation(summary = "Delete a category (own categories only, not in use)")
-    @DeleteMapping("/categories/{id}")
-    public ResponseEntity<Void> deleteCategory(
-            @AuthenticationPrincipal Jwt jwt,
-            @PathVariable UUID id) {
-        String userId = jwt.getSubject();
-        deleteCategoryUseCase.execute(userId, id);
-        return ResponseEntity.noContent().build();
-    }
-
     @Operation(summary = "Update a transaction")
     @PutMapping("/{id}")
     public ResponseEntity<TransactionResponse> updateTransaction(
@@ -174,7 +73,10 @@ public class TransactionController {
             @PathVariable UUID id,
             @Valid @RequestBody UpdateTransactionRequest request) {
         String userId = jwt.getSubject();
-        TransactionResponse response = updateTransactionUseCase.execute(userId, id, request);
+        TransactionResponse response = updateTransactionUseCase.execute(
+            new UpdateTransactionCommand(userId, id, request.getAmount(), request.getType(), 
+                request.getCategoryId(), request.getAccountId(), request.getNote(), request.getTransactionDate())
+        );
         return ResponseEntity.ok(response);
     }
 
@@ -184,7 +86,7 @@ public class TransactionController {
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable UUID id) {
         String userId = jwt.getSubject();
-        deleteTransactionUseCase.execute(userId, id);
+        deleteTransactionUseCase.execute(new DeleteTransactionCommand(userId, id));
         return ResponseEntity.noContent().build();
     }
 }

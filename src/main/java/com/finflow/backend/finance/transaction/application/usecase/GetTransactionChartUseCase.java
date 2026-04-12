@@ -1,5 +1,7 @@
 package com.finflow.backend.finance.transaction.application.usecase;
 
+import com.finflow.backend.finance.transaction.application.TransactionChartRange;
+import com.finflow.backend.finance.transaction.application.port.in.GetTransactionChartPort;
 import com.finflow.backend.finance.transaction.domain.enums.CategoryType;
 import com.finflow.backend.finance.transaction.domain.entity.Transaction;
 import com.finflow.backend.finance.transaction.domain.repository.TransactionRepository;
@@ -21,15 +23,14 @@ import java.util.stream.Collectors;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class GetTransactionChartUseCase {
+public class GetTransactionChartUseCase implements GetTransactionChartPort {
 
     private final TransactionRepository transactionRepository;
 
-    public enum ChartRange { WEEK, MONTH, QUARTER, YEAR }
-
     @Transactional(readOnly = true)
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public TransactionChartResponse execute(String userId, ChartRange range, LocalDate referenceDate) {
+    @Override
+    public TransactionChartResponse execute(String userId, TransactionChartRange range, LocalDate referenceDate) {
         log.info("Fetching chart data for userId={}, range={}, referenceDate={}", userId, range, referenceDate);
         LocalDate today = LocalDate.now();
         LocalDate ref = referenceDate != null ? referenceDate : today;

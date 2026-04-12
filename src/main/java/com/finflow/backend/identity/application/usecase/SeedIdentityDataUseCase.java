@@ -6,7 +6,7 @@ import com.finflow.backend.identity.domain.repository.RoleRepository;
 import com.finflow.backend.identity.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import com.finflow.backend.identity.application.port.out.PasswordEncoderPort;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,7 +20,7 @@ public class SeedIdentityDataUseCase {
 
     private final RoleRepository roleRepository;
     private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
+    private final PasswordEncoderPort passwordEncoder;
 
     /**
      * Seed default roles and admin user. Intended to be invoked once at startup.

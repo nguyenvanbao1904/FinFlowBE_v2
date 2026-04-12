@@ -7,7 +7,8 @@ import com.finflow.backend.finance.transaction.domain.repository.CategoryReposit
 import com.finflow.backend.finance.transaction.domain.repository.TransactionRepository;
 import com.finflow.backend.finance.wealth.domain.entity.WealthAccount;
 import com.finflow.backend.finance.wealth.domain.repository.WealthAccountRepository;
-import com.finflow.backend.finance.transaction.presentation.request.AnalyzeTransactionRequest;
+import com.finflow.backend.finance.transaction.application.command.AnalyzeTransactionCommand;
+import com.finflow.backend.finance.transaction.application.port.in.AnalyzeTransactionPort;
 import com.finflow.backend.finance.transaction.presentation.response.AnalyzeTransactionResponse;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -24,8 +25,9 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.time.OffsetDateTime;
+import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -34,7 +36,7 @@ import java.util.stream.Collectors;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class AnalyzeTransactionUseCase {
+public class AnalyzeTransactionUseCase implements AnalyzeTransactionPort {
 
     private final CategoryRepository categoryRepository;
     private final WealthAccountRepository wealthAccountRepository;
@@ -47,33 +49,52 @@ public class AnalyzeTransactionUseCase {
     @Value("${data.ai.internal-api-key:}")
     private String dataAiInternalApiKey;
 
-    @Transactional(readOnly = true)
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public AnalyzeTransactionResponse execute(String userId, AnalyzeTransactionRequest request) {
-        log.info("Analyzing transaction text for userId: '{}' text: '{}'", userId, request.getText());
+    private final HttpClient httpClient = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(10))
+            .build();
 
+    /**
+     * Entry point: loads data inside a short read-only transaction,
+     * then releases the DB connection before calling the external AI service.
+     */
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @Override
+    public AnalyzeTransactionResponse execute(String userId, AnalyzeTransactionCommand command) {
+        log.info("Analyzing transaction text for userId: '{}' text: '{}'", userId, command.text());
+
+        DbSnapshot snapshot = loadDbData(userId);
+
+        try {
+            Map<String, Object> aiResponse = callDataAi(command.text(), snapshot);
+            return mapAiResponseToAnalyzeResponse(aiResponse, snapshot.categories, snapshot.accounts);
+        } catch (Exception e) {
+            log.warn("AI prefill failed, fallback to local heuristic. reason={}", e.getMessage());
+            return fallbackResponse(snapshot.categories);
+        }
+    }
+
+    /**
+     * Short read-only transaction — loads categories, accounts, and recent transactions
+     * then returns immediately so the DB connection is released.
+     */
+    @Transactional(readOnly = true)
+    public DbSnapshot loadDbData(String userId) {
         List<Category> categories = categoryRepository.findByUserIdOrSystem(userId);
         List<WealthAccount> accounts = wealthAccountRepository.findAllByUserIdWithType(userId);
         List<Transaction> recentTransactions = transactionRepository
                 .findByUserIdOrderByTransactionDateDescCreatedAtDesc(userId, PageRequest.of(0, 20))
                 .getContent();
-
-        try {
-            Map<String, Object> aiResponse = callDataAi(request.getText(), categories, accounts, recentTransactions);
-            return mapAiResponseToAnalyzeResponse(aiResponse, categories, accounts);
-        } catch (Exception e) {
-            log.warn("AI prefill failed, fallback to local heuristic. reason={}", e.getMessage());
-            return fallbackResponse(categories);
-        }
+        return new DbSnapshot(categories, accounts, recentTransactions);
     }
 
-    private Map<String, Object> callDataAi(
-            String rawText,
+    record DbSnapshot(
             List<Category> categories,
             List<WealthAccount> accounts,
             List<Transaction> recentTransactions
-    ) throws Exception {
-        List<Map<String, ?>> categoryPayload = categories.stream()
+    ) {}
+
+    private Map<String, Object> callDataAi(String rawText, DbSnapshot snapshot) throws Exception {
+        List<Map<String, ?>> categoryPayload = snapshot.categories.stream()
                 .map(c -> Map.of(
                         "id", c.getId().toString(),
                         "name", c.getName(),
@@ -81,7 +102,7 @@ public class AnalyzeTransactionUseCase {
                 ))
                 .collect(Collectors.toList());
 
-        List<Map<String, ?>> accountPayload = accounts.stream()
+        List<Map<String, ?>> accountPayload = snapshot.accounts.stream()
                 .map(a -> Map.of(
                         "id", a.getId().toString(),
                         "name", a.getName(),
@@ -89,7 +110,7 @@ public class AnalyzeTransactionUseCase {
                 ))
                 .collect(Collectors.toList());
 
-        List<Map<String, ?>> historyPayload = recentTransactions.stream()
+        List<Map<String, ?>> historyPayload = snapshot.recentTransactions.stream()
                 .map(t -> Map.of(
                         "amount", t.getAmount(),
                         "type", t.getType().name(),
@@ -113,13 +134,14 @@ public class AnalyzeTransactionUseCase {
         HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
                 .uri(URI.create(dataAiBaseUrl + "/api/v1/ai/transaction-prefill"))
                 .header("Content-Type", "application/json")
+                .timeout(Duration.ofSeconds(30))
                 .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(body)));
 
         if (dataAiInternalApiKey != null && !dataAiInternalApiKey.isBlank()) {
             requestBuilder.header("X-Internal-Api-Key", dataAiInternalApiKey);
         }
 
-        HttpResponse<String> response = HttpClient.newHttpClient()
+        HttpResponse<String> response = httpClient
                 .send(requestBuilder.build(), HttpResponse.BodyHandlers.ofString());
 
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
@@ -141,7 +163,6 @@ public class AnalyzeTransactionUseCase {
         String note = parseString(aiResponse.get("note"));
         LocalDateTime transactionDate = parseDateTime(aiResponse.get("transactionDate"));
 
-        // Preserve compatibility with existing FE: suggestedCategoryId field.
         if (suggestedCategoryId != null && !containsCategory(categories, suggestedCategoryId)) {
             suggestedCategoryId = null;
         }

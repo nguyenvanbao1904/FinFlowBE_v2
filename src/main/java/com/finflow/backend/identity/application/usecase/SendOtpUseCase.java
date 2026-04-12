@@ -1,5 +1,7 @@
 package com.finflow.backend.identity.application.usecase;
 
+import com.finflow.backend.identity.application.port.in.SendOtpPort;
+
 import com.finflow.backend.common.exception.AppException;
 import com.finflow.backend.common.redis.RedisService;
 import com.finflow.backend.identity.application.dto.OtpData;
@@ -20,7 +22,7 @@ import java.util.concurrent.TimeUnit;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class SendOtpUseCase {
+public class SendOtpUseCase implements SendOtpPort {
     private final ApplicationEventPublisher eventPublisher;
     private final UserRepository userRepository;
     private final RedisService redisService;
@@ -31,6 +33,7 @@ public class SendOtpUseCase {
     private static final String OTP_RATE_KEY_PREFIX = "otp:rate:";
     private static final long RATE_LIMIT_SECONDS = 60;
 
+    @Override
     public void execute(String email, OtpPurpose purpose) {
         if (purpose == OtpPurpose.REGISTER) {
             boolean emailExists = userRepository.existsByEmail(email);

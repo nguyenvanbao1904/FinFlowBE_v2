@@ -1,5 +1,7 @@
 package com.finflow.backend.finance.transaction.application.usecase;
 
+import com.finflow.backend.finance.transaction.application.port.in.AddTransactionPort;
+
 import com.finflow.backend.common.exception.AppException;
 import com.finflow.backend.finance.transaction.application.mapper.TransactionMapper;
 import com.finflow.backend.finance.wealth.domain.entity.WealthAccount;
@@ -11,7 +13,7 @@ import com.finflow.backend.finance.transaction.domain.enums.CategoryType;
 import com.finflow.backend.finance.transaction.domain.repository.CategoryRepository;
 import com.finflow.backend.finance.transaction.domain.repository.TransactionRepository;
 import com.finflow.backend.finance.transaction.exception.TransactionErrorCode;
-import com.finflow.backend.finance.transaction.presentation.request.AddTransactionRequest;
+import com.finflow.backend.finance.transaction.application.command.AddTransactionCommand;
 import com.finflow.backend.finance.transaction.presentation.response.TransactionResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,7 +31,7 @@ import java.time.format.DateTimeParseException;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class AddTransactionUseCase {
+public class AddTransactionUseCase implements AddTransactionPort {
 
     private final TransactionRepository transactionRepository;
     private final CategoryRepository categoryRepository;
@@ -40,21 +42,23 @@ public class AddTransactionUseCase {
 
     @Transactional
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public TransactionResponse execute(String userId, AddTransactionRequest request) {
+    @Override
+    public TransactionResponse execute(AddTransactionCommand command) {
+        String userId = command.userId();
         log.info("Adding transaction for userId: {}", userId);
 
-        Category category = categoryRepository.findByIdAndUserIdOrSystem(request.getCategoryId(), userId)
+        Category category = categoryRepository.findByIdAndUserIdOrSystem(command.categoryId(), userId)
                 .orElseThrow(() -> new AppException(TransactionErrorCode.CATEGORY_NOT_FOUND));
 
         // Validate account ownership and transaction eligibility
-        WealthAccount account = wealthAccountRepository.findByIdAndUserIdWithType(request.getAccountId(), userId)
+        WealthAccount account = wealthAccountRepository.findByIdAndUserIdWithType(command.accountId(), userId)
                 .orElseThrow(() -> new AppException(WealthErrorCode.WEALTH_ACCOUNT_NOT_FOUND));
         if (Boolean.FALSE.equals(account.getWealthAccountType().getIsTransactionEligible())) {
             throw new AppException(WealthErrorCode.WEALTH_ACCOUNT_NOT_TRANSACTION_ELIGIBLE);
         }
 
-        BigDecimal amount = request.getAmount() != null ? request.getAmount() : BigDecimal.ZERO;
-        boolean isDeduction = request.getType() == CategoryType.EXPENSE || request.getType() == CategoryType.SAVING;
+        BigDecimal amount = command.amount() != null ? command.amount() : BigDecimal.ZERO;
+        boolean isDeduction = command.type() == CategoryType.EXPENSE || command.type() == CategoryType.SAVING;
         if (isDeduction && Boolean.FALSE.equals(account.getWealthAccountType().getIsDebt())) {
             BigDecimal newBalance = account.getBalance().subtract(amount);
             if (newBalance.compareTo(BigDecimal.ZERO) < 0) {
@@ -66,21 +70,21 @@ public class AddTransactionUseCase {
         // and convert to UTC before saving to DB
         LocalDateTime transactionDateUTC;
         try {
-            ZonedDateTime zonedDateTime = ZonedDateTime.parse(request.getTransactionDate(), DateTimeFormatter.ISO_DATE_TIME);
+            ZonedDateTime zonedDateTime = ZonedDateTime.parse(command.transactionDate(), DateTimeFormatter.ISO_DATE_TIME);
             transactionDateUTC = zonedDateTime.withZoneSameInstant(UTC).toLocalDateTime();
             log.debug("Parsed transactionDate: {} (original timezone) -> {} (UTC)", 
-                     request.getTransactionDate(), transactionDateUTC);
+                     command.transactionDate(), transactionDateUTC);
         } catch (DateTimeParseException e) {
-            log.error("Failed to parse transactionDate: {}", request.getTransactionDate(), e);
+            log.error("Failed to parse transactionDate: {}", command.transactionDate(), e);
             throw new AppException(TransactionErrorCode.INVALID_TRANSACTION_DATE);
         }
 
         Transaction transaction = Transaction.builder()
                 .userId(userId)
                 .amount(amount)
-                .type(request.getType())
+                .type(command.type())
                 .category(category)
-                .note(request.getNote())
+                .note(command.note())
                 .wealthAccount(account)
                 .transactionDate(transactionDateUTC)  // Save as UTC
                 // createdAt and updatedAt are automatically handled by @CreationTimestamp and @UpdateTimestamp
@@ -88,7 +92,7 @@ public class AddTransactionUseCase {
 
         Transaction savedTransaction = transactionRepository.save(transaction);
 
-        if (request.getType() == CategoryType.INCOME) {
+        if (command.type() == CategoryType.INCOME) {
             account.setBalance(account.getBalance().add(amount));
         } else {
             account.setBalance(account.getBalance().subtract(amount));

@@ -1,9 +1,11 @@
 package com.finflow.backend.finance.transaction.application.usecase;
 
+import com.finflow.backend.finance.transaction.application.port.in.CreateCategoryPort;
+
 import com.finflow.backend.finance.transaction.application.mapper.CategoryMapper;
 import com.finflow.backend.finance.transaction.domain.entity.Category;
 import com.finflow.backend.finance.transaction.domain.repository.CategoryRepository;
-import com.finflow.backend.finance.transaction.presentation.request.CreateCategoryRequest;
+import com.finflow.backend.finance.transaction.application.command.CreateCategoryCommand;
 import com.finflow.backend.finance.transaction.presentation.response.CategoryResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,27 +16,35 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class CreateCategoryUseCase {
+public class CreateCategoryUseCase implements CreateCategoryPort {
 
     private final CategoryRepository categoryRepository;
     private final CategoryMapper categoryMapper;
 
     @Transactional
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public CategoryResponse execute(String userId, CreateCategoryRequest request) {
+    @Override
+    public CategoryResponse execute(CreateCategoryCommand command) {
+        String userId = command.userId();
         log.info("Creating category for userId: {}", userId);
 
-        String icon = request.getIcon() != null ? request.getIcon().trim() : null;
+        String icon = command.icon() != null ? command.icon().trim() : null;
         if (icon == null || icon.isBlank()) {
             icon = Category.DEFAULT_ICON;
         }
 
+        String color = command.color() != null ? command.color().trim() : null;
+        if (color == null || color.isBlank()) {
+            color = Category.DEFAULT_COLOR;
+        }
+
         Category category = Category.builder()
                 .userId(userId)
-                .name(request.getName().trim())
-                .type(request.getType())
+                .name(command.name())
+                .type(command.type())
                 .icon(icon)
-                .color(request.getColor() != null ? request.getColor().trim() : null)
+                .color(color)
+                .isSystem(false)
                 .build();
 
         Category saved = categoryRepository.save(category);

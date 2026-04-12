@@ -1,5 +1,6 @@
 package com.finflow.backend.investment.market_data.application.usecase;
 
+import com.finflow.backend.investment.market_data.application.port.in.SyncIndustryNodesPort;
 import com.finflow.backend.investment.market_data.domain.entity.IndustryNode;
 import com.finflow.backend.investment.market_data.domain.repository.IndustryNodeRepository;
 import com.finflow.backend.investment.market_data.presentation.request.IndustryNodeRequestDTO;
@@ -14,11 +15,12 @@ import java.util.List;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class SyncIndustryNodesUseCase {
+public class SyncIndustryNodesUseCase implements SyncIndustryNodesPort {
 
     private final IndustryNodeRepository industryNodeRepository;
 
     @Transactional
+    @Override
     public void execute(List<IndustryNodeRequestDTO> requests) {
         log.info("Syncing {} industry tree nodes...", requests.size());
         List<IndustryNodeRequestDTO> ordered = requests.stream()

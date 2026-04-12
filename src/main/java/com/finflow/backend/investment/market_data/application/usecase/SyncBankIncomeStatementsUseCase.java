@@ -1,6 +1,7 @@
 package com.finflow.backend.investment.market_data.application.usecase;
 
 import com.finflow.backend.investment.market_data.application.mapper.InvestmentDataMapper;
+import com.finflow.backend.investment.market_data.application.port.in.SyncBankIncomeStatementsPort;
 import com.finflow.backend.investment.market_data.domain.entity.BankIncomeStatement;
 import com.finflow.backend.investment.market_data.domain.repository.BankIncomeStatementRepository;
 import com.finflow.backend.investment.market_data.presentation.request.BankIncomeStatementRequestDTO;
@@ -15,12 +16,13 @@ import java.util.stream.Collectors;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class SyncBankIncomeStatementsUseCase {
+public class SyncBankIncomeStatementsUseCase implements SyncBankIncomeStatementsPort {
 
     private final BankIncomeStatementRepository repository;
     private final InvestmentDataMapper mapper;
 
     @Transactional
+    @Override
     public void execute(List<BankIncomeStatementRequestDTO> requestList) {
         if (requestList == null || requestList.isEmpty()) return;
 

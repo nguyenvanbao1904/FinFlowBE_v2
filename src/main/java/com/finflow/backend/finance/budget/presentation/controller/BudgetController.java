@@ -1,10 +1,13 @@
 package com.finflow.backend.finance.budget.presentation.controller;
 
+import com.finflow.backend.finance.budget.application.command.CreateBudgetCommand;
+import com.finflow.backend.finance.budget.application.command.DeleteBudgetCommand;
+import com.finflow.backend.finance.budget.application.command.UpdateBudgetCommand;
 import com.finflow.backend.common.versioning.ApiVersion;
-import com.finflow.backend.finance.budget.application.usecase.CreateBudgetUseCase;
-import com.finflow.backend.finance.budget.application.usecase.DeleteBudgetUseCase;
-import com.finflow.backend.finance.budget.application.usecase.GetBudgetsUseCase;
-import com.finflow.backend.finance.budget.application.usecase.UpdateBudgetUseCase;
+import com.finflow.backend.finance.budget.application.port.in.CreateBudgetPort;
+import com.finflow.backend.finance.budget.application.port.in.DeleteBudgetPort;
+import com.finflow.backend.finance.budget.application.port.in.GetBudgetsPort;
+import com.finflow.backend.finance.budget.application.port.in.UpdateBudgetPort;
 import com.finflow.backend.finance.budget.presentation.request.CreateBudgetRequest;
 import com.finflow.backend.finance.budget.presentation.request.UpdateBudgetRequest;
 import com.finflow.backend.finance.budget.presentation.response.BudgetResponse;
@@ -35,10 +38,10 @@ import java.util.UUID;
 @Tag(name = "Budget", description = "Budget management APIs")
 public class BudgetController {
 
-    private final GetBudgetsUseCase getBudgetsUseCase;
-    private final CreateBudgetUseCase createBudgetUseCase;
-    private final UpdateBudgetUseCase updateBudgetUseCase;
-    private final DeleteBudgetUseCase deleteBudgetUseCase;
+    private final GetBudgetsPort getBudgetsUseCase;
+    private final CreateBudgetPort createBudgetUseCase;
+    private final UpdateBudgetPort updateBudgetUseCase;
+    private final DeleteBudgetPort deleteBudgetUseCase;
 
     @Operation(summary = "Get all budgets of current user")
     @GetMapping
@@ -54,7 +57,10 @@ public class BudgetController {
             @Valid @RequestBody CreateBudgetRequest request
     ) {
         String userId = jwt.getSubject();
-        BudgetResponse response = createBudgetUseCase.execute(userId, request);
+        BudgetResponse response = createBudgetUseCase.execute(
+            new CreateBudgetCommand(userId, request.getCategoryId(), request.getTargetAmount(),
+                request.getStartDate(), request.getEndDate(), request.getIsRecurring(), request.getRecurringStartDate())
+        );
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -66,7 +72,10 @@ public class BudgetController {
             @Valid @RequestBody UpdateBudgetRequest request
     ) {
         String userId = jwt.getSubject();
-        BudgetResponse response = updateBudgetUseCase.execute(userId, id, request);
+        BudgetResponse response = updateBudgetUseCase.execute(
+            new UpdateBudgetCommand(userId, id, request.getCategoryId(), request.getTargetAmount(),
+                request.getStartDate(), request.getEndDate(), request.getIsRecurring(), request.getRecurringStartDate())
+        );
         return ResponseEntity.ok(response);
     }
 
@@ -77,7 +86,7 @@ public class BudgetController {
             @PathVariable UUID id
     ) {
         String userId = jwt.getSubject();
-        deleteBudgetUseCase.execute(userId, id);
+        deleteBudgetUseCase.execute(new DeleteBudgetCommand(userId, id));
         return ResponseEntity.noContent().build();
     }
 }

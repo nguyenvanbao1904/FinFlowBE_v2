@@ -1,11 +1,11 @@
 package com.finflow.backend.investment.market_data.application.usecase;
 
+import com.finflow.backend.investment.market_data.application.port.in.SuggestCompaniesPort;
+import com.finflow.backend.investment.market_data.application.service.MarketDataReadService;
 import com.finflow.backend.investment.market_data.domain.entity.Company;
-import com.finflow.backend.investment.market_data.domain.repository.CompanyRepository;
 import com.finflow.backend.investment.market_data.presentation.response.CompanySuggestionResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -17,10 +17,11 @@ import java.util.Map;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class SuggestCompaniesUseCase {
+public class SuggestCompaniesUseCase implements SuggestCompaniesPort {
 
-    private final CompanyRepository companyRepository;
+    private final MarketDataReadService readService;
 
+    @Override
     public List<CompanySuggestionResponse> execute(String query, Integer limit) {
         String q = query == null ? "" : query.trim();
         if (q.isBlank()) return List.of();
@@ -30,20 +31,14 @@ public class SuggestCompaniesUseCase {
 
         Map<String, Company> unique = new LinkedHashMap<>();
 
-        List<Company> prefix = companyRepository.findByIdStartingWithIgnoreCaseOrderByIdAsc(
-                normalized,
-                PageRequest.of(0, resolvedLimit)
-        );
+        List<Company> prefix = readService.suggestBySymbolPrefix(normalized, resolvedLimit);
         for (Company c : prefix) {
             unique.putIfAbsent(c.getId(), c);
         }
 
         if (unique.size() < resolvedLimit) {
             int remaining = resolvedLimit - unique.size();
-            List<Company> byName = companyRepository.findByCompanyNameContainingIgnoreCaseOrderByIdAsc(
-                    q,
-                    PageRequest.of(0, resolvedLimit * 2) // fetch more to allow de-dupe
-            );
+            List<Company> byName = readService.suggestByName(q, resolvedLimit * 2); // fetch more to allow de-dupe
             for (Company c : byName) {
                 if (unique.size() >= resolvedLimit) break;
                 unique.putIfAbsent(c.getId(), c);
@@ -63,4 +58,3 @@ public class SuggestCompaniesUseCase {
         return Math.min(l, 20);
     }
 }
-

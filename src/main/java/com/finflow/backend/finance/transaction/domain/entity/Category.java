@@ -23,6 +23,7 @@ import java.util.UUID;
 public class Category {
 
     public static final String DEFAULT_ICON = "tag";
+    public static final String DEFAULT_COLOR = "#000000";
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -41,6 +42,10 @@ public class Category {
     String icon;
 
     String color;
+
+    @Builder.Default
+    @Column(name = "is_system", nullable = false)
+    Boolean isSystem = false;
 
     @CreatedDate
     @Column(name = "created_at", updatable = false)

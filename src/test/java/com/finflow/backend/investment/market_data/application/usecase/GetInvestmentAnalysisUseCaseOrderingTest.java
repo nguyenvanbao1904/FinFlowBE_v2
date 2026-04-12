@@ -1,5 +1,11 @@
 package com.finflow.backend.investment.market_data.application.usecase;
 
+import com.finflow.backend.investment.market_data.application.mapper.InvestmentAnalysisPointMapper;
+import com.finflow.backend.investment.market_data.application.mapper.InvestmentFinancialPointMapper;
+import com.finflow.backend.investment.market_data.application.service.InvestmentAnalysisFinancialSeriesLoader;
+import com.finflow.backend.investment.market_data.application.service.InvestmentAnalysisOverviewBuilder;
+import com.finflow.backend.investment.market_data.application.service.InvestmentFinancialSeriesBuilder;
+import com.finflow.backend.investment.market_data.application.service.MarketDataReadService;
 import com.finflow.backend.investment.market_data.domain.entity.BankBalanceSheet;
 import com.finflow.backend.investment.market_data.domain.entity.BankFinancialIndicator;
 import com.finflow.backend.investment.market_data.domain.entity.BankIncomeStatement;
@@ -7,11 +13,12 @@ import com.finflow.backend.investment.market_data.domain.entity.Company;
 import com.finflow.backend.investment.market_data.domain.repository.*;
 import com.finflow.backend.investment.market_data.presentation.response.InvestmentAnalysisResponse;
 import com.finflow.backend.investment.portfolio.infrastructure.VpsMarketPriceClient;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mapstruct.factory.Mappers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mapstruct.factory.Mappers;
 import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
@@ -44,18 +51,22 @@ class GetInvestmentAnalysisUseCaseOrderingTest {
     @Mock
     NonBankIncomeStatementRepository nonBankIncomeStatementRepository;
     @Mock
+    IndustryNodeRepository industryNodeRepository;
+    @Mock
     VpsMarketPriceClient vpsMarketPriceClient;
-    private InvestmentAnalysisService service;
 
-    @org.junit.jupiter.api.BeforeEach
+    private GetInvestmentFullAnalysisUseCase useCase;
+
+    @BeforeEach
     void setUp() {
         InvestmentAnalysisPointMapper pointMapper = Mappers.getMapper(InvestmentAnalysisPointMapper.class);
         InvestmentFinancialPointMapper financialPointMapper =
                 Mappers.getMapper(InvestmentFinancialPointMapper.class);
 
         InvestmentFinancialSeriesBuilder financialSeriesBuilder = new InvestmentFinancialSeriesBuilder(financialPointMapper);
-        InvestmentAnalysisRepositoryLoader repositoryLoader = new InvestmentAnalysisRepositoryLoader(
+        MarketDataReadService readService = new MarketDataReadService(
                 companyRepository,
+                industryNodeRepository,
                 companyShareholderRepository,
                 companyDividendRepository,
                 financialIndicatorRepository,
@@ -65,12 +76,12 @@ class GetInvestmentAnalysisUseCaseOrderingTest {
                 nonBankIncomeStatementRepository
         );
         InvestmentAnalysisOverviewBuilder overviewBuilder =
-                new InvestmentAnalysisOverviewBuilder(vpsMarketPriceClient, repositoryLoader);
+                new InvestmentAnalysisOverviewBuilder(vpsMarketPriceClient, readService);
         InvestmentAnalysisFinancialSeriesLoader financialSeriesLoader =
-                new InvestmentAnalysisFinancialSeriesLoader(repositoryLoader, financialSeriesBuilder);
+                new InvestmentAnalysisFinancialSeriesLoader(readService, financialSeriesBuilder);
 
-        service = new InvestmentAnalysisService(
-                repositoryLoader,
+        useCase = new GetInvestmentFullAnalysisUseCase(
+                readService,
                 overviewBuilder,
                 financialSeriesLoader,
                 pointMapper
@@ -109,7 +120,7 @@ class GetInvestmentAnalysisUseCaseOrderingTest {
         when(bankIncomeStatementRepository.findByCompanyIdOrderByYearDescQuarterDesc(eq("ACB"), any(Pageable.class)))
                 .thenReturn(List.of(inc));
 
-        InvestmentAnalysisResponse r = service.execute("ACB", 4, 4);
+        InvestmentAnalysisResponse r = useCase.execute("ACB", 4, 4);
 
         Comparator<InvestmentAnalysisResponse.ValuationPoint> valuationAsc = Comparator
                 .comparing(InvestmentAnalysisResponse.ValuationPoint::year, Comparator.nullsLast(Comparator.naturalOrder()))

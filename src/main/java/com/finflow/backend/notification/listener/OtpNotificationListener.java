@@ -2,7 +2,7 @@ package com.finflow.backend.notification.listener;
 
 import com.finflow.backend.identity.application.event.OtpRequestedEvent;
 import com.finflow.backend.notification.MdcCorrelationSupport;
-import com.finflow.backend.notification.mail.EmailService;
+import com.finflow.backend.notification.application.port.out.EmailNotificationPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class OtpNotificationListener {
 
-    private final EmailService emailService;
+    private final EmailNotificationPort emailNotificationPort;
 
     @Async
     @EventListener
@@ -23,7 +23,7 @@ public class OtpNotificationListener {
             log.info("Received OTP request event for: {}", event.getEmail());
             String subject = "FinFlow Verification Code";
             String text = "Your verification code is: " + event.getOtpCode() + "\n\nThis code expires in 5 minutes.";
-            emailService.sendSimpleMessage(event.getEmail(), subject, text);
+            emailNotificationPort.sendSimpleMessage(event.getEmail(), subject, text);
         });
     }
 }

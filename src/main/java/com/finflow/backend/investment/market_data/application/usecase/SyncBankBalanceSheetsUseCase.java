@@ -1,6 +1,7 @@
 package com.finflow.backend.investment.market_data.application.usecase;
 
 import com.finflow.backend.investment.market_data.application.mapper.InvestmentDataMapper;
+import com.finflow.backend.investment.market_data.application.port.in.SyncBankBalanceSheetsPort;
 import com.finflow.backend.investment.market_data.domain.entity.BankBalanceSheet;
 import com.finflow.backend.investment.market_data.domain.repository.BankBalanceSheetRepository;
 import com.finflow.backend.investment.market_data.presentation.request.BankBalanceSheetRequestDTO;
@@ -15,12 +16,13 @@ import java.util.stream.Collectors;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class SyncBankBalanceSheetsUseCase {
+public class SyncBankBalanceSheetsUseCase implements SyncBankBalanceSheetsPort {
 
     private final BankBalanceSheetRepository repository;
     private final InvestmentDataMapper mapper;
 
     @Transactional
+    @Override
     public void execute(List<BankBalanceSheetRequestDTO> requestList) {
         if (requestList == null || requestList.isEmpty()) return;
 

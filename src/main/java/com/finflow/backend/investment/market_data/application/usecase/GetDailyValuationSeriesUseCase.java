@@ -1,7 +1,8 @@
 package com.finflow.backend.investment.market_data.application.usecase;
 
 import com.finflow.backend.common.exception.AppException;
-import com.finflow.backend.investment.market_data.application.service.InvestmentAnalysisRepositoryLoader;
+import com.finflow.backend.investment.market_data.application.port.in.GetDailyValuationSeriesPort;
+import com.finflow.backend.investment.market_data.application.service.MarketDataReadService;
 import com.finflow.backend.investment.market_data.application.service.InvestmentFinancialUtils;
 import com.finflow.backend.investment.market_data.domain.entity.Company;
 import com.finflow.backend.investment.market_data.domain.entity.BankIncomeStatement;
@@ -11,7 +12,6 @@ import com.finflow.backend.investment.market_data.exception.MarketDataErrorCode;
 import com.finflow.backend.investment.market_data.presentation.response.InvestmentAnalysisResponse;
 import com.finflow.backend.investment.portfolio.infrastructure.VndirectFinfoPriceClient;
 import com.finflow.backend.investment.portfolio.infrastructure.VndirectFinfoPriceClient.StockDailyClose;
-import com.finflow.backend.investment.portfolio.infrastructure.VpsMarketPriceClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,24 +31,24 @@ import java.util.TreeMap;
  */
 @Component
 @RequiredArgsConstructor
-public class GetDailyValuationSeriesUseCase {
+public class GetDailyValuationSeriesUseCase implements GetDailyValuationSeriesPort {
 
     /** Cùng mốc tối thiểu với bộ chọn quý trên FE (năm ≥ 2010). */
     private static final LocalDate DAILY_VALUATION_MIN_INCLUSIVE = LocalDate.of(2010, 1, 1);
 
-    private final InvestmentAnalysisRepositoryLoader repositoryLoader;
+    private final MarketDataReadService readService;
     private final VndirectFinfoPriceClient vndirectFinfoPriceClient;
-    private final VpsMarketPriceClient vpsMarketPriceClient;
 
     @Transactional(readOnly = true)
+    @Override
     public List<InvestmentAnalysisResponse.DailyValuationPoint> execute(
             String rawSymbol,
             String startDateRaw,
             String endDateRaw
     ) {
-        Company company = repositoryLoader.resolveCompany(rawSymbol);
-        LocalDate parsedStart = repositoryLoader.parseIsoDate(startDateRaw, "startDate");
-        LocalDate parsedEnd = repositoryLoader.parseIsoDate(endDateRaw, "endDate");
+        Company company = readService.resolveCompany(rawSymbol);
+        LocalDate parsedStart = readService.parseIsoDate(startDateRaw, "startDate");
+        LocalDate parsedEnd = readService.parseIsoDate(endDateRaw, "endDate");
         LocalDate rangeStart = parsedStart.isAfter(parsedEnd) ? parsedEnd : parsedStart;
         LocalDate rangeEnd = parsedStart.isAfter(parsedEnd) ? parsedStart : parsedEnd;
         if (rangeStart.isBefore(DAILY_VALUATION_MIN_INCLUSIVE)) {
@@ -60,23 +60,16 @@ public class GetDailyValuationSeriesUseCase {
             throw new AppException(MarketDataErrorCode.DAILY_VALUATION_RANGE_TOO_LONG);
         }
 
-        List<FinancialIndicator> indicatorsAsc = repositoryLoader.loadAllFinancialIndicatorsAsc(company.getId());
-        List<NonBankIncomeStatement> incomesAsc = repositoryLoader.loadAllNonBankIncomesAsc(company.getId());
+        List<FinancialIndicator> indicatorsAsc = readService.loadAllFinancialIndicatorsAsc(company.getId());
+        List<NonBankIncomeStatement> incomesAsc = readService.loadAllNonBankIncomesAsc(company.getId());
         boolean isBank = "BANK".equalsIgnoreCase(Optional.ofNullable(company.getCompanyType()).orElse("").trim());
-        List<BankIncomeStatement> bankIncomesAsc = isBank ? repositoryLoader.loadAllBankIncomesAsc(company.getId()) : List.of();
+        List<BankIncomeStatement> bankIncomesAsc = isBank ? readService.loadAllBankIncomesAsc(company.getId()) : List.of();
 
         List<StockDailyClose> finfoRows = vndirectFinfoPriceClient.listStockClosesInRange(company.getId(), rangeStart, rangeEnd);
         TreeMap<LocalDate, BigDecimal> priceByDay = new TreeMap<>();
         for (StockDailyClose row : finfoRows) {
             priceByDay.put(row.date(), row.closeVnd());
         }
-
-        if (!priceByDay.containsKey(rangeEnd) && !rangeEnd.isAfter(LocalDate.now())) {
-            vpsMarketPriceClient.tryFetchCloseFresh(company.getId()).ifPresent(q ->
-                    priceByDay.put(rangeEnd, BigDecimal.valueOf(q.priceVnd()).setScale(2, RoundingMode.HALF_UP))
-            );
-        }
-
         List<InvestmentAnalysisResponse.DailyValuationPoint> out = new ArrayList<>();
         for (LocalDate d : priceByDay.keySet()) {
             BigDecimal pxBd = priceByDay.get(d);

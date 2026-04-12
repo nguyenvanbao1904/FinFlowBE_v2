@@ -1,5 +1,7 @@
 package com.finflow.backend.finance.wealth.application.usecase;
 
+import com.finflow.backend.finance.wealth.application.port.in.GetWealthAccountsPort;
+
 import com.finflow.backend.finance.wealth.application.mapper.WealthAccountMapper;
 import com.finflow.backend.finance.wealth.domain.repository.WealthAccountRepository;
 import com.finflow.backend.finance.wealth.presentation.response.WealthAccountResponse;
@@ -14,13 +16,14 @@ import java.util.List;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class GetWealthAccountsUseCase {
+public class GetWealthAccountsUseCase implements GetWealthAccountsPort {
 
     private final WealthAccountRepository wealthAccountRepository;
     private final WealthAccountMapper wealthAccountMapper;
 
     @Transactional(readOnly = true)
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @Override
     public List<WealthAccountResponse> execute(String userId) {
         log.info("Fetching wealth accounts for user: {}", userId);
         return wealthAccountRepository.findAllByUserIdWithType(userId).stream()
