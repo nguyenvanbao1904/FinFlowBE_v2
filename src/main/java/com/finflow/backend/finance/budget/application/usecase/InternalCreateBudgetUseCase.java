@@ -1,18 +1,15 @@
 package com.finflow.backend.finance.budget.application.usecase;
 
+import com.finflow.backend.finance.budget.application.command.InternalCreateBudgetCommand;
 import com.finflow.backend.finance.budget.application.port.in.InternalCreateBudgetPort;
+import com.finflow.backend.finance.transaction.api.TransactionCategoryReadApi;
 
+import com.finflow.backend.common.application.dto.UuidOutput;
 import com.finflow.backend.common.exception.AppException;
-import com.finflow.backend.finance.budget.application.mapper.BudgetMapper;
+
 import com.finflow.backend.finance.budget.domain.entity.Budget;
 import com.finflow.backend.finance.budget.domain.repository.BudgetRepository;
 import com.finflow.backend.finance.budget.exception.BudgetErrorCode;
-import com.finflow.backend.finance.budget.presentation.request.CreateBudgetRequest;
-import com.finflow.backend.finance.budget.presentation.response.BudgetResponse;
-import com.finflow.backend.finance.transaction.domain.entity.Category;
-import com.finflow.backend.finance.transaction.domain.enums.CategoryType;
-import com.finflow.backend.finance.transaction.domain.repository.CategoryRepository;
-import com.finflow.backend.finance.transaction.exception.TransactionErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -29,44 +26,42 @@ import java.time.LocalDate;
 public class InternalCreateBudgetUseCase implements InternalCreateBudgetPort {
 
     private final BudgetRepository budgetRepository;
-    private final CategoryRepository categoryRepository;
-    private final BudgetMapper budgetMapper;
+    private final TransactionCategoryReadApi transactionCategoryReadApi;
+    
 
     @Transactional
     @Override
-    public BudgetResponse execute(String userId, CreateBudgetRequest request) {
+    public UuidOutput execute(InternalCreateBudgetCommand command) {
+        String userId = command.userId();
         log.info("[INTERNAL] Creating budget for userId: {}", userId);
 
-        if (request.getStartDate().isAfter(request.getEndDate())) {
+        if (command.startDate().isAfter(command.endDate())) {
             throw new AppException(BudgetErrorCode.BUDGET_INVALID_DATE_RANGE);
         }
-        if (request.getEndDate().isBefore(LocalDate.now())) {
+        if (command.endDate().isBefore(LocalDate.now())) {
             throw new AppException(BudgetErrorCode.BUDGET_END_DATE_IN_PAST);
         }
 
-        Category category = categoryRepository.findByIdAndUserIdOrSystem(request.getCategoryId(), userId)
-                .orElseThrow(() -> new AppException(TransactionErrorCode.CATEGORY_NOT_FOUND));
-
-        if (category.getType() != CategoryType.EXPENSE) {
+        if (!transactionCategoryReadApi.isExpenseCategoryOfUserOrSystem(command.categoryId(), userId)) {
             throw new AppException(BudgetErrorCode.BUDGET_CATEGORY_MUST_BE_EXPENSE);
         }
 
-        LocalDate recurringStart = request.getRecurringStartDate();
-        if (Boolean.TRUE.equals(request.getIsRecurring()) && recurringStart == null) {
-            recurringStart = request.getStartDate();
+        LocalDate recurringStart = command.recurringStartDate();
+        if (Boolean.TRUE.equals(command.isRecurring()) && recurringStart == null) {
+            recurringStart = command.startDate();
         }
 
         Budget budget = Budget.builder()
                 .userId(userId)
-                .category(category)
-                .targetAmount(request.getTargetAmount())
-                .startDate(request.getStartDate())
-                .endDate(request.getEndDate())
-                .isRecurring(request.getIsRecurring())
+                .categoryId(command.categoryId())
+                .targetAmount(command.targetAmount())
+                .startDate(command.startDate())
+                .endDate(command.endDate())
+                .isRecurring(command.isRecurring())
                 .recurringStartDate(recurringStart)
                 .build();
 
         Budget saved = budgetRepository.save(budget);
-        return budgetMapper.toBudgetResponse(saved);
+        return new UuidOutput(saved.getId());
     }
 }

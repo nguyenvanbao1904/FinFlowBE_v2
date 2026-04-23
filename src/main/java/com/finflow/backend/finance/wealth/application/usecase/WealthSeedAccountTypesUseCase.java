@@ -1,6 +1,7 @@
 package com.finflow.backend.finance.wealth.application.usecase;
 
 import com.finflow.backend.finance.wealth.application.port.in.WealthSeedAccountTypesPort;
+import com.finflow.backend.finance.wealth.application.query.WealthSeedAccountTypesQuery;
 
 import com.finflow.backend.finance.wealth.domain.entity.WealthAccountType;
 import com.finflow.backend.finance.wealth.domain.repository.WealthAccountTypeRepository;
@@ -34,7 +35,7 @@ public class WealthSeedAccountTypesUseCase implements WealthSeedAccountTypesPort
 
     @Transactional
     @Override
-    public void execute() {
+    public void execute(WealthSeedAccountTypesQuery request) {
         if (wealthAccountTypeRepository.count() > 0) {
             log.debug("Wealth account types already seeded, skipping");
             return;

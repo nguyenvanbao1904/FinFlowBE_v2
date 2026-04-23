@@ -7,6 +7,8 @@ import com.finflow.backend.finance.transaction.application.port.in.AddTransactio
 import com.finflow.backend.finance.transaction.application.port.in.DeleteTransactionPort;
 import com.finflow.backend.finance.transaction.application.port.in.GetTransactionsPort;
 import com.finflow.backend.finance.transaction.application.port.in.UpdateTransactionPort;
+import com.finflow.backend.finance.transaction.application.query.GetTransactionsQuery;
+import com.finflow.backend.finance.transaction.presentation.mapper.TransactionPresentationMapper;
 import com.finflow.backend.finance.transaction.presentation.request.AddTransactionRequest;
 import com.finflow.backend.finance.transaction.presentation.request.UpdateTransactionRequest;
 import com.finflow.backend.finance.transaction.presentation.response.TransactionResponse;
@@ -16,8 +18,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -36,22 +41,25 @@ public class TransactionController {
     private final GetTransactionsPort getTransactionsUseCase;
     private final UpdateTransactionPort updateTransactionUseCase;
     private final DeleteTransactionPort deleteTransactionUseCase;
+    private final TransactionPresentationMapper mapper;
 
     @Operation(summary = "Create a new transaction")
     @PostMapping
-    public ResponseEntity<TransactionResponse> addTransaction(
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<java.util.Map<String, UUID>> addTransaction(
             @AuthenticationPrincipal Jwt jwt,
             @Valid @RequestBody AddTransactionRequest request) {
         String userId = jwt.getSubject();
-        TransactionResponse response = addTransactionUseCase.execute(
-            new AddTransactionCommand(userId, request.getAmount(), request.getType(), 
+        var id = addTransactionUseCase.execute(
+            new AddTransactionCommand(userId, request.getAmount(), request.getType(),
                 request.getCategoryId(), request.getAccountId(), request.getNote(), request.getTransactionDate())
-        );
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        ).id();
+        return ResponseEntity.status(HttpStatus.CREATED).body(java.util.Map.of("id", id));
     }
 
     @Operation(summary = "Get paginated transactions with optional date range and keyword")
     @GetMapping
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<Page<TransactionResponse>> getTransactions(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(defaultValue = "0") int page,
@@ -62,26 +70,34 @@ public class TransactionController {
         String userId = jwt.getSubject();
         LocalDate start = startDate != null ? LocalDate.parse(startDate) : null;
         LocalDate end   = endDate   != null ? LocalDate.parse(endDate)   : null;
-        Page<TransactionResponse> response = getTransactionsUseCase.execute(userId, page, size, start, end, keyword);
+        var pageOut = getTransactionsUseCase
+                .execute(new GetTransactionsQuery(userId, page, size, start, end, keyword));
+        Page<TransactionResponse> response = new PageImpl<>(
+                pageOut.content().stream().map(mapper::toResponse).toList(),
+                PageRequest.of(pageOut.number(), pageOut.size()),
+                pageOut.totalElements()
+        );
         return ResponseEntity.ok(response);
     }
 
     @Operation(summary = "Update a transaction")
     @PutMapping("/{id}")
-    public ResponseEntity<TransactionResponse> updateTransaction(
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<java.util.Map<String, UUID>> updateTransaction(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable UUID id,
             @Valid @RequestBody UpdateTransactionRequest request) {
         String userId = jwt.getSubject();
-        TransactionResponse response = updateTransactionUseCase.execute(
-            new UpdateTransactionCommand(userId, id, request.getAmount(), request.getType(), 
+        var updatedId = updateTransactionUseCase.execute(
+            new UpdateTransactionCommand(userId, id, request.getAmount(), request.getType(),
                 request.getCategoryId(), request.getAccountId(), request.getNote(), request.getTransactionDate())
-        );
-        return ResponseEntity.ok(response);
+        ).id();
+        return ResponseEntity.ok(java.util.Map.of("id", updatedId));
     }
 
     @Operation(summary = "Delete a transaction")
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<Void> deleteTransaction(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable UUID id) {

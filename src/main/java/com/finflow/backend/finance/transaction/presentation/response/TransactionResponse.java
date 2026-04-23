@@ -1,6 +1,5 @@
 package com.finflow.backend.finance.transaction.presentation.response;
 
-import com.finflow.backend.finance.transaction.domain.enums.CategoryType;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Data;
@@ -16,7 +15,7 @@ import java.util.UUID;
 public class TransactionResponse {
     UUID id;
     BigDecimal amount;
-    CategoryType type;
+    String type;
     CategoryResponse category;
     String note;
     UUID accountId;

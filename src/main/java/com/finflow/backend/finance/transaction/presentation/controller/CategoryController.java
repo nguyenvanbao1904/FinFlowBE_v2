@@ -7,6 +7,8 @@ import com.finflow.backend.finance.transaction.application.port.in.CreateCategor
 import com.finflow.backend.finance.transaction.application.port.in.DeleteCategoryPort;
 import com.finflow.backend.finance.transaction.application.port.in.GetCategoriesPort;
 import com.finflow.backend.finance.transaction.application.port.in.UpdateCategoryPort;
+import com.finflow.backend.finance.transaction.application.query.GetCategoriesQuery;
+import com.finflow.backend.finance.transaction.presentation.mapper.TransactionPresentationMapper;
 import com.finflow.backend.finance.transaction.presentation.request.CreateCategoryRequest;
 import com.finflow.backend.finance.transaction.presentation.request.UpdateCategoryRequest;
 import com.finflow.backend.finance.transaction.presentation.response.CategoryResponse;
@@ -17,6 +19,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -35,43 +38,51 @@ public class CategoryController {
     private final CreateCategoryPort createCategoryUseCase;
     private final UpdateCategoryPort updateCategoryUseCase;
     private final DeleteCategoryPort deleteCategoryUseCase;
+    private final TransactionPresentationMapper mapper;
 
     @Operation(summary = "Get all categories of current user (including system categories)")
     @GetMapping
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<List<CategoryResponse>> getCategories(
             @AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();
-        List<CategoryResponse> response = getCategoriesUseCase.execute(userId);
+        List<CategoryResponse> response = getCategoriesUseCase.execute(new GetCategoriesQuery(userId))
+                .stream()
+                .map(mapper::toResponse)
+                .toList();
         return ResponseEntity.ok(response);
     }
 
     @Operation(summary = "Create a new category")
     @PostMapping
-    public ResponseEntity<CategoryResponse> createCategory(
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<java.util.Map<String, UUID>> createCategory(
             @AuthenticationPrincipal Jwt jwt,
             @Valid @RequestBody CreateCategoryRequest request) {
         String userId = jwt.getSubject();
-        CategoryResponse response = createCategoryUseCase.execute(
+        var id = createCategoryUseCase.execute(
             new CreateCategoryCommand(userId, request.getName(), request.getType(), request.getIcon(), request.getColor())
-        );
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        ).id();
+        return ResponseEntity.status(HttpStatus.CREATED).body(java.util.Map.of("id", id));
     }
 
     @Operation(summary = "Update a category (own categories only)")
     @PutMapping("/{id}")
-    public ResponseEntity<CategoryResponse> updateCategory(
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<java.util.Map<String, UUID>> updateCategory(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable UUID id,
             @Valid @RequestBody UpdateCategoryRequest request) {
         String userId = jwt.getSubject();
-        CategoryResponse response = updateCategoryUseCase.execute(
+        var updatedId = updateCategoryUseCase.execute(
             new UpdateCategoryCommand(userId, id, request.getName(), request.getIcon(), request.getColor())
-        );
-        return ResponseEntity.ok(response);
+        ).id();
+        return ResponseEntity.ok(java.util.Map.of("id", updatedId));
     }
 
     @Operation(summary = "Delete a category (own categories only, not in use)")
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<Void> deleteCategory(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable UUID id) {

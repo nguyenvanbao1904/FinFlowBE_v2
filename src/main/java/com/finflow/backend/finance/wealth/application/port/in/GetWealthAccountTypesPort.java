@@ -1,8 +1,9 @@
 package com.finflow.backend.finance.wealth.application.port.in;
+import com.finflow.backend.finance.wealth.application.query.GetWealthAccountTypesQuery;
 
 import java.util.List;
-import com.finflow.backend.finance.wealth.presentation.response.WealthAccountTypeOptionResponse;
+import com.finflow.backend.finance.wealth.application.dto.WealthAccountTypeOptionOutput;
 
 public interface GetWealthAccountTypesPort {
-    List<WealthAccountTypeOptionResponse> execute();
+    List<WealthAccountTypeOptionOutput> execute(GetWealthAccountTypesQuery query);
 }

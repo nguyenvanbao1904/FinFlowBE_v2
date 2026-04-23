@@ -1,4 +1,4 @@
-package com.finflow.backend.finance.transaction.domain.enums;
+package com.finflow.backend.finance.common.enums;
 
 public enum CategoryType {
     INCOME,

@@ -8,6 +8,8 @@ import com.finflow.backend.finance.budget.application.port.in.CreateBudgetPort;
 import com.finflow.backend.finance.budget.application.port.in.DeleteBudgetPort;
 import com.finflow.backend.finance.budget.application.port.in.GetBudgetsPort;
 import com.finflow.backend.finance.budget.application.port.in.UpdateBudgetPort;
+import com.finflow.backend.finance.budget.application.query.GetBudgetsQuery;
+import com.finflow.backend.finance.budget.presentation.mapper.BudgetPresentationMapper;
 import com.finflow.backend.finance.budget.presentation.request.CreateBudgetRequest;
 import com.finflow.backend.finance.budget.presentation.request.UpdateBudgetRequest;
 import com.finflow.backend.finance.budget.presentation.response.BudgetResponse;
@@ -17,6 +19,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -29,6 +32,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -42,45 +46,50 @@ public class BudgetController {
     private final CreateBudgetPort createBudgetUseCase;
     private final UpdateBudgetPort updateBudgetUseCase;
     private final DeleteBudgetPort deleteBudgetUseCase;
+    private final BudgetPresentationMapper mapper;
 
     @Operation(summary = "Get all budgets of current user")
     @GetMapping
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<List<BudgetResponse>> getBudgets(@AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();
-        return ResponseEntity.ok(getBudgetsUseCase.execute(userId));
+        return ResponseEntity.ok(mapper.toResponses(getBudgetsUseCase.execute(new GetBudgetsQuery(userId))));
     }
 
     @Operation(summary = "Create a new budget")
     @PostMapping
-    public ResponseEntity<BudgetResponse> createBudget(
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<Map<String, UUID>> createBudget(
             @AuthenticationPrincipal Jwt jwt,
             @Valid @RequestBody CreateBudgetRequest request
     ) {
         String userId = jwt.getSubject();
-        BudgetResponse response = createBudgetUseCase.execute(
+        var id = createBudgetUseCase.execute(
             new CreateBudgetCommand(userId, request.getCategoryId(), request.getTargetAmount(),
                 request.getStartDate(), request.getEndDate(), request.getIsRecurring(), request.getRecurringStartDate())
-        );
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        ).id();
+        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", id));
     }
 
     @Operation(summary = "Update budget")
     @PutMapping("/{id}")
-    public ResponseEntity<BudgetResponse> updateBudget(
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<Map<String, UUID>> updateBudget(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable UUID id,
             @Valid @RequestBody UpdateBudgetRequest request
     ) {
         String userId = jwt.getSubject();
-        BudgetResponse response = updateBudgetUseCase.execute(
+        var updatedId = updateBudgetUseCase.execute(
             new UpdateBudgetCommand(userId, id, request.getCategoryId(), request.getTargetAmount(),
                 request.getStartDate(), request.getEndDate(), request.getIsRecurring(), request.getRecurringStartDate())
-        );
-        return ResponseEntity.ok(response);
+        ).id();
+        return ResponseEntity.ok(Map.of("id", updatedId));
     }
 
     @Operation(summary = "Delete budget")
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<Void> deleteBudget(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable UUID id
@@ -90,4 +99,3 @@ public class BudgetController {
         return ResponseEntity.noContent().build();
     }
 }
-

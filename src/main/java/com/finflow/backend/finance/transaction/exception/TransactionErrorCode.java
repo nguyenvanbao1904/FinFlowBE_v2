@@ -18,6 +18,9 @@ public enum TransactionErrorCode implements ErrorCode {
     CATEGORY_IN_USE(3007, "Category is in use by transactions or budgets", HttpStatus.BAD_REQUEST),
     CATEGORY_NOT_OWNED(3008, "You can only edit or delete your own categories", HttpStatus.FORBIDDEN),
     INVALID_TRANSACTION_DATE(3009, "Transaction date format is invalid (expected ISO 8601 with timezone, e.g. 2026-03-05T18:00:00+07:00)", HttpStatus.BAD_REQUEST),
+    INVALID_CHART_RANGE(3030, "Invalid chart range. Accepted values: WEEK, MONTH, THREE_MONTHS, SIX_MONTHS, YEAR", HttpStatus.BAD_REQUEST),
+    INVALID_TRANSACTION_TYPE(3031, "Invalid transaction type. Accepted values: INCOME, EXPENSE, SAVING", HttpStatus.BAD_REQUEST),
+    INVALID_CATEGORY_TYPE(3032, "Invalid category type. Accepted values: INCOME, EXPENSE, SAVING", HttpStatus.BAD_REQUEST),
 
     // @NotNull / @NotBlank field validation -> 3010-3019
     TRANSACTION_TYPE_REQUIRED(3010, "Transaction type is required", HttpStatus.BAD_REQUEST),
@@ -30,6 +33,11 @@ public enum TransactionErrorCode implements ErrorCode {
 
     // Analytics upstream / integration -> 3020-3029
     ANALYTICS_UPSTREAM_ERROR(3020, "Analytics AI service is temporarily unavailable", HttpStatus.BAD_GATEWAY),
+    AI_PREFILL_UPSTREAM_ERROR(3021, "Transaction prefill AI service is temporarily unavailable", HttpStatus.BAD_GATEWAY),
+
+    // Cross-module boundary errors (local copies) -> 3040-3049
+    WEALTH_ACCOUNT_NOT_FOUND(3040, "Wealth account not found", HttpStatus.NOT_FOUND),
+    WEALTH_ACCOUNT_NOT_ELIGIBLE(3041, "Wealth account is not eligible for transactions", HttpStatus.BAD_REQUEST),
     ;
 
     TransactionErrorCode(int code, String message, HttpStatusCode statusCode) {

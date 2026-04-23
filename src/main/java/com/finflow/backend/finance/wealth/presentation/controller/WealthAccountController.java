@@ -9,6 +9,9 @@ import com.finflow.backend.finance.wealth.application.port.in.DeleteWealthAccoun
 import com.finflow.backend.finance.wealth.application.port.in.GetWealthAccountTypesPort;
 import com.finflow.backend.finance.wealth.application.port.in.GetWealthAccountsPort;
 import com.finflow.backend.finance.wealth.application.port.in.UpdateWealthAccountPort;
+import com.finflow.backend.finance.wealth.application.query.GetWealthAccountTypesQuery;
+import com.finflow.backend.finance.wealth.application.query.GetWealthAccountsQuery;
+import com.finflow.backend.finance.wealth.presentation.mapper.WealthPresentationMapper;
 import com.finflow.backend.finance.wealth.presentation.request.CreateWealthAccountRequest;
 import com.finflow.backend.finance.wealth.presentation.request.UpdateWealthAccountRequest;
 import com.finflow.backend.finance.wealth.presentation.response.WealthAccountTypeOptionResponse;
@@ -19,6 +22,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -31,6 +35,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -45,51 +50,59 @@ public class WealthAccountController {
     private final CreateWealthAccountPort createWealthAccountUseCase;
     private final UpdateWealthAccountPort updateWealthAccountUseCase;
     private final DeleteWealthAccountPort deleteWealthAccountUseCase;
+    private final WealthPresentationMapper mapper;
 
     @Operation(summary = "Get all wealth account types (for pickers and transaction-eligibility)")
     @GetMapping("/types")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<List<WealthAccountTypeOptionResponse>> getWealthAccountTypes() {
-        return ResponseEntity.ok(getWealthAccountTypesUseCase.execute());
+        return ResponseEntity.ok(mapper.toTypeResponses(
+                getWealthAccountTypesUseCase.execute(new GetWealthAccountTypesQuery())));
     }
 
     @Operation(summary = "Get all wealth accounts of current user")
     @GetMapping
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<List<WealthAccountResponse>> getWealthAccounts(@AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();
-        return ResponseEntity.ok(getWealthAccountsUseCase.execute(userId));
+        return ResponseEntity.ok(mapper.toAccountResponses(
+                getWealthAccountsUseCase.execute(new GetWealthAccountsQuery(userId))));
     }
 
     @Operation(summary = "Create a new wealth account")
     @PostMapping
-    public ResponseEntity<WealthAccountResponse> createWealthAccount(
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<Map<String, UUID>> createWealthAccount(
             @AuthenticationPrincipal Jwt jwt,
             @Valid @RequestBody CreateWealthAccountRequest request
     ) {
         String userId = jwt.getSubject();
-        WealthAccountResponse response = createWealthAccountUseCase.execute(
+        var id = createWealthAccountUseCase.execute(
             new CreateWealthAccountCommand(userId, request.getName(), request.getAccountTypeId(),
                 request.getBalance(), request.getIncludeInNetWorth())
-        );
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        ).id();
+        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", id));
     }
 
     @Operation(summary = "Update wealth account")
     @PutMapping("/{id}")
-    public ResponseEntity<WealthAccountResponse> updateWealthAccount(
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<Map<String, UUID>> updateWealthAccount(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable UUID id,
             @Valid @RequestBody UpdateWealthAccountRequest request
     ) {
         String userId = jwt.getSubject();
-        WealthAccountResponse response = updateWealthAccountUseCase.execute(
+        var updatedId = updateWealthAccountUseCase.execute(
             new UpdateWealthAccountCommand(userId, id, request.getName(), request.getAccountTypeId(),
                 request.getBalance(), request.getIncludeInNetWorth())
-        );
-        return ResponseEntity.ok(response);
+        ).id();
+        return ResponseEntity.ok(Map.of("id", updatedId));
     }
 
     @Operation(summary = "Delete wealth account")
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<Void> deleteWealthAccount(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable UUID id

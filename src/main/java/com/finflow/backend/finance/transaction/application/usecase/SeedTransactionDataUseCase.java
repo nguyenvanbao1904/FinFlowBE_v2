@@ -1,8 +1,10 @@
 package com.finflow.backend.finance.transaction.application.usecase;
 
 import com.finflow.backend.finance.transaction.domain.entity.Category;
-import com.finflow.backend.finance.transaction.domain.enums.CategoryType;
+import com.finflow.backend.finance.common.enums.CategoryType;
 import com.finflow.backend.finance.transaction.domain.repository.CategoryRepository;
+import com.finflow.backend.finance.transaction.application.port.in.SeedTransactionDataPort;
+import com.finflow.backend.finance.transaction.domain.constant.TransactionConstants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -13,11 +15,12 @@ import java.util.List;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class SeedTransactionDataUseCase {
+public class SeedTransactionDataUseCase implements SeedTransactionDataPort {
 
     private final CategoryRepository categoryRepository;
 
     @Transactional
+    @Override
     public void execute() {
         if (categoryRepository.count() == 0) {
             log.info("No categories found. Seeding default system categories...");
@@ -46,7 +49,7 @@ public class SeedTransactionDataUseCase {
 
     private Category buildCategory(String name, CategoryType type, String icon, String color) {
         return Category.builder()
-                .userId("SYSTEM")
+                .userId(TransactionConstants.SYSTEM_USER_ID)
                 .name(name)
                 .type(type)
                 .icon(icon)

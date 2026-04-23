@@ -3,27 +3,24 @@ package com.finflow.backend.finance.transaction.application.usecase;
 import com.finflow.backend.finance.transaction.application.port.in.UpdateTransactionPort;
 
 import com.finflow.backend.common.exception.AppException;
-import com.finflow.backend.finance.transaction.application.mapper.TransactionMapper;
+import com.finflow.backend.finance.wealth.api.WealthAccountApi;
 import com.finflow.backend.finance.transaction.domain.entity.Category;
 import com.finflow.backend.finance.transaction.domain.entity.Transaction;
-import com.finflow.backend.finance.transaction.domain.enums.CategoryType;
+import com.finflow.backend.finance.common.enums.CategoryType;
 import com.finflow.backend.finance.transaction.domain.repository.CategoryRepository;
 import com.finflow.backend.finance.transaction.domain.repository.TransactionRepository;
 import com.finflow.backend.finance.transaction.exception.TransactionErrorCode;
-import com.finflow.backend.finance.wealth.domain.entity.WealthAccount;
-import com.finflow.backend.finance.wealth.domain.repository.WealthAccountRepository;
-import com.finflow.backend.finance.wealth.exception.WealthErrorCode;
 import com.finflow.backend.finance.transaction.application.command.UpdateTransactionCommand;
-import com.finflow.backend.finance.transaction.presentation.response.TransactionResponse;
+import com.finflow.backend.common.application.dto.UuidOutput;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -36,15 +33,13 @@ public class UpdateTransactionUseCase implements UpdateTransactionPort {
 
     private final TransactionRepository transactionRepository;
     private final CategoryRepository categoryRepository;
-    private final TransactionMapper transactionMapper;
-    private final WealthAccountRepository wealthAccountRepository;
+    private final WealthAccountApi wealthAccountApi;
 
-    private static final ZoneId UTC = ZoneId.of("UTC");
+    private static final ZoneOffset UTC = ZoneOffset.UTC;
 
     @Transactional
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @Override
-    public TransactionResponse execute(UpdateTransactionCommand command) {
+    public UuidOutput execute(UpdateTransactionCommand command) {
         String userId = command.userId();
         UUID transactionId = command.transactionId();
         log.info("Updating transaction {} for userId: {}", transactionId, userId);
@@ -65,27 +60,37 @@ public class UpdateTransactionUseCase implements UpdateTransactionPort {
                 .orElseThrow(() -> new AppException(TransactionErrorCode.CATEGORY_NOT_FOUND));
 
         // 3.5. Validate account ownership and transaction eligibility
-        WealthAccount account = wealthAccountRepository.findByIdAndUserIdWithType(command.accountId(), userId)
-                .orElseThrow(() -> new AppException(WealthErrorCode.WEALTH_ACCOUNT_NOT_FOUND));
-        if (Boolean.FALSE.equals(account.getWealthAccountType().getIsTransactionEligible())) {
-            throw new AppException(WealthErrorCode.WEALTH_ACCOUNT_NOT_TRANSACTION_ELIGIBLE);
+        WealthAccountApi.AccountSnapshot account = wealthAccountApi.findAccountWithType(userId, command.accountId())
+                .orElseThrow(() -> new AppException(TransactionErrorCode.WEALTH_ACCOUNT_NOT_FOUND));
+        if (!account.transactionEligible()) {
+            throw new AppException(TransactionErrorCode.WEALTH_ACCOUNT_NOT_ELIGIBLE);
+        }
+
+        CategoryType newCategoryType;
+        try {
+            newCategoryType = CategoryType.valueOf(command.type());
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid transaction type value: {}", command.type());
+            throw new AppException(TransactionErrorCode.INVALID_TRANSACTION_TYPE);
         }
 
         BigDecimal newAmount = command.amount() != null ? command.amount() : BigDecimal.ZERO;
-        boolean newIsDeduction = command.type() == CategoryType.EXPENSE || command.type() == CategoryType.SAVING;
+        boolean newIsDeduction = newCategoryType == CategoryType.EXPENSE || newCategoryType == CategoryType.SAVING;
 
         // Revert old transaction effect from old account
-        WealthAccount oldAccount = transaction.getWealthAccount();
+        UUID oldAccountId = transaction.getWealthAccountId();
+        WealthAccountApi.AccountSnapshot oldAccount = wealthAccountApi
+                .findAccountWithType(userId, oldAccountId)
+                .orElseThrow(() -> new AppException(TransactionErrorCode.WEALTH_ACCOUNT_NOT_FOUND));
         if (transaction.getType() == CategoryType.INCOME) {
-            oldAccount.setBalance(oldAccount.getBalance().subtract(transaction.getAmount()));
+            wealthAccountApi.updateBalance(oldAccount.id(), oldAccount.balance().subtract(transaction.getAmount()));
         } else {
-            oldAccount.setBalance(oldAccount.getBalance().add(transaction.getAmount()));
+            wealthAccountApi.updateBalance(oldAccount.id(), oldAccount.balance().add(transaction.getAmount()));
         }
-        wealthAccountRepository.save(oldAccount);
 
-        WealthAccount accountToUpdate = account.getId().equals(oldAccount.getId()) ? oldAccount : account;
-        if (newIsDeduction && Boolean.FALSE.equals(accountToUpdate.getWealthAccountType().getIsDebt())) {
-            BigDecimal newBalance = accountToUpdate.getBalance().subtract(newAmount);
+        WealthAccountApi.AccountSnapshot accountToUpdate = account.id().equals(oldAccount.id()) ? oldAccount : account;
+        if (newIsDeduction && !accountToUpdate.debt()) {
+            BigDecimal newBalance = accountToUpdate.balance().subtract(newAmount);
             if (newBalance.compareTo(BigDecimal.ZERO) < 0) {
                 throw new AppException(TransactionErrorCode.INSUFFICIENT_BALANCE);
             }
@@ -104,22 +109,21 @@ public class UpdateTransactionUseCase implements UpdateTransactionPort {
         }
 
         // 5. Apply new transaction effect to (new) account
-        if (command.type() == CategoryType.INCOME) {
-            accountToUpdate.setBalance(accountToUpdate.getBalance().add(newAmount));
+        if (newCategoryType == CategoryType.INCOME) {
+            wealthAccountApi.updateBalance(accountToUpdate.id(), accountToUpdate.balance().add(newAmount));
         } else {
-            accountToUpdate.setBalance(accountToUpdate.getBalance().subtract(newAmount));
+            wealthAccountApi.updateBalance(accountToUpdate.id(), accountToUpdate.balance().subtract(newAmount));
         }
-        wealthAccountRepository.save(accountToUpdate);
 
         // 6. Update transaction fields
         transaction.setAmount(newAmount);
-        transaction.setType(command.type());
+        transaction.setType(newCategoryType);
         transaction.setCategory(category);
         transaction.setNote(command.note());
-        transaction.setWealthAccount(accountToUpdate);
+        transaction.setWealthAccountId(accountToUpdate.id());
         transaction.setTransactionDate(transactionDateUTC);
 
         Transaction updatedTransaction = transactionRepository.save(transaction);
-        return transactionMapper.toTransactionResponse(updatedTransaction);
+        return new UuidOutput(updatedTransaction.getId());
     }
 }

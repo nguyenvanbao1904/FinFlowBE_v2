@@ -2,8 +2,12 @@ package com.finflow.backend.finance.budget.presentation.controller;
 
 import com.finflow.backend.finance.budget.application.port.in.InternalCreateBudgetPort;
 import com.finflow.backend.finance.budget.application.port.in.InternalGetBudgetsPort;
+import com.finflow.backend.finance.budget.application.command.InternalCreateBudgetCommand;
+import com.finflow.backend.finance.budget.application.query.InternalGetBudgetsQuery;
+import com.finflow.backend.finance.budget.presentation.mapper.BudgetPresentationMapper;
 import com.finflow.backend.finance.budget.presentation.request.CreateBudgetRequest;
 import com.finflow.backend.finance.budget.presentation.response.BudgetResponse;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Internal API for AI agent — no JWT; uses {@code X-Internal-Api-Key}.
@@ -28,28 +33,34 @@ public class InternalBudgetController {
 
     private final InternalGetBudgetsPort internalGetBudgetsUseCase;
     private final InternalCreateBudgetPort internalCreateBudgetUseCase;
+    private final BudgetPresentationMapper mapper;
 
+    @Operation(summary = "Get budgets for user (internal)")
     @GetMapping("/budgets")
     public ResponseEntity<List<BudgetResponse>> listBudgets(@RequestParam String userId) {
-        return ResponseEntity.ok(internalGetBudgetsUseCase.execute(userId));
+        return ResponseEntity.ok(mapper.toResponses(internalGetBudgetsUseCase.execute(new InternalGetBudgetsQuery(userId))));
     }
 
     /**
      * Creates a budget after the user confirmed details in chat.
+     * Returns only the created budget ID plus a confirmation message.
      */
+    @Operation(summary = "Create budget on behalf of user (internal)")
     @PostMapping("/create-budget")
     public ResponseEntity<Map<String, Object>> createBudget(
             @RequestParam String userId,
             @Valid @RequestBody CreateBudgetRequest request) {
-        BudgetResponse response = internalCreateBudgetUseCase.execute(userId, request);
+        UUID budgetId = internalCreateBudgetUseCase.execute(new InternalCreateBudgetCommand(
+                userId,
+                request.getCategoryId(),
+                request.getTargetAmount(),
+                request.getStartDate(),
+                request.getEndDate(),
+                request.getIsRecurring(),
+                request.getRecurringStartDate())).id();
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("status", "OK");
-        result.put("budgetId", response.getId());
-        result.put("categoryName", response.getCategory().getName());
-        result.put("targetAmount", response.getTargetAmount());
-        result.put("startDate", response.getStartDate());
-        result.put("endDate", response.getEndDate());
-        result.put("isRecurring", response.getIsRecurring());
+        result.put("budgetId", budgetId);
         result.put("message", "Ngân sách đã được tạo thành công.");
         return ResponseEntity.ok(result);
     }

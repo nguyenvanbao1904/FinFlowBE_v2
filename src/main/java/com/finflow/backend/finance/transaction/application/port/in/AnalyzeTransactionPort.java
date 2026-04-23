@@ -1,9 +1,8 @@
 package com.finflow.backend.finance.transaction.application.port.in;
-
-import com.finflow.backend.finance.transaction.application.command.AnalyzeTransactionCommand;
-import com.finflow.backend.finance.transaction.presentation.response.AnalyzeTransactionResponse;
+import com.finflow.backend.finance.transaction.application.query.AnalyzeTransactionQuery;
+import com.finflow.backend.finance.transaction.application.dto.AnalyzeTransactionOutput;
 
 public interface AnalyzeTransactionPort {
 
-    AnalyzeTransactionResponse execute(String userId, AnalyzeTransactionCommand command);
+    AnalyzeTransactionOutput execute(AnalyzeTransactionQuery query);
 }

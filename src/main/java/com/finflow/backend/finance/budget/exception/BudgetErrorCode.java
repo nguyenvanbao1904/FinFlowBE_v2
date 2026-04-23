@@ -12,7 +12,8 @@ public enum BudgetErrorCode implements ErrorCode {
     BUDGET_NOT_FOUND(3101, "Budget not found", HttpStatus.NOT_FOUND),
     BUDGET_INVALID_DATE_RANGE(3102, "Budget startDate must be on or before endDate", HttpStatus.BAD_REQUEST),
     BUDGET_END_DATE_IN_PAST(3103, "End date cannot be before today", HttpStatus.BAD_REQUEST),
-    BUDGET_CATEGORY_MUST_BE_EXPENSE(3104, "Budget category must be an expense category", HttpStatus.BAD_REQUEST);
+    BUDGET_CATEGORY_MUST_BE_EXPENSE(3104, "Budget category must be an expense category", HttpStatus.BAD_REQUEST),
+    BUDGET_CATEGORY_NOT_FOUND(3105, "Budget category not found", HttpStatus.NOT_FOUND);
 
     BudgetErrorCode(int code, String message, HttpStatusCode statusCode) {
         this.code = code;

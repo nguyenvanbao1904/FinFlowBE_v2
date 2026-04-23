@@ -1,60 +1,48 @@
 package com.finflow.backend.finance.transaction.application.usecase;
 
+import com.finflow.backend.finance.transaction.application.dto.InternalTransactionUserContextOutput;
 import com.finflow.backend.finance.transaction.application.port.in.GetInternalTransactionUserContextPort;
+import com.finflow.backend.finance.transaction.application.query.GetInternalTransactionUserContextQuery;
+import com.finflow.backend.finance.wealth.api.WealthAccountApi;
 import com.finflow.backend.finance.transaction.domain.entity.Category;
 import com.finflow.backend.finance.transaction.domain.repository.CategoryRepository;
-import com.finflow.backend.finance.wealth.domain.entity.WealthAccount;
-import com.finflow.backend.finance.wealth.domain.repository.WealthAccountRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
-/**
- * Builds category/account context for the internal AI transaction API.
- * Keeps {@link com.finflow.backend.finance.transaction.presentation.controller.InternalTransactionController}
- * free of domain entity usage.
- */
 @Component
 @RequiredArgsConstructor
 public class GetInternalTransactionUserContextUseCase implements GetInternalTransactionUserContextPort {
 
     private final CategoryRepository categoryRepository;
-    private final WealthAccountRepository wealthAccountRepository;
+    private final WealthAccountApi wealthAccountApi;
 
     @Override
-    public Map<String, Object> execute(String userId) {
+    @Transactional(readOnly = true)
+    public InternalTransactionUserContextOutput execute(GetInternalTransactionUserContextQuery query) {
+        String userId = query.userId();
         List<Category> categories = categoryRepository.findByUserIdOrSystem(userId);
-        List<Map<String, Object>> categoryList = categories.stream()
-                .map(c -> {
-                    Map<String, Object> m = new LinkedHashMap<>();
-                    m.put("id", c.getId().toString());
-                    m.put("name", c.getName());
-                    m.put("type", c.getType().name());
-                    m.put("icon", c.getIcon());
-                    return m;
-                })
+        List<InternalTransactionUserContextOutput.ContextCategory> categoryList = categories.stream()
+                .map(c -> new InternalTransactionUserContextOutput.ContextCategory(
+                        c.getId().toString(),
+                        c.getName(),
+                        c.getType().name(),
+                        c.getIcon()))
                 .collect(Collectors.toList());
 
-        List<WealthAccount> accounts = wealthAccountRepository.findAllByUserIdWithType(userId);
-        List<Map<String, Object>> accountList = accounts.stream()
-                .filter(a -> Boolean.TRUE.equals(a.getWealthAccountType().getIsTransactionEligible()))
-                .map(a -> {
-                    Map<String, Object> m = new LinkedHashMap<>();
-                    m.put("id", a.getId().toString());
-                    m.put("name", a.getName());
-                    m.put("type", a.getWealthAccountType().getDisplayName());
-                    m.put("balance", a.getBalance());
-                    return m;
-                })
+        List<WealthAccountApi.AccountSnapshot> accounts = wealthAccountApi.findAllAccountsWithType(userId);
+        List<InternalTransactionUserContextOutput.ContextAccount> accountList = accounts.stream()
+                .filter(WealthAccountApi.AccountSnapshot::transactionEligible)
+                .map(a -> new InternalTransactionUserContextOutput.ContextAccount(
+                        a.id().toString(),
+                        a.name(),
+                        a.typeDisplayName(),
+                        a.balance()))
                 .collect(Collectors.toList());
 
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("categories", categoryList);
-        result.put("accounts", accountList);
-        return result;
+        return new InternalTransactionUserContextOutput(categoryList, accountList);
     }
 }

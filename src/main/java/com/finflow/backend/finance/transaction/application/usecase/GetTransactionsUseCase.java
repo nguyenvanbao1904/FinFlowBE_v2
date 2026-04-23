@@ -1,17 +1,18 @@
 package com.finflow.backend.finance.transaction.application.usecase;
 
 import com.finflow.backend.finance.transaction.application.port.in.GetTransactionsPort;
+import com.finflow.backend.finance.transaction.application.query.GetTransactionsQuery;
 
+import com.finflow.backend.finance.transaction.application.dto.TransactionOutput;
+import com.finflow.backend.finance.transaction.application.dto.TransactionPageOutput;
 import com.finflow.backend.finance.transaction.application.mapper.TransactionMapper;
 import com.finflow.backend.finance.transaction.domain.entity.Transaction;
 import com.finflow.backend.finance.transaction.domain.repository.TransactionRepository;
-import com.finflow.backend.finance.transaction.presentation.response.TransactionResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,10 +27,14 @@ public class GetTransactionsUseCase implements GetTransactionsPort {
     private final TransactionMapper transactionMapper;
 
     @Transactional(readOnly = true)
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @Override
-    public Page<TransactionResponse> execute(String userId, int page, int size,
-                                             LocalDate startDate, LocalDate endDate, String keyword) {
+    public TransactionPageOutput execute(GetTransactionsQuery request) {
+        String userId = request.userId();
+        int page = request.page();
+        int size = Math.min(request.size(), 100);
+        LocalDate startDate = request.startDate();
+        LocalDate endDate = request.endDate();
+        String keyword = request.keyword();
         log.info("Fetching transactions userId={}, page={}, size={}, start={}, end={}, keyword={}",
                 userId, page, size, startDate, endDate, keyword);
         Pageable pageable = PageRequest.of(page, size);
@@ -49,6 +54,16 @@ public class GetTransactionsUseCase implements GetTransactionsPort {
         } else {
             transactions = transactionRepository.findByUserIdOrderByTransactionDateDescCreatedAtDesc(userId, pageable);
         }
-        return transactions.map(transactionMapper::toTransactionResponse);
+        Page<TransactionOutput> mapped = transactions.map(transactionMapper::toTransactionOutput);
+        return new TransactionPageOutput(
+                mapped.getContent(),
+                mapped.getTotalElements(),
+                mapped.getTotalPages(),
+                mapped.getNumber(),
+                mapped.getSize(),
+                mapped.isFirst(),
+                mapped.isLast(),
+                mapped.getNumberOfElements()
+        );
     }
 }

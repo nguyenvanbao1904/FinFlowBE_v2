@@ -1,8 +1,9 @@
 package com.finflow.backend.finance.transaction.application.port.in;
 
-import java.util.Map;
+import com.finflow.backend.finance.transaction.application.dto.PersonalFinanceReportOutput;
+import com.finflow.backend.finance.transaction.application.query.GetPersonalFinanceReportQuery;
 
 public interface GetPersonalFinanceReportPort {
 
-    Map<String, Object> execute(String userId);
+    PersonalFinanceReportOutput execute(GetPersonalFinanceReportQuery query);
 }

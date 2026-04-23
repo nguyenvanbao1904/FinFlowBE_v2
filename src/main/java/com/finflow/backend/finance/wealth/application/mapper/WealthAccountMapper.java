@@ -1,9 +1,9 @@
 package com.finflow.backend.finance.wealth.application.mapper;
 
+import com.finflow.backend.finance.wealth.application.dto.WealthAccountOutput;
+import com.finflow.backend.finance.wealth.application.dto.WealthAccountTypeOptionOutput;
 import com.finflow.backend.finance.wealth.domain.entity.WealthAccountType;
 import com.finflow.backend.finance.wealth.domain.entity.WealthAccount;
-import com.finflow.backend.finance.wealth.presentation.response.WealthAccountTypeOptionResponse;
-import com.finflow.backend.finance.wealth.presentation.response.WealthAccountResponse;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
@@ -11,7 +11,7 @@ import org.mapstruct.Mapping;
 public interface WealthAccountMapper {
 
     @Mapping(target = "wealthAccountType", source = "wealthAccountType")
-    WealthAccountResponse toWealthAccountResponse(WealthAccount wealthAccount);
+    WealthAccountOutput toWealthAccountOutput(WealthAccount wealthAccount);
 
     @Mapping(target = "id", source = "id")
     @Mapping(target = "code", source = "code")
@@ -20,5 +20,5 @@ public interface WealthAccountMapper {
     @Mapping(target = "color", source = "color")
     @Mapping(target = "transactionEligible", source = "isTransactionEligible")
     @Mapping(target = "debt", source = "isDebt")
-    WealthAccountTypeOptionResponse toWealthAccountTypeOptionResponse(WealthAccountType wealthAccountType);
+    WealthAccountTypeOptionOutput toWealthAccountTypeOptionOutput(WealthAccountType wealthAccountType);
 }

@@ -1,8 +1,9 @@
 package com.finflow.backend.finance.transaction.application.port.in;
+import com.finflow.backend.finance.transaction.application.query.GetTransactionAnalyticsInsightsQuery;
 
-import com.finflow.backend.finance.transaction.application.result.AnalyticsInsightsResult;
+import com.finflow.backend.finance.transaction.application.dto.AnalyticsInsightsOutput;
 
 public interface GetTransactionAnalyticsInsightsPort {
 
-    AnalyticsInsightsResult execute(String userId);
+    AnalyticsInsightsOutput execute(GetTransactionAnalyticsInsightsQuery query);
 }

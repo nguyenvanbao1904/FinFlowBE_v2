@@ -1,16 +1,15 @@
 package com.finflow.backend.finance.wealth.application.usecase;
 
 import com.finflow.backend.finance.wealth.application.port.in.DeleteWealthAccountPort;
+import com.finflow.backend.finance.transaction.api.TransactionUsageApi;
 
 import com.finflow.backend.common.exception.AppException;
-import com.finflow.backend.finance.transaction.domain.repository.TransactionRepository;
 import com.finflow.backend.finance.wealth.domain.entity.WealthAccount;
 import com.finflow.backend.finance.wealth.domain.repository.WealthAccountRepository;
 import com.finflow.backend.finance.wealth.exception.WealthErrorCode;
 import com.finflow.backend.finance.wealth.application.command.DeleteWealthAccountCommand;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,10 +21,9 @@ import java.util.UUID;
 public class DeleteWealthAccountUseCase implements DeleteWealthAccountPort {
 
     private final WealthAccountRepository wealthAccountRepository;
-    private final TransactionRepository transactionRepository;
+    private final TransactionUsageApi transactionUsageApi;
 
     @Transactional
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @Override
     public void execute(DeleteWealthAccountCommand command) {
         String userId = command.userId();
@@ -35,7 +33,7 @@ public class DeleteWealthAccountUseCase implements DeleteWealthAccountPort {
         WealthAccount account = wealthAccountRepository.findByIdAndUserId(accountId, userId)
                 .orElseThrow(() -> new AppException(WealthErrorCode.WEALTH_ACCOUNT_NOT_FOUND));
 
-        if (transactionRepository.countByWealthAccount_Id(accountId) > 0) {
+        if (transactionUsageApi.countTransactionsByWealthAccountId(accountId) > 0) {
             throw new AppException(WealthErrorCode.WEALTH_ACCOUNT_HAS_TRANSACTIONS);
         }
 

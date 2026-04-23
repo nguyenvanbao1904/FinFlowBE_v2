@@ -1,6 +1,6 @@
 package com.finflow.backend.finance.transaction.domain.entity;
 
-import com.finflow.backend.finance.transaction.domain.enums.CategoryType;
+import com.finflow.backend.finance.common.enums.CategoryType;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;

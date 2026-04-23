@@ -1,7 +1,6 @@
 package com.finflow.backend.finance.transaction.domain.entity;
 
-import com.finflow.backend.finance.transaction.domain.enums.CategoryType;
-import com.finflow.backend.finance.wealth.domain.entity.WealthAccount;
+import com.finflow.backend.finance.common.enums.CategoryType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
@@ -58,9 +57,8 @@ public class Transaction {
     @JoinColumn(name = "category_id", nullable = false)
     Category category;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "account_id", nullable = false)
-    WealthAccount wealthAccount;
+    @Column(name = "account_id", nullable = false)
+    UUID wealthAccountId;
 
     String note;
 

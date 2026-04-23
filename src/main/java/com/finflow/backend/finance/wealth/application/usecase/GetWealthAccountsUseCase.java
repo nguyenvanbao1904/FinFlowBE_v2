@@ -1,13 +1,13 @@
 package com.finflow.backend.finance.wealth.application.usecase;
 
 import com.finflow.backend.finance.wealth.application.port.in.GetWealthAccountsPort;
+import com.finflow.backend.finance.wealth.application.query.GetWealthAccountsQuery;
 
+import com.finflow.backend.finance.wealth.application.dto.WealthAccountOutput;
 import com.finflow.backend.finance.wealth.application.mapper.WealthAccountMapper;
 import com.finflow.backend.finance.wealth.domain.repository.WealthAccountRepository;
-import com.finflow.backend.finance.wealth.presentation.response.WealthAccountResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,12 +22,12 @@ public class GetWealthAccountsUseCase implements GetWealthAccountsPort {
     private final WealthAccountMapper wealthAccountMapper;
 
     @Transactional(readOnly = true)
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @Override
-    public List<WealthAccountResponse> execute(String userId) {
+    public List<WealthAccountOutput> execute(GetWealthAccountsQuery request) {
+        String userId = request.userId();
         log.info("Fetching wealth accounts for user: {}", userId);
         return wealthAccountRepository.findAllByUserIdWithType(userId).stream()
-                .map(wealthAccountMapper::toWealthAccountResponse)
+                .map(wealthAccountMapper::toWealthAccountOutput)
                 .toList();
     }
 }

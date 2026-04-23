@@ -9,7 +9,6 @@ import com.finflow.backend.finance.budget.domain.repository.BudgetRepository;
 import com.finflow.backend.finance.budget.exception.BudgetErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,7 +22,6 @@ public class DeleteBudgetUseCase implements DeleteBudgetPort {
     private final BudgetRepository budgetRepository;
 
     @Transactional
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @Override
     public void execute(DeleteBudgetCommand command) {
         String userId = command.userId();

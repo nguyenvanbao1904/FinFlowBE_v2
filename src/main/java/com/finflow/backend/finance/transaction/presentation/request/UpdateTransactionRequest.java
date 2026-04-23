@@ -1,6 +1,5 @@
 package com.finflow.backend.finance.transaction.presentation.request;
 
-import com.finflow.backend.finance.transaction.domain.enums.CategoryType;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -19,8 +18,8 @@ public class UpdateTransactionRequest {
     @DecimalMin(value = "0.01", message = "INVALID_AMOUNT")
     BigDecimal amount;
 
-    @NotNull(message = "TRANSACTION_TYPE_REQUIRED")
-    CategoryType type;
+    @NotBlank(message = "TRANSACTION_TYPE_REQUIRED")
+    String type;
 
     @NotNull(message = "TRANSACTION_CATEGORY_REQUIRED")
     UUID categoryId;

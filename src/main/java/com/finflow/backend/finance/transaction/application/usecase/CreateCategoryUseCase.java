@@ -2,14 +2,16 @@ package com.finflow.backend.finance.transaction.application.usecase;
 
 import com.finflow.backend.finance.transaction.application.port.in.CreateCategoryPort;
 
-import com.finflow.backend.finance.transaction.application.mapper.CategoryMapper;
+import com.finflow.backend.common.exception.AppException;
+import com.finflow.backend.finance.common.enums.CategoryType;
 import com.finflow.backend.finance.transaction.domain.entity.Category;
 import com.finflow.backend.finance.transaction.domain.repository.CategoryRepository;
 import com.finflow.backend.finance.transaction.application.command.CreateCategoryCommand;
-import com.finflow.backend.finance.transaction.presentation.response.CategoryResponse;
+import com.finflow.backend.finance.transaction.exception.TransactionErrorCode;
+import com.finflow.backend.common.application.dto.UuidOutput;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,14 +21,21 @@ import org.springframework.transaction.annotation.Transactional;
 public class CreateCategoryUseCase implements CreateCategoryPort {
 
     private final CategoryRepository categoryRepository;
-    private final CategoryMapper categoryMapper;
+    
 
     @Transactional
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @Override
-    public CategoryResponse execute(CreateCategoryCommand command) {
+    public UuidOutput execute(CreateCategoryCommand command) {
         String userId = command.userId();
         log.info("Creating category for userId: {}", userId);
+
+        CategoryType categoryType;
+        try {
+            categoryType = CategoryType.valueOf(command.type());
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid category type value: {}", command.type());
+            throw new AppException(TransactionErrorCode.INVALID_CATEGORY_TYPE);
+        }
 
         String icon = command.icon() != null ? command.icon().trim() : null;
         if (icon == null || icon.isBlank()) {
@@ -41,13 +50,13 @@ public class CreateCategoryUseCase implements CreateCategoryPort {
         Category category = Category.builder()
                 .userId(userId)
                 .name(command.name())
-                .type(command.type())
+                .type(categoryType)
                 .icon(icon)
                 .color(color)
                 .isSystem(false)
                 .build();
 
         Category saved = categoryRepository.save(category);
-        return categoryMapper.toCategoryResponse(saved);
+        return new UuidOutput(saved.getId());
     }
 }

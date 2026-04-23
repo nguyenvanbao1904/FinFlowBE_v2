@@ -1,6 +1,5 @@
 package com.finflow.backend.finance.transaction.presentation.response;
 
-import com.finflow.backend.finance.transaction.domain.enums.CategoryType;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Data;
@@ -14,7 +13,7 @@ import java.time.LocalDateTime;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class AnalyzeTransactionResponse {
     BigDecimal amount;
-    CategoryType type;
+    String type;
     String suggestedCategoryId;
     String suggestedAccountId;
     String note;

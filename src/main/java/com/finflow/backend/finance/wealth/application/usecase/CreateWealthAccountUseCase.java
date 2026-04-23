@@ -3,17 +3,17 @@ package com.finflow.backend.finance.wealth.application.usecase;
 import com.finflow.backend.finance.wealth.application.port.in.CreateWealthAccountPort;
 
 import com.finflow.backend.common.exception.AppException;
-import com.finflow.backend.finance.wealth.application.mapper.WealthAccountMapper;
+
 import com.finflow.backend.finance.wealth.domain.entity.WealthAccountType;
 import com.finflow.backend.finance.wealth.domain.entity.WealthAccount;
 import com.finflow.backend.finance.wealth.domain.repository.WealthAccountRepository;
 import com.finflow.backend.finance.wealth.domain.repository.WealthAccountTypeRepository;
 import com.finflow.backend.finance.wealth.exception.WealthErrorCode;
 import com.finflow.backend.finance.wealth.application.command.CreateWealthAccountCommand;
-import com.finflow.backend.finance.wealth.presentation.response.WealthAccountResponse;
+import com.finflow.backend.common.application.dto.UuidOutput;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,12 +26,11 @@ public class CreateWealthAccountUseCase implements CreateWealthAccountPort {
 
     private final WealthAccountRepository wealthAccountRepository;
     private final WealthAccountTypeRepository wealthAccountTypeRepository;
-    private final WealthAccountMapper wealthAccountMapper;
+    
 
     @Transactional
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @Override
-    public WealthAccountResponse execute(CreateWealthAccountCommand command) {
+    public UuidOutput execute(CreateWealthAccountCommand command) {
         String userId = command.userId();
         log.info("Creating wealth account for user: {}", userId);
 
@@ -54,6 +53,6 @@ public class CreateWealthAccountUseCase implements CreateWealthAccountPort {
                 .build();
 
         WealthAccount saved = wealthAccountRepository.save(account);
-        return wealthAccountMapper.toWealthAccountResponse(saved);
+        return new UuidOutput(saved.getId());
     }
 }

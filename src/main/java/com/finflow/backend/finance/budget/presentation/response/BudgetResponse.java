@@ -1,6 +1,5 @@
 package com.finflow.backend.finance.budget.presentation.response;
 
-import com.finflow.backend.finance.transaction.presentation.response.CategoryResponse;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Data;
@@ -17,7 +16,7 @@ import java.util.UUID;
 public class BudgetResponse {
 
     UUID id;
-    CategoryResponse category;
+    BudgetCategoryResponse category;
     BigDecimal targetAmount;
     /** Sum of expense transactions in this category between startDate and endDate (inclusive). */
     BigDecimal spentAmount;

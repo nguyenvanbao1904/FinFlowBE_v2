@@ -4,7 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.finflow.backend.common.exception.AppException;
 import com.finflow.backend.finance.transaction.application.port.out.DataAiAnalyticsPort;
-import com.finflow.backend.finance.transaction.application.result.AnalyticsInsightItem;
+import com.finflow.backend.finance.transaction.application.dto.AnalyticsInsightItem;
 import com.finflow.backend.finance.transaction.exception.TransactionErrorCode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

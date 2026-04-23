@@ -3,15 +3,15 @@ package com.finflow.backend.finance.transaction.application.usecase;
 import com.finflow.backend.finance.transaction.application.port.in.UpdateCategoryPort;
 
 import com.finflow.backend.common.exception.AppException;
-import com.finflow.backend.finance.transaction.application.mapper.CategoryMapper;
+
 import com.finflow.backend.finance.transaction.domain.entity.Category;
 import com.finflow.backend.finance.transaction.domain.repository.CategoryRepository;
 import com.finflow.backend.finance.transaction.exception.TransactionErrorCode;
 import com.finflow.backend.finance.transaction.application.command.UpdateCategoryCommand;
-import com.finflow.backend.finance.transaction.presentation.response.CategoryResponse;
+import com.finflow.backend.common.application.dto.UuidOutput;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,12 +23,11 @@ import java.util.UUID;
 public class UpdateCategoryUseCase implements UpdateCategoryPort {
 
     private final CategoryRepository categoryRepository;
-    private final CategoryMapper categoryMapper;
+    
 
     @Transactional
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @Override
-    public CategoryResponse execute(UpdateCategoryCommand command) {
+    public UuidOutput execute(UpdateCategoryCommand command) {
         String userId = command.userId();
         UUID categoryId = command.categoryId();
         log.info("Updating category {} for userId: {}", categoryId, userId);
@@ -51,6 +50,6 @@ public class UpdateCategoryUseCase implements UpdateCategoryPort {
         category.setColor(command.color() != null ? command.color().trim() : category.getColor());
 
         Category saved = categoryRepository.save(category);
-        return categoryMapper.toCategoryResponse(saved);
+        return new UuidOutput(saved.getId());
     }
 }

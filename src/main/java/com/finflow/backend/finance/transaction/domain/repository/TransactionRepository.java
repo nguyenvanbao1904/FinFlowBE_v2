@@ -10,13 +10,14 @@ import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
 @Repository
 public interface TransactionRepository extends JpaRepository<Transaction, UUID> {
 
-    long countByWealthAccount_Id(UUID wealthAccountId);
+    long countByWealthAccountId(UUID wealthAccountId);
 
     long countByCategory_Id(UUID categoryId);
 
@@ -62,4 +63,20 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
             @Param("endDate") LocalDateTime endDate,
             @Param("keyword") String keyword,
             Pageable pageable);
+
+    /**
+     * Batch query: fetches all EXPENSE transactions for {@code userId} whose category
+     * is in {@code categoryIds} and whose transactionDate is within [{@code rangeStart},
+     * {@code rangeEnd}).  Callers apply per-budget date filtering in Java.
+     */
+    @Query("SELECT t FROM Transaction t WHERE t.userId = :userId " +
+           "AND t.type = 'EXPENSE' " +
+           "AND t.category.id IN :categoryIds " +
+           "AND t.transactionDate >= :rangeStart " +
+           "AND t.transactionDate < :rangeEnd")
+    List<Transaction> findExpensesByUserIdAndCategoryIdsBetween(
+            @Param("userId") String userId,
+            @Param("categoryIds") Collection<UUID> categoryIds,
+            @Param("rangeStart") LocalDateTime rangeStart,
+            @Param("rangeEnd") LocalDateTime rangeEnd);
 }

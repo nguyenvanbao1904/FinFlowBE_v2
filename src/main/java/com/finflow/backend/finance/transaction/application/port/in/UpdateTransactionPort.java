@@ -1,8 +1,9 @@
 package com.finflow.backend.finance.transaction.application.port.in;
 
 import com.finflow.backend.finance.transaction.application.command.UpdateTransactionCommand;
-import com.finflow.backend.finance.transaction.presentation.response.TransactionResponse;
+
+import com.finflow.backend.common.application.dto.UuidOutput;
 
 public interface UpdateTransactionPort {
-    TransactionResponse execute(UpdateTransactionCommand command);
+    UuidOutput execute(UpdateTransactionCommand command);
 }

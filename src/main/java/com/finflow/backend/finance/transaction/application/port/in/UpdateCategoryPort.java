@@ -1,8 +1,9 @@
 package com.finflow.backend.finance.transaction.application.port.in;
 
 import com.finflow.backend.finance.transaction.application.command.UpdateCategoryCommand;
-import com.finflow.backend.finance.transaction.presentation.response.CategoryResponse;
+
+import com.finflow.backend.common.application.dto.UuidOutput;
 
 public interface UpdateCategoryPort {
-    CategoryResponse execute(UpdateCategoryCommand command);
+    UuidOutput execute(UpdateCategoryCommand command);
 }
