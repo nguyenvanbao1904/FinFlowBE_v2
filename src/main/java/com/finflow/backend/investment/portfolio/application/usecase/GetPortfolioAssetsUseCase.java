@@ -1,16 +1,15 @@
 package com.finflow.backend.investment.portfolio.application.usecase;
 
 import com.finflow.backend.investment.portfolio.application.port.in.GetPortfolioAssetsPort;
+import com.finflow.backend.investment.portfolio.application.query.GetPortfolioAssetsQuery;
 
-import com.finflow.backend.investment.portfolio.application.mapper.PortfolioAssetMapper;
+import com.finflow.backend.investment.portfolio.application.dto.PortfolioAssetOutput;
+import com.finflow.backend.investment.portfolio.api.MarketPriceQuote;
+import com.finflow.backend.investment.portfolio.api.MarketPriceApi;
 import com.finflow.backend.investment.portfolio.domain.entity.PortfolioAsset;
 import com.finflow.backend.investment.portfolio.domain.repository.PortfolioAssetRepository;
-import com.finflow.backend.investment.portfolio.infrastructure.VpsMarketPriceClient;
-import com.finflow.backend.investment.portfolio.infrastructure.VpsMarketPriceClient.MarketPriceQuote;
-import com.finflow.backend.investment.portfolio.presentation.response.PortfolioAssetResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,22 +24,22 @@ import java.util.Map;
 public class GetPortfolioAssetsUseCase implements GetPortfolioAssetsPort {
 
     private final PortfolioAssetRepository portfolioAssetRepository;
-    private final PortfolioAssetMapper portfolioAssetMapper;
-    private final VpsMarketPriceClient vpsMarketPriceClient;
+    private final MarketPriceApi marketPriceApi;
 
     @Transactional(readOnly = true)
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @Override
-    public List<PortfolioAssetResponse> execute(String userId, java.util.UUID portfolioId) {
+    public List<PortfolioAssetOutput> execute(GetPortfolioAssetsQuery request) {
+        String userId = request.userId();
+        java.util.UUID portfolioId = request.portfolioId();
         log.info("Getting portfolio assets for user: {} portfolioId: {}", userId, portfolioId);
         List<PortfolioAsset> assets = portfolioAssetRepository
                 .findByPortfolio_IdAndPortfolio_UserId(portfolioId, userId);
 
         List<String> symbols = assets.stream().map(PortfolioAsset::getSymbol).toList();
-        Map<String, MarketPriceQuote> closePrices = vpsMarketPriceClient.getClosePrices(symbols);
+        Map<String, MarketPriceQuote> closePrices = marketPriceApi.getClosePrices(symbols);
 
         return assets.stream().map(a -> {
-            PortfolioAssetResponse.PortfolioAssetResponseBuilder b = PortfolioAssetResponse.builder()
+            PortfolioAssetOutput.PortfolioAssetOutputBuilder b = PortfolioAssetOutput.builder()
                     .symbol(a.getSymbol())
                     .totalQuantity(a.getTotalQuantity())
                     .averagePrice(a.getAveragePrice())

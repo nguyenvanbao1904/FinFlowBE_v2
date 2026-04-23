@@ -1,6 +1,6 @@
 package com.finflow.backend.investment.market_data.application.mapper;
 
-import com.finflow.backend.investment.market_data.presentation.response.InvestmentAnalysisResponse;
+import com.finflow.backend.investment.market_data.application.dto.InvestmentAnalysisOutput;
 import org.mapstruct.Mapper;
 import org.mapstruct.ReportingPolicy;
 
@@ -12,7 +12,7 @@ import org.mapstruct.ReportingPolicy;
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public interface InvestmentFinancialPointMapper {
 
-    InvestmentAnalysisResponse.BankFinancialPoint toBankFinancialPoint(
+    InvestmentAnalysisOutput.BankFinancialPoint toBankFinancialPoint(
             Integer year,
             Integer quarter,
             Double cashAndEquivalents,
@@ -40,7 +40,7 @@ public interface InvestmentFinancialPointMapper {
             Double interestExpense
     );
 
-    InvestmentAnalysisResponse.NonBankFinancialPoint toNonBankFinancialPoint(
+    InvestmentAnalysisOutput.NonBankFinancialPoint toNonBankFinancialPoint(
             Integer year,
             Integer quarter,
             Double cashAndEquivalents,

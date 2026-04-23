@@ -1,7 +1,8 @@
 package com.finflow.backend.investment.portfolio.application.port.in;
-import com.finflow.backend.investment.portfolio.application.result.PortfolioHealthResult;
-import java.util.UUID;
+
+import com.finflow.backend.investment.portfolio.application.dto.PortfolioHealthOutput;
+import com.finflow.backend.investment.portfolio.application.query.GetPortfolioHealthQuery;
 
 public interface GetPortfolioHealthPort {
-    PortfolioHealthResult execute(String userId, UUID portfolioId, int quartersLimit);
+    PortfolioHealthOutput execute(GetPortfolioHealthQuery query);
 }

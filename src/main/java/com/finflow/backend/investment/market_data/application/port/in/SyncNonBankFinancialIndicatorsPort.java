@@ -1,10 +1,7 @@
 package com.finflow.backend.investment.market_data.application.port.in;
-
-import com.finflow.backend.investment.market_data.presentation.request.NonBankFinancialIndicatorRequestDTO;
-
-import java.util.List;
+import com.finflow.backend.investment.market_data.application.command.SyncNonBankFinancialIndicatorsCommand;
 
 public interface SyncNonBankFinancialIndicatorsPort {
 
-    void execute(List<NonBankFinancialIndicatorRequestDTO> requestList);
+    void execute(SyncNonBankFinancialIndicatorsCommand command);
 }

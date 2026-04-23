@@ -1,10 +1,11 @@
 package com.finflow.backend.investment.market_data.application.usecase;
 
 import com.finflow.backend.investment.market_data.application.mapper.InvestmentDataMapper;
+import com.finflow.backend.investment.market_data.application.command.SyncBankIncomeStatementsCommand;
 import com.finflow.backend.investment.market_data.application.port.in.SyncBankIncomeStatementsPort;
 import com.finflow.backend.investment.market_data.domain.entity.BankIncomeStatement;
 import com.finflow.backend.investment.market_data.domain.repository.BankIncomeStatementRepository;
-import com.finflow.backend.investment.market_data.presentation.request.BankIncomeStatementRequestDTO;
+import com.finflow.backend.investment.market_data.application.dto.BankIncomeStatementRequestInput;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -23,7 +24,8 @@ public class SyncBankIncomeStatementsUseCase implements SyncBankIncomeStatements
 
     @Transactional
     @Override
-    public void execute(List<BankIncomeStatementRequestDTO> requestList) {
+    public void execute(SyncBankIncomeStatementsCommand command) {
+        List<BankIncomeStatementRequestInput> requestList = command.request();
         if (requestList == null || requestList.isEmpty()) return;
 
         String companyId = requestList.get(0).companyId();

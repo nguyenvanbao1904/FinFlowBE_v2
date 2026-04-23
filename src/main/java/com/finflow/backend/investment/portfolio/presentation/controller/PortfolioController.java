@@ -9,11 +9,16 @@ import com.finflow.backend.investment.portfolio.application.port.in.CreateTradeT
 import com.finflow.backend.investment.portfolio.application.port.in.GetPortfolioHealthPort;
 import com.finflow.backend.investment.portfolio.application.port.in.GetPortfolioVsMarketPort;
 import com.finflow.backend.investment.portfolio.application.port.in.ImportPortfolioSnapshotPort;
-        
+
 import com.finflow.backend.investment.portfolio.application.port.in.CreatePortfolioAssetPort;
 import com.finflow.backend.investment.portfolio.application.port.in.GetPortfolioAssetsPort;
 import com.finflow.backend.investment.portfolio.application.port.in.CreatePortfolioPort;
 import com.finflow.backend.investment.portfolio.application.port.in.GetPortfoliosPort;
+import com.finflow.backend.investment.portfolio.application.query.GetPortfolioAssetsQuery;
+import com.finflow.backend.investment.portfolio.application.query.GetPortfolioHealthQuery;
+import com.finflow.backend.investment.portfolio.application.query.GetPortfolioVsMarketQuery;
+import com.finflow.backend.investment.portfolio.application.query.GetPortfoliosQuery;
+import com.finflow.backend.investment.portfolio.presentation.mapper.PortfolioPresentationMapper;
 import com.finflow.backend.investment.portfolio.presentation.request.CreatePortfolioRequest;
 import com.finflow.backend.investment.portfolio.presentation.request.CreatePortfolioAssetRequest;
 import com.finflow.backend.investment.portfolio.presentation.request.CreateTradeTransactionRequest;
@@ -28,6 +33,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -39,6 +45,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -56,53 +63,62 @@ public class PortfolioController {
     private final ImportPortfolioSnapshotPort importPortfolioSnapshotUseCase;
     private final GetPortfolioHealthPort getPortfolioHealthUseCase;
     private final GetPortfolioVsMarketPort getPortfolioVsMarketUseCase;
+    private final PortfolioPresentationMapper mapper;
+
     @Operation(summary = "Get all portfolios of current user")
     @GetMapping
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<List<PortfolioResponse>> getPortfolios(@AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();
-        return ResponseEntity.ok(getPortfoliosUseCase.execute(userId));
+        return ResponseEntity.ok(mapper.toPortfolioResponses(
+                getPortfoliosUseCase.execute(new GetPortfoliosQuery(userId))));
     }
 
     @Operation(summary = "Get all assets of a portfolio (current user)")
     @GetMapping("/{portfolioId}/assets")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<List<PortfolioAssetResponse>> getPortfolioAssets(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable UUID portfolioId
     ) {
         String userId = jwt.getSubject();
-        return ResponseEntity.ok(getPortfolioAssetsUseCase.execute(userId, portfolioId));
+        return ResponseEntity.ok(mapper.toAssetResponses(
+                getPortfolioAssetsUseCase.execute(new GetPortfolioAssetsQuery(userId, portfolioId))));
     }
 
     @Operation(summary = "Add an asset to a portfolio (current user)")
     @PostMapping("/{portfolioId}/assets")
-    public ResponseEntity<PortfolioAssetResponse> createPortfolioAsset(
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<Map<String, UUID>> createPortfolioAsset(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable UUID portfolioId,
             @Valid @RequestBody CreatePortfolioAssetRequest request
     ) {
         String userId = jwt.getSubject();
-        PortfolioAssetResponse response = createPortfolioAssetUseCase.execute(
-            new CreatePortfolioAssetCommand(userId, portfolioId, request.getSymbol(), 
+        var id = createPortfolioAssetUseCase.execute(
+            new CreatePortfolioAssetCommand(userId, portfolioId, request.getSymbol(),
                 request.getQuantity(), request.getAveragePrice())
-        );
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        ).id();
+        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", id));
     }
 
     @Operation(summary = "Create a new empty portfolio (cashBalance=0)")
     @PostMapping
-    public ResponseEntity<PortfolioResponse> createPortfolio(
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<Map<String, UUID>> createPortfolio(
             @AuthenticationPrincipal Jwt jwt,
             @Valid @RequestBody CreatePortfolioRequest request
     ) {
         String userId = jwt.getSubject();
-        PortfolioResponse response = createPortfolioUseCase.execute(
+        var id = createPortfolioUseCase.execute(
             new CreatePortfolioCommand(userId, request.getName())
-        );
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        ).id();
+        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", id));
     }
 
     @Operation(summary = "Create a new trade transaction (BUY/SELL/DEPOSIT/WITHDRAW)")
     @PostMapping("/{portfolioId}/transactions")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<Void> createTradeTransaction(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable UUID portfolioId,
@@ -127,6 +143,7 @@ public class PortfolioController {
 
     @Operation(summary = "Import/overwrite portfolio snapshot (cashBalance + holdings)")
     @PostMapping("/{portfolioId}/import-snapshot")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<Void> importPortfolioSnapshot(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable UUID portfolioId,
@@ -145,6 +162,7 @@ public class PortfolioController {
 
     @Operation(summary = "Get portfolio health metrics (P/E, P/B, P/S, ROE, ROA history + current close price snapshot)")
     @GetMapping("/{portfolioId}/health")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<PortfolioHealthResponse> getPortfolioHealth(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable UUID portfolioId,
@@ -152,33 +170,20 @@ public class PortfolioController {
     ) {
         String userId = jwt.getSubject();
         int safeQuarters = Math.max(1, Math.min(quarters, 40));
-        var result = getPortfolioHealthUseCase.execute(userId, portfolioId, safeQuarters);
-        return ResponseEntity.ok(toHealthResponse(result));
-    }
-
-    private static PortfolioHealthResponse toHealthResponse(
-            com.finflow.backend.investment.portfolio.application.result.PortfolioHealthResult result
-    ) {
-        var snap = result.current();
-        var current = new PortfolioHealthResponse.CurrentSnapshot(
-                snap.totalValueClose(), snap.stockValueClose(), snap.cashBalance(),
-                snap.pe(), snap.pb(), snap.ps(), snap.priceType());
-        var history = result.history().stream()
-                .map(h -> new PortfolioHealthResponse.HistoryPoint(
-                        h.year(), h.quarter(), h.pe(), h.pb(), h.ps(), h.roe(), h.roa(), h.coverage()))
-                .toList();
-        return new PortfolioHealthResponse(result.latestYear(), result.latestQuarter(), current, history);
+        var result = getPortfolioHealthUseCase.execute(new GetPortfolioHealthQuery(userId, portfolioId, safeQuarters));
+        return ResponseEntity.ok(mapper.toHealthResponse(result));
     }
 
     @Operation(summary = "Compare portfolio metrics against market benchmark (default VNINDEX)")
     @GetMapping("/{portfolioId}/benchmark")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<PortfolioMarketBenchmarkResponse> getPortfolioBenchmark(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable UUID portfolioId,
             @RequestParam(defaultValue = "VNINDEX") String code
     ) {
         String userId = jwt.getSubject();
-        return ResponseEntity.ok(getPortfolioVsMarketUseCase.execute(userId, portfolioId, code));
+        return ResponseEntity.ok(mapper.toBenchmarkResponse(
+                getPortfolioVsMarketUseCase.execute(new GetPortfolioVsMarketQuery(userId, portfolioId, code))));
     }
 }
-

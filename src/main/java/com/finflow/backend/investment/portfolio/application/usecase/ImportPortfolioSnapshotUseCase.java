@@ -1,6 +1,7 @@
 package com.finflow.backend.investment.portfolio.application.usecase;
 
 import com.finflow.backend.investment.portfolio.application.port.in.ImportPortfolioSnapshotPort;
+import com.finflow.backend.investment.common.util.StockSymbolUtils;
 
 import com.finflow.backend.common.exception.AppException;
 import com.finflow.backend.investment.portfolio.domain.entity.Portfolio;
@@ -12,14 +13,13 @@ import com.finflow.backend.investment.portfolio.exception.PortfolioErrorCode;
 import com.finflow.backend.investment.portfolio.application.command.ImportPortfolioSnapshotCommand;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -35,7 +35,6 @@ public class ImportPortfolioSnapshotUseCase implements ImportPortfolioSnapshotPo
     private final PortfolioAssetRepository portfolioAssetRepository;
 
     @Transactional
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @Override
     public void execute(ImportPortfolioSnapshotCommand command) {
         String userId = command.userId();
@@ -61,7 +60,7 @@ public class ImportPortfolioSnapshotUseCase implements ImportPortfolioSnapshotPo
         Map<String, ImportPortfolioSnapshotCommand.HoldingSnapshot> holdingBySymbol = holdings.stream()
                 .map(h -> {
                     if (h == null) return null;
-                    String symbol = normalizeSymbol(h.symbol());
+                    String symbol = StockSymbolUtils.normalizeSymbol(h.symbol());
                     return symbol == null ? null : new NormalizedHolding(symbol, h);
                 })
                 .filter(x -> x != null)
@@ -76,13 +75,16 @@ public class ImportPortfolioSnapshotUseCase implements ImportPortfolioSnapshotPo
         // 1) Delete assets not in incoming list
         List<PortfolioAsset> existingAssets = portfolioAssetRepository
                 .findByPortfolio_IdAndPortfolio_UserId(portfolioId, userId);
-        for (PortfolioAsset asset : existingAssets) {
-            if (!incomingSymbols.contains(asset.getSymbol())) {
-                portfolioAssetRepository.delete(asset);
-            }
-        }
+        Map<String, PortfolioAsset> existingBySymbol = existingAssets.stream()
+                .collect(Collectors.toMap(PortfolioAsset::getSymbol, Function.identity()));
+        List<PortfolioAsset> assetsToDelete = existingAssets.stream()
+                .filter(asset -> !incomingSymbols.contains(asset.getSymbol()))
+                .collect(Collectors.toList());
+        portfolioAssetRepository.deleteAll(assetsToDelete);
 
         // 2) Upsert incoming assets
+        List<PortfolioAsset> zeroQtyDeletes = new ArrayList<>();
+        List<PortfolioAsset> assetsToSave = new ArrayList<>();
         for (var entry : holdingBySymbol.entrySet()) {
             String symbol = entry.getKey();
             ImportPortfolioSnapshotCommand.HoldingSnapshot h = entry.getValue();
@@ -99,7 +101,7 @@ public class ImportPortfolioSnapshotUseCase implements ImportPortfolioSnapshotPo
             if (totalQuantity.compareTo(BigDecimal.ZERO) < 0) {
                 throw new AppException(ImportPortfolioSnapshotErrorCode.HOLDING_QUANTITY_MUST_BE_NON_NEGATIVE);
             }
-            if (!isWholeNumber(totalQuantity)) {
+            if (!StockSymbolUtils.isWholeNumber(totalQuantity)) {
                 throw new AppException(ImportPortfolioSnapshotErrorCode.HOLDING_QUANTITY_MUST_BE_WHOLE_NUMBER);
             }
             if (averagePrice == null) {
@@ -111,36 +113,28 @@ public class ImportPortfolioSnapshotUseCase implements ImportPortfolioSnapshotPo
 
             // qty==0 means "not holding" => delete if exists
             if (totalQuantity.compareTo(BigDecimal.ZERO) == 0) {
-                portfolioAssetRepository
-                        .findByPortfolio_IdAndPortfolio_UserIdAndSymbol(portfolioId, userId, symbol)
-                        .ifPresent(portfolioAssetRepository::delete);
+                PortfolioAsset toDelete = existingBySymbol.get(symbol);
+                if (toDelete != null) {
+                    zeroQtyDeletes.add(toDelete);
+                }
                 continue;
             }
 
-            PortfolioAsset asset = portfolioAssetRepository
-                    .findByPortfolio_IdAndPortfolio_UserIdAndSymbol(portfolioId, userId, symbol)
-                    .orElseGet(() -> PortfolioAsset.builder()
+            PortfolioAsset asset = existingBySymbol.getOrDefault(symbol,
+                    PortfolioAsset.builder()
                             .portfolio(portfolio)
                             .symbol(symbol)
                             .build());
 
             asset.setTotalQuantity(totalQuantity.setScale(0, RoundingMode.HALF_UP));
             asset.setAveragePrice(averagePrice.setScale(2, RoundingMode.HALF_UP));
-            portfolioAssetRepository.save(asset);
+            assetsToSave.add(asset);
         }
+        portfolioAssetRepository.deleteAll(zeroQtyDeletes);
+        portfolioAssetRepository.saveAll(assetsToSave);
 
         portfolio.setCashBalance(cashBalance.setScale(2, RoundingMode.HALF_UP));
         portfolioRepository.save(portfolio);
-    }
-
-    private static String normalizeSymbol(String symbol) {
-        if (symbol == null) return null;
-        String s = symbol.trim().toUpperCase(Locale.ROOT);
-        return s.isBlank() ? null : s;
-    }
-
-    private static boolean isWholeNumber(BigDecimal v) {
-        return v != null && v.stripTrailingZeros().scale() <= 0;
     }
 
     private static class NormalizedHolding {

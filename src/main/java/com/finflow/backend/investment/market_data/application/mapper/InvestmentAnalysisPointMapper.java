@@ -3,7 +3,7 @@ package com.finflow.backend.investment.market_data.application.mapper;
 import com.finflow.backend.investment.market_data.domain.entity.CompanyDividend;
 import com.finflow.backend.investment.market_data.domain.entity.CompanyShareholder;
 import com.finflow.backend.investment.market_data.domain.entity.FinancialIndicator;
-import com.finflow.backend.investment.market_data.presentation.response.InvestmentAnalysisResponse;
+import com.finflow.backend.investment.market_data.application.dto.InvestmentAnalysisOutput;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
@@ -18,13 +18,13 @@ import java.time.LocalDate;
 )
 public interface InvestmentAnalysisPointMapper {
 
-    InvestmentAnalysisResponse.ValuationPoint toValuationPoint(FinancialIndicator indicator);
+    InvestmentAnalysisOutput.ValuationPoint toValuationPoint(FinancialIndicator indicator);
 
-    InvestmentAnalysisResponse.DividendPoint toDividendPoint(CompanyDividend dividend);
+    InvestmentAnalysisOutput.DividendPoint toDividendPoint(CompanyDividend dividend);
 
     @Mapping(source = "shareholderName", target = "name")
     @Mapping(source = "shareOwnPercent", target = "percentage")
-    InvestmentAnalysisResponse.ShareholderPoint toShareholderPoint(CompanyShareholder shareholder);
+    InvestmentAnalysisOutput.ShareholderPoint toShareholderPoint(CompanyShareholder shareholder);
 
     // --- Type conversions (MapStruct uses these for implicit conversions) ---
     default Double toDouble(BigDecimal value) {

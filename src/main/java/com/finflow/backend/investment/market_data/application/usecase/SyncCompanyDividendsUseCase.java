@@ -1,10 +1,11 @@
 package com.finflow.backend.investment.market_data.application.usecase;
 
 import com.finflow.backend.investment.market_data.application.mapper.InvestmentDataMapper;
+import com.finflow.backend.investment.market_data.application.command.SyncCompanyDividendsCommand;
 import com.finflow.backend.investment.market_data.application.port.in.SyncCompanyDividendsPort;
 import com.finflow.backend.investment.market_data.domain.entity.CompanyDividend;
 import com.finflow.backend.investment.market_data.domain.repository.CompanyDividendRepository;
-import com.finflow.backend.investment.market_data.presentation.request.CompanyDividendRequestDTO;
+import com.finflow.backend.investment.market_data.application.dto.CompanyDividendRequestInput;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -22,7 +23,9 @@ public class SyncCompanyDividendsUseCase implements SyncCompanyDividendsPort {
 
     @Transactional
     @Override
-    public void execute(String companyId, List<CompanyDividendRequestDTO> requests) {
+    public void execute(SyncCompanyDividendsCommand command) {
+        String companyId = command.companyId();
+        List<CompanyDividendRequestInput> requests = command.request();
         log.info("Syncing {} dividend events for company {}", requests.size(), companyId);
         
         repository.deleteByCompanyId(companyId);

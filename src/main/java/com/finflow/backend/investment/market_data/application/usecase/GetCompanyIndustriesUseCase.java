@@ -1,8 +1,9 @@
 package com.finflow.backend.investment.market_data.application.usecase;
 
 import com.finflow.backend.investment.market_data.application.port.in.GetCompanyIndustriesPort;
+import com.finflow.backend.investment.market_data.application.query.GetCompanyIndustriesQuery;
 import com.finflow.backend.investment.market_data.application.service.MarketDataReadService;
-import com.finflow.backend.investment.market_data.presentation.response.CompanyIndustryResponse;
+import com.finflow.backend.investment.market_data.application.dto.CompanyIndustryOutput;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,7 +22,8 @@ public class GetCompanyIndustriesUseCase implements GetCompanyIndustriesPort {
 
     @Transactional(readOnly = true)
     @Override
-    public List<CompanyIndustryResponse> execute(List<String> symbols) {
+    public List<CompanyIndustryOutput> execute(GetCompanyIndustriesQuery request) {
+        List<String> symbols = request.symbols();
         if (symbols == null || symbols.isEmpty()) {
             return List.of();
         }
@@ -49,7 +51,7 @@ public class GetCompanyIndustriesUseCase implements GetCompanyIndustriesPort {
                 ));
 
         return normalizedSymbols.stream()
-                .map(symbol -> CompanyIndustryResponse.builder()
+                .map(symbol -> CompanyIndustryOutput.builder()
                         .symbol(symbol)
                         .industryLabel(industryBySymbol.getOrDefault(symbol, UNKNOWN_INDUSTRY))
                         .build())

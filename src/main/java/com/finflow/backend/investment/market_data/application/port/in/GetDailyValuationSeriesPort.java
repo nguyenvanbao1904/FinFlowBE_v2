@@ -1,10 +1,9 @@
 package com.finflow.backend.investment.market_data.application.port.in;
 
-import com.finflow.backend.investment.market_data.presentation.response.InvestmentAnalysisResponse;
-
-import java.util.List;
+import com.finflow.backend.investment.market_data.application.dto.InvestmentDailyValuationPointsOutput;
+import com.finflow.backend.investment.market_data.application.query.GetDailyValuationSeriesQuery;
 
 public interface GetDailyValuationSeriesPort {
 
-    List<InvestmentAnalysisResponse.DailyValuationPoint> execute(String symbol, String startDate, String endDate);
+    InvestmentDailyValuationPointsOutput execute(GetDailyValuationSeriesQuery query);
 }

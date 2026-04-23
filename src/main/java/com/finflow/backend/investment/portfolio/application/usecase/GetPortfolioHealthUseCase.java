@@ -1,8 +1,9 @@
 package com.finflow.backend.investment.portfolio.application.usecase;
 
 import com.finflow.backend.investment.portfolio.application.port.in.GetPortfolioHealthPort;
+import com.finflow.backend.investment.portfolio.application.query.GetPortfolioHealthQuery;
 
-import com.finflow.backend.investment.portfolio.application.result.PortfolioHealthResult;
+import com.finflow.backend.investment.portfolio.application.dto.PortfolioHealthOutput;
 import com.finflow.backend.investment.portfolio.application.service.PortfolioHealthComputationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -18,7 +19,10 @@ public class GetPortfolioHealthUseCase implements GetPortfolioHealthPort {
 
     @Transactional(readOnly = true)
     @Override
-    public PortfolioHealthResult execute(String userId, UUID portfolioId, int quartersLimit) {
+    public PortfolioHealthOutput execute(GetPortfolioHealthQuery request) {
+        String userId = request.userId();
+        UUID portfolioId = request.portfolioId();
+        int quartersLimit = request.quartersLimit();
         return portfolioHealthComputationService.compute(userId, portfolioId, quartersLimit);
     }
 }

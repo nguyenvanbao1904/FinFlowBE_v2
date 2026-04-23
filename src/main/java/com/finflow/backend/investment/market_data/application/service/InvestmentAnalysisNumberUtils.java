@@ -1,6 +1,6 @@
 package com.finflow.backend.investment.market_data.application.service;
 
-import com.finflow.backend.investment.market_data.presentation.response.InvestmentAnalysisResponse;
+import com.finflow.backend.investment.market_data.application.dto.InvestmentAnalysisOutput;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -59,12 +59,12 @@ public final class InvestmentAnalysisNumberUtils {
         }
     }
 
-    public static Integer extractDividendYear(InvestmentAnalysisResponse.DividendPoint p) {
+    public static Integer extractDividendYear(InvestmentAnalysisOutput.DividendPoint p) {
         LocalDate d = extractDividendDateForSort(p);
         return d == null ? null : d.getYear();
     }
 
-    public static LocalDate extractDividendDateForSort(InvestmentAnalysisResponse.DividendPoint p) {
+    public static LocalDate extractDividendDateForSort(InvestmentAnalysisOutput.DividendPoint p) {
         LocalDate record = parseDate(p.recordDate());
         if (record != null) return record;
         LocalDate exright = parseDate(p.exrightDate());

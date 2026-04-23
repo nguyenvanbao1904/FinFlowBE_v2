@@ -1,15 +1,15 @@
 package com.finflow.backend.investment.portfolio.application.usecase;
 
 import com.finflow.backend.investment.portfolio.application.port.in.GetPortfoliosPort;
+import com.finflow.backend.investment.portfolio.application.query.GetPortfoliosQuery;
 
+import com.finflow.backend.investment.portfolio.application.dto.PortfolioResponseOutput;
 import com.finflow.backend.investment.portfolio.application.mapper.PortfolioMapper;
 import com.finflow.backend.investment.portfolio.domain.repository.PortfolioAssetRepository;
 import com.finflow.backend.investment.portfolio.domain.repository.PortfolioRepository;
 import com.finflow.backend.investment.portfolio.domain.repository.PortfolioStockCostBasisProjection;
-import com.finflow.backend.investment.portfolio.presentation.response.PortfolioResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,9 +28,9 @@ public class GetPortfoliosUseCase implements GetPortfoliosPort {
     private final PortfolioMapper portfolioMapper;
 
     @Transactional(readOnly = true)
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @Override
-    public List<PortfolioResponse> execute(String userId) {
+    public List<PortfolioResponseOutput> execute(GetPortfoliosQuery request) {
+        String userId = request.userId();
         log.info("Getting portfolios for user: {}", userId);
         var portfolios = portfolioRepository.findByUserIdOrderByCreatedAtDesc(userId);
         if (portfolios.isEmpty()) {
@@ -48,13 +48,19 @@ public class GetPortfoliosUseCase implements GetPortfoliosPort {
 
         return portfolios.stream()
                 .map(portfolio -> {
-                    PortfolioResponse response = portfolioMapper.toPortfolioResponse(portfolio);
+                    PortfolioResponseOutput response = portfolioMapper.toPortfolioResponseOutput(portfolio);
                     java.math.BigDecimal stockCostBasis = stockCostBasisByPortfolioId.getOrDefault(
                             portfolio.getId(),
                             java.math.BigDecimal.ZERO
                     );
-                    response.setTotalCostBasis(portfolio.getCashBalance().add(stockCostBasis));
-                    return response;
+                    return PortfolioResponseOutput.builder()
+                            .id(response.id())
+                            .name(response.name())
+                            .cashBalance(response.cashBalance())
+                            .totalCostBasis(portfolio.getCashBalance().add(stockCostBasis))
+                            .createdAt(response.createdAt())
+                            .updatedAt(response.updatedAt())
+                            .build();
                 })
                 .toList();
     }

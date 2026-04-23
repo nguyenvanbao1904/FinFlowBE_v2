@@ -3,7 +3,8 @@ package com.finflow.backend.investment.portfolio.application.usecase;
 import com.finflow.backend.investment.portfolio.application.port.in.CreatePortfolioAssetPort;
 
 import com.finflow.backend.common.exception.AppException;
-import com.finflow.backend.investment.portfolio.application.mapper.PortfolioAssetMapper;
+import com.finflow.backend.investment.common.util.StockSymbolUtils;
+
 import com.finflow.backend.investment.portfolio.domain.entity.Portfolio;
 import com.finflow.backend.investment.portfolio.domain.entity.PortfolioAsset;
 import com.finflow.backend.investment.portfolio.domain.repository.PortfolioAssetRepository;
@@ -11,10 +12,10 @@ import com.finflow.backend.investment.portfolio.domain.repository.PortfolioRepos
 import com.finflow.backend.investment.portfolio.exception.PortfolioAssetErrorCode;
 import com.finflow.backend.investment.portfolio.exception.PortfolioErrorCode;
 import com.finflow.backend.investment.portfolio.application.command.CreatePortfolioAssetCommand;
-import com.finflow.backend.investment.portfolio.presentation.response.PortfolioAssetResponse;
+import com.finflow.backend.common.application.dto.UuidOutput;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,12 +30,11 @@ public class CreatePortfolioAssetUseCase implements CreatePortfolioAssetPort {
 
     private final PortfolioRepository portfolioRepository;
     private final PortfolioAssetRepository portfolioAssetRepository;
-    private final PortfolioAssetMapper portfolioAssetMapper;
+    
 
     @Transactional
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @Override
-    public PortfolioAssetResponse execute(CreatePortfolioAssetCommand command) {
+    public UuidOutput execute(CreatePortfolioAssetCommand command) {
         String userId = command.userId();
         UUID portfolioId = command.portfolioId();
         String symbol = command.symbol().trim().toUpperCase();
@@ -50,7 +50,7 @@ public class CreatePortfolioAssetUseCase implements CreatePortfolioAssetPort {
         if (quantity.compareTo(BigDecimal.ZERO) <= 0) {
             throw new AppException(PortfolioAssetErrorCode.PORTFOLIO_ASSET_QUANTITY_MUST_BE_POSITIVE);
         }
-        if (!isWholeNumber(quantity)) {
+        if (!StockSymbolUtils.isWholeNumber(quantity)) {
             throw new AppException(PortfolioAssetErrorCode.PORTFOLIO_ASSET_QUANTITY_MUST_BE_WHOLE_NUMBER);
         }
         if (averagePrice == null) {
@@ -77,7 +77,7 @@ public class CreatePortfolioAssetUseCase implements CreatePortfolioAssetPort {
                     .build();
 
             PortfolioAsset saved = portfolioAssetRepository.save(created);
-            return portfolioAssetMapper.toPortfolioAssetResponse(saved);
+            return new UuidOutput(saved.getId());
         }
 
         BigDecimal oldQty = asset.getTotalQuantity();
@@ -98,11 +98,7 @@ public class CreatePortfolioAssetUseCase implements CreatePortfolioAssetPort {
         asset.setAveragePrice(newAvg);
 
         PortfolioAsset saved = portfolioAssetRepository.save(asset);
-        return portfolioAssetMapper.toPortfolioAssetResponse(saved);
-    }
-
-    private static boolean isWholeNumber(BigDecimal v) {
-        return v != null && v.stripTrailingZeros().scale() <= 0;
+        return new UuidOutput(saved.getId());
     }
 }
 

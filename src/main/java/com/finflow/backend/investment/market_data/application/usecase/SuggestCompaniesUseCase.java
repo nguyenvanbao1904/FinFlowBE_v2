@@ -1,12 +1,14 @@
 package com.finflow.backend.investment.market_data.application.usecase;
 
 import com.finflow.backend.investment.market_data.application.port.in.SuggestCompaniesPort;
+import com.finflow.backend.investment.market_data.application.query.SuggestCompaniesQuery;
 import com.finflow.backend.investment.market_data.application.service.MarketDataReadService;
 import com.finflow.backend.investment.market_data.domain.entity.Company;
-import com.finflow.backend.investment.market_data.presentation.response.CompanySuggestionResponse;
+import com.finflow.backend.investment.market_data.application.dto.CompanySuggestionOutput;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -21,8 +23,11 @@ public class SuggestCompaniesUseCase implements SuggestCompaniesPort {
 
     private final MarketDataReadService readService;
 
+    @Transactional(readOnly = true)
     @Override
-    public List<CompanySuggestionResponse> execute(String query, Integer limit) {
+    public List<CompanySuggestionOutput> execute(SuggestCompaniesQuery request) {
+        String query = request.query();
+        Integer limit = request.limit();
         String q = query == null ? "" : query.trim();
         if (q.isBlank()) return List.of();
 
@@ -45,9 +50,9 @@ public class SuggestCompaniesUseCase implements SuggestCompaniesPort {
             }
         }
 
-        List<CompanySuggestionResponse> out = new ArrayList<>(unique.size());
+        List<CompanySuggestionOutput> out = new ArrayList<>(unique.size());
         for (Company c : unique.values()) {
-            out.add(new CompanySuggestionResponse(c.getId(), c.getCompanyName()));
+            out.add(new CompanySuggestionOutput(c.getId(), c.getCompanyName()));
         }
         return out;
     }

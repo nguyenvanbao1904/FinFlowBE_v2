@@ -1,9 +1,9 @@
-package com.finflow.backend.investment.portfolio.infrastructure;
+package com.finflow.backend.investment.market_data.infrastructure.adapter;
 
 import com.finflow.backend.investment.market_data.domain.entity.FinancialIndicator;
 import com.finflow.backend.investment.market_data.domain.repository.FinancialIndicatorRepository;
-import com.finflow.backend.investment.portfolio.application.port.out.MarketIndicatorQueryPort;
-import com.finflow.backend.investment.portfolio.application.result.MarketIndicatorData;
+import com.finflow.backend.investment.market_data.api.MarketIndicatorReadApi;
+import com.finflow.backend.investment.market_data.api.MarketIndicatorData;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -11,15 +11,12 @@ import java.util.Collection;
 import java.util.List;
 
 /**
- * Adapter that fulfills {@link MarketIndicatorQueryPort} by delegating to
- * {@link FinancialIndicatorRepository} from the market_data context.
- *
- * <p>Lives in portfolio.infrastructure so that cross-context JPA coupling
- * is confined to the infrastructure layer, not the application layer.
+ * Adapter owned by market_data module to expose indicator queries
+ * for portfolio use cases through market_data's public API contract.
  */
 @Component
 @RequiredArgsConstructor
-public class MarketIndicatorQueryAdapter implements MarketIndicatorQueryPort {
+public class PortfolioMarketIndicatorQueryAdapter implements MarketIndicatorReadApi {
 
     private final FinancialIndicatorRepository financialIndicatorRepository;
 

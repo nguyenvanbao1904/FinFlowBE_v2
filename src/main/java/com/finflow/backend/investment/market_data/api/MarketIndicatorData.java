@@ -1,4 +1,4 @@
-package com.finflow.backend.investment.portfolio.application.result;
+package com.finflow.backend.investment.market_data.api;
 
 import java.math.BigDecimal;
 

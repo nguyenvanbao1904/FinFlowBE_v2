@@ -4,7 +4,7 @@ import com.finflow.backend.investment.market_data.domain.entity.*;
 import com.finflow.backend.investment.market_data.application.mapper.InvestmentFinancialPointMapper;
 import com.finflow.backend.investment.market_data.application.strategy.BankStatementStrategy;
 import com.finflow.backend.investment.market_data.application.strategy.NonBankStatementStrategy;
-import com.finflow.backend.investment.market_data.presentation.response.InvestmentAnalysisResponse;
+import com.finflow.backend.investment.market_data.application.dto.InvestmentAnalysisOutput;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 
@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Director for building InvestmentAnalysisResponse.FinancialSeries.
+ * Director for building InvestmentAnalysisOutput.FinancialSeries.
  * Uses Strategy pattern to avoid BANK/NON_BANK code branching in the director itself.
  */
 @Component
@@ -26,7 +26,7 @@ public class InvestmentFinancialSeriesBuilder {
         this.nonBankStrategy = new NonBankStatementStrategy(pointMapper);
     }
 
-    public InvestmentAnalysisResponse.FinancialSeries build(
+    public InvestmentAnalysisOutput.FinancialSeries build(
             String companyType,
             List<FinancialIndicator> indicators,
             Integer annualLimit,
@@ -38,7 +38,7 @@ public class InvestmentFinancialSeriesBuilder {
     ) {
         String normalizedType = Optional.ofNullable(companyType).orElse("").toUpperCase();
         if ("BANK".equals(normalizedType)) {
-            List<InvestmentAnalysisResponse.BankFinancialPoint> points =
+            List<InvestmentAnalysisOutput.BankFinancialPoint> points =
                     bankStrategy.buildPoints(
                             bankBalances,
                             bankIncomes,
@@ -46,10 +46,10 @@ public class InvestmentFinancialSeriesBuilder {
                             annualLimit,
                             quarterlyLimit
                     );
-            return new InvestmentAnalysisResponse.FinancialSeries("BANK", points, List.of());
+            return new InvestmentAnalysisOutput.FinancialSeries("BANK", points, List.of());
         }
 
-        List<InvestmentAnalysisResponse.NonBankFinancialPoint> points =
+        List<InvestmentAnalysisOutput.NonBankFinancialPoint> points =
                 nonBankStrategy.buildPoints(
                         nonBankBalances,
                         nonBankIncomes,
@@ -57,6 +57,6 @@ public class InvestmentFinancialSeriesBuilder {
                         annualLimit,
                         quarterlyLimit
                 );
-        return new InvestmentAnalysisResponse.FinancialSeries("NON_BANK", List.of(), points);
+        return new InvestmentAnalysisOutput.FinancialSeries("NON_BANK", List.of(), points);
     }
 }

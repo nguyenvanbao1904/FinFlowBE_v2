@@ -1,10 +1,11 @@
 package com.finflow.backend.investment.market_data.application.usecase;
 
 import com.finflow.backend.investment.market_data.application.mapper.InvestmentDataMapper;
+import com.finflow.backend.investment.market_data.application.command.SyncNonBankIncomeStatementsCommand;
 import com.finflow.backend.investment.market_data.application.port.in.SyncNonBankIncomeStatementsPort;
 import com.finflow.backend.investment.market_data.domain.entity.NonBankIncomeStatement;
 import com.finflow.backend.investment.market_data.domain.repository.NonBankIncomeStatementRepository;
-import com.finflow.backend.investment.market_data.presentation.request.NonBankIncomeStatementRequestDTO;
+import com.finflow.backend.investment.market_data.application.dto.NonBankIncomeStatementRequestInput;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -23,7 +24,8 @@ public class SyncNonBankIncomeStatementsUseCase implements SyncNonBankIncomeStat
 
     @Transactional
     @Override
-    public void execute(List<NonBankIncomeStatementRequestDTO> requestList) {
+    public void execute(SyncNonBankIncomeStatementsCommand command) {
+        List<NonBankIncomeStatementRequestInput> requestList = command.request();
         if (requestList == null || requestList.isEmpty()) return;
 
         String companyId = requestList.get(0).companyId();

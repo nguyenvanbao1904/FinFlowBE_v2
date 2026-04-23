@@ -62,7 +62,7 @@ public class VndirectRatiosClient {
                 return parsed;
             }
         } catch (Exception e) {
-            log.debug("VNDirect fetch failed for {} via {}: {}", normalizedCode, url, e.getMessage());
+            log.warn("VNDirect fetch failed for {} via {}: {}", normalizedCode, url, e.getMessage());
         }
 
         log.warn("Cannot resolve VNDirect ratios for code={}, itemCodes={}", normalizedCode, joinedItemCodes);
@@ -119,7 +119,7 @@ public class VndirectRatiosClient {
             }
             return result;
         } catch (Exception e) {
-            log.debug("Cannot parse VNDirect ratios payload: {}", e.getMessage());
+            log.warn("Cannot parse VNDirect ratios payload: {}", e.getMessage());
             return result;
         }
     }

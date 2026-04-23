@@ -1,6 +1,7 @@
 package com.finflow.backend.investment.portfolio.presentation.request;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.Data;
@@ -25,6 +26,7 @@ public class ImportPortfolioSnapshotRequest {
     @FieldDefaults(level = AccessLevel.PRIVATE)
     public static class HoldingSnapshotRequest {
 
+        @NotBlank(message = "HOLDING_SYMBOL_REQUIRED")
         String symbol;
 
         @NotNull(message = "HOLDING_QUANTITY_REQUIRED")

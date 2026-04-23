@@ -1,10 +1,7 @@
 package com.finflow.backend.investment.market_data.application.port.in;
-
-import com.finflow.backend.investment.market_data.presentation.request.BankIncomeStatementRequestDTO;
-
-import java.util.List;
+import com.finflow.backend.investment.market_data.application.command.SyncBankIncomeStatementsCommand;
 
 public interface SyncBankIncomeStatementsPort {
 
-    void execute(List<BankIncomeStatementRequestDTO> requestList);
+    void execute(SyncBankIncomeStatementsCommand command);
 }

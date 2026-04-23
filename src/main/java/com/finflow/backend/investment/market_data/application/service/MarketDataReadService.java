@@ -4,7 +4,9 @@ import com.finflow.backend.common.exception.AppException;
 import com.finflow.backend.investment.market_data.domain.entity.*;
 import com.finflow.backend.investment.market_data.domain.repository.*;
 import com.finflow.backend.investment.market_data.exception.MarketDataErrorCode;
+import com.finflow.backend.investment.common.util.StockSymbolUtils;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
@@ -39,7 +41,7 @@ public class MarketDataReadService {
     }
 
     public String normalizeSymbol(String rawSymbol) {
-        return Optional.ofNullable(rawSymbol).orElse("").trim().toUpperCase();
+        return Optional.ofNullable(StockSymbolUtils.normalizeSymbol(rawSymbol)).orElse("");
     }
 
     public List<Company> suggestBySymbolPrefix(String prefix, int limit) {
@@ -71,6 +73,7 @@ public class MarketDataReadService {
         return companyRepository.findByIdInUppercase(symbolsUpper);
     }
 
+    @Cacheable(value = "industryNodes")
     public List<IndustryNode> loadIndustryNodes() {
         List<IndustryNode> rows = new ArrayList<>(industryNodeRepository.findAll());
         rows.sort(
@@ -83,10 +86,6 @@ public class MarketDataReadService {
 
     public List<CompanyShareholder> loadShareholders(String companyId) {
         return companyShareholderRepository.findByCompanyIdOrderByShareOwnPercentDesc(companyId);
-    }
-
-    public List<CompanyDividend> loadAllCompanyDividendsOrderByRecordDateAsc(String companyId) {
-        return companyDividendRepository.findByCompanyIdOrderByRecordDateAsc(companyId);
     }
 
     public List<FinancialIndicator> loadAllFinancialIndicatorsAsc(String companyId) {

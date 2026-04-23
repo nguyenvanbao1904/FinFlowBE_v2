@@ -1,10 +1,7 @@
 package com.finflow.backend.investment.market_data.application.port.in;
-
-import com.finflow.backend.investment.market_data.presentation.request.IndustryNodeRequestDTO;
-
-import java.util.List;
+import com.finflow.backend.investment.market_data.application.command.SyncIndustryNodesCommand;
 
 public interface SyncIndustryNodesPort {
 
-    void execute(List<IndustryNodeRequestDTO> requests);
+    void execute(SyncIndustryNodesCommand command);
 }

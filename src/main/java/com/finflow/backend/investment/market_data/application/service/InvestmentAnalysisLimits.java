@@ -1,6 +1,6 @@
 package com.finflow.backend.investment.market_data.application.service;
 
-import com.finflow.backend.investment.market_data.presentation.response.InvestmentAnalysisResponse;
+import com.finflow.backend.investment.market_data.application.dto.InvestmentAnalysisOutput;
 
 import java.util.Comparator;
 import java.util.List;
@@ -11,17 +11,17 @@ public final class InvestmentAnalysisLimits {
     private InvestmentAnalysisLimits() {
     }
 
-    public static List<InvestmentAnalysisResponse.ValuationPoint> applyValuationYearLimit(
-            List<InvestmentAnalysisResponse.ValuationPoint> points,
+    public static List<InvestmentAnalysisOutput.ValuationPoint> applyValuationYearLimit(
+            List<InvestmentAnalysisOutput.ValuationPoint> points,
             Integer annualLimit,
-            Comparator<InvestmentAnalysisResponse.ValuationPoint> valuationAsc
+            Comparator<InvestmentAnalysisOutput.ValuationPoint> valuationAsc
     ) {
         long limit = InvestmentAnalysisNumberUtils.normalizeLimit(annualLimit);
         if (limit == Long.MAX_VALUE) {
             return points;
         }
         Set<Integer> years = points.stream()
-                .map(InvestmentAnalysisResponse.ValuationPoint::year)
+                .map(InvestmentAnalysisOutput.ValuationPoint::year)
                 .filter(Objects::nonNull)
                 .sorted(Comparator.reverseOrder())
                 .limit(limit)
@@ -32,8 +32,8 @@ public final class InvestmentAnalysisLimits {
                 .toList();
     }
 
-    public static List<InvestmentAnalysisResponse.DividendPoint> applyDividendYearLimit(
-            List<InvestmentAnalysisResponse.DividendPoint> points,
+    public static List<InvestmentAnalysisOutput.DividendPoint> applyDividendYearLimit(
+            List<InvestmentAnalysisOutput.DividendPoint> points,
             Integer annualLimit
     ) {
         long limit = InvestmentAnalysisNumberUtils.normalizeLimit(annualLimit);

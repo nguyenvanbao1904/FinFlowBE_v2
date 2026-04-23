@@ -1,12 +1,11 @@
-package com.finflow.backend.investment.portfolio.application.result;
+package com.finflow.backend.investment.portfolio.application.dto;
 
 import java.util.List;
 
 /**
- * Application-layer result for portfolio health computation.
- * Framework-free; mapped to HTTP response by the web adapter (controller).
+ * Application-layer output for portfolio health computation.
  */
-public record PortfolioHealthResult(
+public record PortfolioHealthOutput(
         int latestYear,
         int latestQuarter,
         CurrentSnapshot current,

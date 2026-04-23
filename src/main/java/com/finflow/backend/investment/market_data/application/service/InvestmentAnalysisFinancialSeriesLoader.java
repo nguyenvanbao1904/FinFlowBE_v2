@@ -1,7 +1,7 @@
 package com.finflow.backend.investment.market_data.application.service;
 
 import com.finflow.backend.investment.market_data.domain.entity.*;
-import com.finflow.backend.investment.market_data.presentation.response.InvestmentAnalysisResponse;
+import com.finflow.backend.investment.market_data.application.dto.InvestmentAnalysisOutput;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -14,7 +14,7 @@ public class InvestmentAnalysisFinancialSeriesLoader {
     private final MarketDataReadService readService;
     private final InvestmentFinancialSeriesBuilder financialSeriesBuilder;
 
-    public InvestmentAnalysisResponse.FinancialSeries build(
+    public InvestmentAnalysisOutput.FinancialSeries build(
             String companyId,
             String companyType,
             List<FinancialIndicator> indicators,

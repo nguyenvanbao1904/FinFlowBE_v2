@@ -1,5 +1,7 @@
 package com.finflow.backend.investment.portfolio.infrastructure;
 
+import com.finflow.backend.common.exception.AppException;
+import com.finflow.backend.investment.portfolio.exception.PortfolioErrorCode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -7,7 +9,6 @@ import org.springframework.web.client.RestClient;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -51,28 +52,6 @@ public class VpsMarketPriceClient {
         return result;
     }
 
-    /**
-     * Gọi VPS trực tiếp (không dùng cache) — dùng cho job chốt NAV cuối ngày.
-     */
-    public Optional<MarketPriceQuote> tryFetchCloseFresh(String symbol) {
-        if (symbol == null || symbol.isBlank()) {
-            return Optional.empty();
-        }
-        try {
-            VpsTicker[] tickers = restClient.get()
-                    .uri("/getliststockdata/{symbol}", symbol.trim().toUpperCase())
-                    .retrieve()
-                    .body(VpsTicker[].class);
-            if (tickers == null || tickers.length == 0) {
-                return Optional.empty();
-            }
-            return Optional.of(normalize(tickers[0]));
-        } catch (Exception e) {
-            log.debug("VPS fresh fetch failed for {}: {}", symbol, e.getMessage());
-            return Optional.empty();
-        }
-    }
-
     private MarketPriceQuote getClosePrice(String symbol) {
         CachedPrice cached = cache.get(symbol);
         if (cached != null && !cached.isExpired()) {
@@ -85,7 +64,7 @@ public class VpsMarketPriceClient {
                 .body(VpsTicker[].class);
 
         if (tickers == null || tickers.length == 0) {
-            throw new IllegalStateException("Empty VPS response for " + symbol);
+            throw new AppException(PortfolioErrorCode.MARKET_PRICE_EMPTY_RESPONSE);
         }
 
         MarketPriceQuote quote = normalize(tickers[0]);
@@ -106,10 +85,10 @@ public class VpsMarketPriceClient {
                 // closePrice nhỏ thì hiểu là nghìn VND
                 return new MarketPriceQuote(close * 1000, PriceSource.CLOSE);
             } catch (NumberFormatException ignored) {
-                throw new IllegalStateException("Cannot parse closePrice=" + ticker.closePrice());
+                throw new AppException(PortfolioErrorCode.MARKET_PRICE_PARSE_FAILED);
             }
         }
-        throw new IllegalStateException("Missing closePrice in VPS payload");
+        throw new AppException(PortfolioErrorCode.MARKET_PRICE_MISSING);
     }
 
     // --- Inner types ---

@@ -1,6 +1,5 @@
 package com.finflow.backend.investment.market_data.application.service;
 
-import com.finflow.backend.investment.market_data.domain.entity.CompanyDividend;
 import com.finflow.backend.investment.market_data.domain.entity.FinancialIndicator;
 import com.finflow.backend.investment.market_data.domain.entity.BankIncomeStatement;
 import com.finflow.backend.investment.market_data.domain.entity.NonBankIncomeStatement;
@@ -10,8 +9,6 @@ import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
-import java.util.function.BiFunction;
 
 public final class InvestmentFinancialUtils {
     private InvestmentFinancialUtils() {
@@ -248,51 +245,4 @@ public final class InvestmentFinancialUtils {
                 .sum();
     }
 
-    /**
-     * CP lưu hành tuyệt đối tại {@code day}: CPLH tại kỳ báo cáo mới nhất ≤ day × hệ số cổ tức cổ phiếu
-     * có ngày hiệu lực trong (quarterEnd của kỳ đó, day] — ưu tiên {@code exrightDate}, fallback {@code recordDate}.
-     */
-    static Double absoluteSharesAsOf(
-            FinancialIndicator latestAsOfDay,
-            LocalDate day,
-            List<CompanyDividend> stockDividendsSortedAsc,
-            BiFunction<String, String, Optional<Double>> parseStockMultiplier
-    ) {
-        if (latestAsOfDay == null || latestAsOfDay.getCplh() == null) {
-            return null;
-        }
-        LocalDate anchor = quarterEnd(latestAsOfDay);
-        double base = absoluteSharesFromCplh(latestAsOfDay.getCplh().doubleValue());
-        double mult = cumulativeStockMultiplier(anchor, day, stockDividendsSortedAsc, parseStockMultiplier);
-        return base * mult;
-    }
-
-    static double cumulativeStockMultiplier(
-            LocalDate anchorQuarterEndInclusive,
-            LocalDate dayInclusive,
-            List<CompanyDividend> stockDividendsSortedAsc,
-            BiFunction<String, String, Optional<Double>> parseStockMultiplier
-    ) {
-        if (stockDividendsSortedAsc == null || stockDividendsSortedAsc.isEmpty()) {
-            return 1.0;
-        }
-        double m = 1.0;
-        for (CompanyDividend div : stockDividendsSortedAsc) {
-            LocalDate eff = div.getExrightDate() != null ? div.getExrightDate() : div.getRecordDate();
-            if (eff == null) {
-                continue;
-            }
-            if (!eff.isAfter(anchorQuarterEndInclusive) || eff.isAfter(dayInclusive)) {
-                continue;
-            }
-            Optional<Double> factor = parseStockMultiplier.apply(div.getRatio(), div.getEventTitle());
-            if (factor.isPresent()) {
-                double f = factor.get();
-                if (f > 0 && Double.isFinite(f)) {
-                    m *= f;
-                }
-            }
-        }
-        return m;
-    }
 }

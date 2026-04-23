@@ -2,6 +2,9 @@ package com.finflow.backend.investment.market_data.application.usecase;
 
 import com.finflow.backend.common.exception.AppException;
 import com.finflow.backend.investment.market_data.application.port.in.GetDailyValuationSeriesPort;
+import com.finflow.backend.investment.market_data.application.port.out.FetchHistoricalPricePort;
+import com.finflow.backend.investment.market_data.application.model.StockDailyClose;
+import com.finflow.backend.investment.market_data.application.query.GetDailyValuationSeriesQuery;
 import com.finflow.backend.investment.market_data.application.service.MarketDataReadService;
 import com.finflow.backend.investment.market_data.application.service.InvestmentFinancialUtils;
 import com.finflow.backend.investment.market_data.domain.entity.Company;
@@ -9,9 +12,8 @@ import com.finflow.backend.investment.market_data.domain.entity.BankIncomeStatem
 import com.finflow.backend.investment.market_data.domain.entity.FinancialIndicator;
 import com.finflow.backend.investment.market_data.domain.entity.NonBankIncomeStatement;
 import com.finflow.backend.investment.market_data.exception.MarketDataErrorCode;
-import com.finflow.backend.investment.market_data.presentation.response.InvestmentAnalysisResponse;
-import com.finflow.backend.investment.portfolio.infrastructure.VndirectFinfoPriceClient;
-import com.finflow.backend.investment.portfolio.infrastructure.VndirectFinfoPriceClient.StockDailyClose;
+import com.finflow.backend.investment.market_data.application.dto.InvestmentAnalysisOutput;
+import com.finflow.backend.investment.market_data.application.dto.InvestmentDailyValuationPointsOutput;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,18 +39,14 @@ public class GetDailyValuationSeriesUseCase implements GetDailyValuationSeriesPo
     private static final LocalDate DAILY_VALUATION_MIN_INCLUSIVE = LocalDate.of(2010, 1, 1);
 
     private final MarketDataReadService readService;
-    private final VndirectFinfoPriceClient vndirectFinfoPriceClient;
+    private final FetchHistoricalPricePort fetchHistoricalPricePort;
 
     @Transactional(readOnly = true)
     @Override
-    public List<InvestmentAnalysisResponse.DailyValuationPoint> execute(
-            String rawSymbol,
-            String startDateRaw,
-            String endDateRaw
-    ) {
-        Company company = readService.resolveCompany(rawSymbol);
-        LocalDate parsedStart = readService.parseIsoDate(startDateRaw, "startDate");
-        LocalDate parsedEnd = readService.parseIsoDate(endDateRaw, "endDate");
+    public InvestmentDailyValuationPointsOutput execute(GetDailyValuationSeriesQuery request) {
+        Company company = readService.resolveCompany(request.symbol());
+        LocalDate parsedStart = readService.parseIsoDate(request.startDate(), "startDate");
+        LocalDate parsedEnd = readService.parseIsoDate(request.endDate(), "endDate");
         LocalDate rangeStart = parsedStart.isAfter(parsedEnd) ? parsedEnd : parsedStart;
         LocalDate rangeEnd = parsedStart.isAfter(parsedEnd) ? parsedStart : parsedEnd;
         if (rangeStart.isBefore(DAILY_VALUATION_MIN_INCLUSIVE)) {
@@ -65,12 +63,12 @@ public class GetDailyValuationSeriesUseCase implements GetDailyValuationSeriesPo
         boolean isBank = "BANK".equalsIgnoreCase(Optional.ofNullable(company.getCompanyType()).orElse("").trim());
         List<BankIncomeStatement> bankIncomesAsc = isBank ? readService.loadAllBankIncomesAsc(company.getId()) : List.of();
 
-        List<StockDailyClose> finfoRows = vndirectFinfoPriceClient.listStockClosesInRange(company.getId(), rangeStart, rangeEnd);
+        List<StockDailyClose> finfoRows = fetchHistoricalPricePort.listStockClosesInRange(company.getId(), rangeStart, rangeEnd);
         TreeMap<LocalDate, BigDecimal> priceByDay = new TreeMap<>();
         for (StockDailyClose row : finfoRows) {
             priceByDay.put(row.date(), row.closeVnd());
         }
-        List<InvestmentAnalysisResponse.DailyValuationPoint> out = new ArrayList<>();
+        List<InvestmentAnalysisOutput.DailyValuationPoint> out = new ArrayList<>();
         for (LocalDate d : priceByDay.keySet()) {
             BigDecimal pxBd = priceByDay.get(d);
             if (pxBd == null) {
@@ -103,14 +101,14 @@ public class GetDailyValuationSeriesUseCase implements GetDailyValuationSeriesPo
                 }
             }
 
-            out.add(new InvestmentAnalysisResponse.DailyValuationPoint(
+            out.add(new InvestmentAnalysisOutput.DailyValuationPoint(
                     d.toString(),
                     pe == null ? null : round4(pe),
                     pb == null ? null : round4(pb),
                     ps == null ? null : round4(ps)
             ));
         }
-        return out;
+        return new InvestmentDailyValuationPointsOutput(out);
     }
 
     private static Double round4(double v) {

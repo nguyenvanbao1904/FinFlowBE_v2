@@ -4,9 +4,9 @@ import com.finflow.backend.investment.market_data.domain.entity.Company;
 import com.finflow.backend.investment.market_data.domain.entity.FinancialIndicator;
 import com.finflow.backend.investment.market_data.domain.entity.BankIncomeStatement;
 import com.finflow.backend.investment.market_data.domain.entity.NonBankIncomeStatement;
-import com.finflow.backend.investment.market_data.presentation.response.InvestmentAnalysisResponse;
-import com.finflow.backend.investment.portfolio.infrastructure.VpsMarketPriceClient;
-import com.finflow.backend.investment.portfolio.infrastructure.VpsMarketPriceClient.MarketPriceQuote;
+import com.finflow.backend.investment.portfolio.api.MarketPriceQuote;
+import com.finflow.backend.investment.portfolio.api.MarketPriceApi;
+import com.finflow.backend.investment.market_data.application.dto.InvestmentAnalysisOutput;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -27,10 +27,10 @@ import static com.finflow.backend.investment.market_data.application.service.Inv
 @RequiredArgsConstructor
 public class InvestmentAnalysisOverviewBuilder {
 
-    private final VpsMarketPriceClient vpsMarketPriceClient;
+    private final MarketPriceApi marketPriceApi;
     private final MarketDataReadService readService;
 
-    public InvestmentAnalysisResponse.Overview build(Company company, List<FinancialIndicator> indicators) {
+    public InvestmentAnalysisOutput.Overview build(Company company, List<FinancialIndicator> indicators) {
         FinancialIndicator latest = selectOverviewIndicator(indicators);
         String industryLabel = company.getIndustryNode() == null || company.getIndustryNode().getNameVi() == null
                 ? ""
@@ -43,7 +43,7 @@ public class InvestmentAnalysisOverviewBuilder {
 
         LiveMultiples live = computeLiveMultiples(company, epsTtm, bvps, cplhRaw);
 
-        return new InvestmentAnalysisResponse.Overview(
+        return new InvestmentAnalysisOutput.Overview(
                 company.getId(),
                 company.getCompanyName(),
                 company.getExchange(),
@@ -80,7 +80,7 @@ public class InvestmentAnalysisOverviewBuilder {
             Double cplhRaw
     ) {
         try {
-            Map<String, MarketPriceQuote> quotes = vpsMarketPriceClient.getClosePrices(List.of(company.getId()));
+            Map<String, MarketPriceQuote> quotes = marketPriceApi.getClosePrices(List.of(company.getId()));
             MarketPriceQuote quote = quotes.get(company.getId());
             if (quote == null) {
                 return LiveMultiples.empty();

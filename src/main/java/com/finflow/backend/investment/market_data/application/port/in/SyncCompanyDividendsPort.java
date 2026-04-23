@@ -1,10 +1,7 @@
 package com.finflow.backend.investment.market_data.application.port.in;
-
-import com.finflow.backend.investment.market_data.presentation.request.CompanyDividendRequestDTO;
-
-import java.util.List;
+import com.finflow.backend.investment.market_data.application.command.SyncCompanyDividendsCommand;
 
 public interface SyncCompanyDividendsPort {
 
-    void execute(String companyId, List<CompanyDividendRequestDTO> request);
+    void execute(SyncCompanyDividendsCommand command);
 }

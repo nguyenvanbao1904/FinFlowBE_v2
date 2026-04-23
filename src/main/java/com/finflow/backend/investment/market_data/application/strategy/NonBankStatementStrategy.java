@@ -4,7 +4,7 @@ import com.finflow.backend.investment.market_data.application.mapper.InvestmentF
 import com.finflow.backend.investment.market_data.domain.entity.FinancialIndicator;
 import com.finflow.backend.investment.market_data.domain.entity.NonBankBalanceSheet;
 import com.finflow.backend.investment.market_data.domain.entity.NonBankIncomeStatement;
-import com.finflow.backend.investment.market_data.presentation.response.InvestmentAnalysisResponse;
+import com.finflow.backend.investment.market_data.application.dto.InvestmentAnalysisOutput;
 
 import java.util.*;
 
@@ -24,7 +24,7 @@ public class NonBankStatementStrategy {
         this.pointMapper = pointMapper;
     }
 
-    public List<InvestmentAnalysisResponse.NonBankFinancialPoint> buildPoints(
+    public List<InvestmentAnalysisOutput.NonBankFinancialPoint> buildPoints(
             List<NonBankBalanceSheet> balances,
             List<NonBankIncomeStatement> incomes,
             List<FinancialIndicator> indicators,
@@ -53,7 +53,7 @@ public class NonBankStatementStrategy {
         allYears.addAll(incGrouped.keySet());
         List<Integer> years = allYears.stream().sorted().toList();
 
-        List<InvestmentAnalysisResponse.NonBankFinancialPoint> points = new ArrayList<>();
+        List<InvestmentAnalysisOutput.NonBankFinancialPoint> points = new ArrayList<>();
         for (Integer year : years) {
             NonBankBalanceSheet b = balByYear.get(year);
             FinancialIndicator f = indByYear.get(year);
@@ -114,37 +114,37 @@ public class NonBankStatementStrategy {
         return applyFinancialLimitsNonBank(points, annualLimit, quarterlyLimit);
     }
 
-    private List<InvestmentAnalysisResponse.NonBankFinancialPoint> applyFinancialLimitsNonBank(
-            List<InvestmentAnalysisResponse.NonBankFinancialPoint> points,
+    private List<InvestmentAnalysisOutput.NonBankFinancialPoint> applyFinancialLimitsNonBank(
+            List<InvestmentAnalysisOutput.NonBankFinancialPoint> points,
             Integer annualLimit,
             Integer quarterlyLimit
     ) {
-        List<InvestmentAnalysisResponse.NonBankFinancialPoint> annual = points.stream()
+        List<InvestmentAnalysisOutput.NonBankFinancialPoint> annual = points.stream()
                 .filter(p -> p.quarter() != null && p.quarter() == 0)
-                .sorted(Comparator.comparing(InvestmentAnalysisResponse.NonBankFinancialPoint::year, Comparator.reverseOrder()))
+                .sorted(Comparator.comparing(InvestmentAnalysisOutput.NonBankFinancialPoint::year, Comparator.reverseOrder()))
                 .limit(normalizeLimit(annualLimit))
                 .toList();
 
-        List<InvestmentAnalysisResponse.NonBankFinancialPoint> quarterly = points.stream()
+        List<InvestmentAnalysisOutput.NonBankFinancialPoint> quarterly = points.stream()
                 .filter(p -> p.quarter() != null && p.quarter() > 0)
                 .sorted(
-                        Comparator.comparing(InvestmentAnalysisResponse.NonBankFinancialPoint::year, Comparator.reverseOrder())
-                                .thenComparing(InvestmentAnalysisResponse.NonBankFinancialPoint::quarter, Comparator.reverseOrder())
+                        Comparator.comparing(InvestmentAnalysisOutput.NonBankFinancialPoint::year, Comparator.reverseOrder())
+                                .thenComparing(InvestmentAnalysisOutput.NonBankFinancialPoint::quarter, Comparator.reverseOrder())
                 )
                 .limit(normalizeLimit(quarterlyLimit))
                 .toList();
 
-        List<InvestmentAnalysisResponse.NonBankFinancialPoint> merged = new ArrayList<>(annual.size() + quarterly.size());
+        List<InvestmentAnalysisOutput.NonBankFinancialPoint> merged = new ArrayList<>(annual.size() + quarterly.size());
         merged.addAll(annual);
         merged.addAll(quarterly);
         merged.sort(
-                Comparator.comparing(InvestmentAnalysisResponse.NonBankFinancialPoint::year, Comparator.nullsLast(Comparator.naturalOrder()))
-                        .thenComparing(InvestmentAnalysisResponse.NonBankFinancialPoint::quarter, Comparator.nullsLast(Comparator.naturalOrder()))
+                Comparator.comparing(InvestmentAnalysisOutput.NonBankFinancialPoint::year, Comparator.nullsLast(Comparator.naturalOrder()))
+                        .thenComparing(InvestmentAnalysisOutput.NonBankFinancialPoint::quarter, Comparator.nullsLast(Comparator.naturalOrder()))
         );
         return merged;
     }
 
-    private InvestmentAnalysisResponse.NonBankFinancialPoint makeNonBankPoint(
+    private InvestmentAnalysisOutput.NonBankFinancialPoint makeNonBankPoint(
             Integer year,
             Integer quarter,
             NonBankBalanceSheet b,

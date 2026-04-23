@@ -1,8 +1,9 @@
 package com.finflow.backend.investment.market_data.application.port.in;
 
-import com.finflow.backend.investment.market_data.presentation.response.InvestmentAnalysisResponse;
+import com.finflow.backend.investment.market_data.application.dto.InvestmentFinancialSeriesOutput;
+import com.finflow.backend.investment.market_data.application.query.GetInvestmentFinancialSeriesQuery;
 
 public interface GetInvestmentFinancialSeriesPort {
 
-    InvestmentAnalysisResponse.FinancialSeries execute(String symbol, Integer annualLimit, Integer quarterlyLimit);
+    InvestmentFinancialSeriesOutput execute(GetInvestmentFinancialSeriesQuery query);
 }

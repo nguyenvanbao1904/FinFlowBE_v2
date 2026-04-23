@@ -1,14 +1,5 @@
 package com.finflow.backend.investment.market_data.presentation.controller;
 
-import com.finflow.backend.investment.market_data.application.port.in.GetCompanyIndustriesPort;
-import com.finflow.backend.investment.market_data.application.port.in.GetCompanyMarketDataPort;
-import com.finflow.backend.investment.market_data.application.port.in.GetDailyValuationSeriesPort;
-import com.finflow.backend.investment.market_data.application.port.in.GetIndustryNodesPort;
-import com.finflow.backend.investment.market_data.application.port.in.GetInvestmentDividendsPort;
-import com.finflow.backend.investment.market_data.application.port.in.GetInvestmentFinancialSeriesPort;
-import com.finflow.backend.investment.market_data.application.port.in.GetInvestmentFullAnalysisPort;
-import com.finflow.backend.investment.market_data.application.port.in.GetInvestmentValuationsPort;
-import com.finflow.backend.investment.market_data.application.port.in.SuggestCompaniesPort;
 import com.finflow.backend.investment.market_data.presentation.response.CompanyIndustryResponse;
 import com.finflow.backend.investment.market_data.presentation.response.CompanyMarketDataResponse;
 import com.finflow.backend.investment.market_data.presentation.response.CompanySuggestionResponse;
@@ -33,15 +24,7 @@ import java.util.List;
 @Tag(name = "Internal Investment Query", description = "Internal market-data query APIs for AI orchestration")
 public class InternalInvestmentQueryController {
 
-    private final GetInvestmentFullAnalysisPort fullAnalysisPort;
-    private final GetInvestmentFinancialSeriesPort financialSeriesPort;
-    private final GetInvestmentValuationsPort valuationsPort;
-    private final GetDailyValuationSeriesPort dailyValuationSeriesPort;
-    private final GetInvestmentDividendsPort dividendsPort;
-    private final GetCompanyIndustriesPort getCompanyIndustriesPort;
-    private final GetCompanyMarketDataPort getCompanyMarketDataPort;
-    private final GetIndustryNodesPort getIndustryNodesPort;
-    private final SuggestCompaniesPort suggestCompaniesPort;
+    private final InvestmentQueryEndpointDelegate queryDelegate;
 
     @Operation(summary = "Suggest companies by ticker prefix (fallback by companyName)")
     @GetMapping("/companies/suggest")
@@ -49,7 +32,7 @@ public class InternalInvestmentQueryController {
             @RequestParam(name = "q") String q,
             @RequestParam(required = false) Integer limit
     ) {
-        return ResponseEntity.ok(suggestCompaniesPort.execute(q, limit));
+        return ResponseEntity.ok(queryDelegate.suggestCompanies(q, limit));
     }
 
     @Operation(summary = "Get industry labels for a list of company symbols")
@@ -57,7 +40,7 @@ public class InternalInvestmentQueryController {
     public ResponseEntity<List<CompanyIndustryResponse>> getCompanyIndustries(
             @RequestParam(name = "symbols") List<String> symbols
     ) {
-        return ResponseEntity.ok(getCompanyIndustriesPort.execute(symbols));
+        return ResponseEntity.ok(queryDelegate.getCompanyIndustries(symbols));
     }
 
     @Operation(summary = "Get raw market-data sections for one company (AI/function-calling friendly)")
@@ -69,13 +52,13 @@ public class InternalInvestmentQueryController {
             @RequestParam(required = false) Integer annualLimit,
             @RequestParam(required = false) Integer quarterlyLimit
     ) {
-        return ResponseEntity.ok(getCompanyMarketDataPort.execute(symbol, include, annualLimit, quarterlyLimit));
+        return ResponseEntity.ok(queryDelegate.getCompanyMarketData(symbol, include, annualLimit, quarterlyLimit));
     }
 
     @Operation(summary = "Get industry-node list (raw tree nodes)")
     @GetMapping("/industries/nodes")
     public ResponseEntity<List<IndustryNodeReadResponse>> getIndustryNodes() {
-        return ResponseEntity.ok(getIndustryNodesPort.execute());
+        return ResponseEntity.ok(queryDelegate.getIndustryNodes());
     }
 
     @Operation(summary = "Get stock analysis data for one company symbol")
@@ -85,7 +68,7 @@ public class InternalInvestmentQueryController {
             @RequestParam(required = false) Integer annualLimit,
             @RequestParam(required = false) Integer quarterlyLimit
     ) {
-        return ResponseEntity.ok(fullAnalysisPort.execute(symbol, annualLimit, quarterlyLimit));
+        return ResponseEntity.ok(queryDelegate.getCompanyAnalysis(symbol, annualLimit, quarterlyLimit));
     }
 
     @Operation(summary = "Get financial chart series only")
@@ -95,7 +78,7 @@ public class InternalInvestmentQueryController {
             @RequestParam(required = false) Integer annualLimit,
             @RequestParam(required = false) Integer quarterlyLimit
     ) {
-        return ResponseEntity.ok(financialSeriesPort.execute(symbol, annualLimit, quarterlyLimit));
+        return ResponseEntity.ok(queryDelegate.getCompanyFinancialSeries(symbol, annualLimit, quarterlyLimit));
     }
 
     @Operation(summary = "Get valuation chart series only")
@@ -107,7 +90,7 @@ public class InternalInvestmentQueryController {
             @RequestParam(required = false) String endDate,
             @RequestParam(required = false) Boolean showQuarterly
     ) {
-        return ResponseEntity.ok(valuationsPort.execute(symbol, annualLimit, startDate, endDate, showQuarterly));
+        return ResponseEntity.ok(queryDelegate.getCompanyValuations(symbol, annualLimit, startDate, endDate, showQuarterly));
     }
 
     @Operation(summary = "Daily P/E–P/B–P/S series")
@@ -117,7 +100,7 @@ public class InternalInvestmentQueryController {
             @RequestParam String startDate,
             @RequestParam String endDate
     ) {
-        return ResponseEntity.ok(dailyValuationSeriesPort.execute(symbol, startDate, endDate));
+        return ResponseEntity.ok(queryDelegate.getCompanyDailyValuations(symbol, startDate, endDate));
     }
 
     @Operation(summary = "Get dividend chart series only")
@@ -126,6 +109,6 @@ public class InternalInvestmentQueryController {
             @PathVariable String symbol,
             @RequestParam(required = false) Integer annualLimit
     ) {
-        return ResponseEntity.ok(dividendsPort.execute(symbol, annualLimit));
+        return ResponseEntity.ok(queryDelegate.getCompanyDividends(symbol, annualLimit));
     }
 }

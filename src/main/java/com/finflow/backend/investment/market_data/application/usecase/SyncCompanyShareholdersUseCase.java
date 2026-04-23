@@ -1,10 +1,11 @@
 package com.finflow.backend.investment.market_data.application.usecase;
 
 import com.finflow.backend.investment.market_data.application.mapper.InvestmentDataMapper;
+import com.finflow.backend.investment.market_data.application.command.SyncCompanyShareholdersCommand;
 import com.finflow.backend.investment.market_data.application.port.in.SyncCompanyShareholdersPort;
 import com.finflow.backend.investment.market_data.domain.entity.CompanyShareholder;
 import com.finflow.backend.investment.market_data.domain.repository.CompanyShareholderRepository;
-import com.finflow.backend.investment.market_data.presentation.request.CompanyShareholderRequestDTO;
+import com.finflow.backend.investment.market_data.application.dto.CompanyShareholderRequestInput;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -22,13 +23,16 @@ public class SyncCompanyShareholdersUseCase implements SyncCompanyShareholdersPo
 
     @Transactional
     @Override
-    public void execute(String companyId, List<CompanyShareholderRequestDTO> requests) {
+    public void execute(SyncCompanyShareholdersCommand command) {
+        String companyId = command.companyId();
+        List<CompanyShareholderRequestInput> requests = command.request();
         log.info("Syncing {} shareholders for company {}", requests.size(), companyId);
         
         repository.deleteByCompanyId(companyId);
         
         List<CompanyShareholder> entities = requests.stream()
                 .map(mapper::toEntity)
+                .peek(entity -> entity.setCompanyId(companyId))
                 .toList();
 
         repository.saveAll(entities);

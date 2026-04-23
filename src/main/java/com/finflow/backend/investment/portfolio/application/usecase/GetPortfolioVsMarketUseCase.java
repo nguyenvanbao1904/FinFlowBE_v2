@@ -1,11 +1,12 @@
 package com.finflow.backend.investment.portfolio.application.usecase;
 
 import com.finflow.backend.investment.portfolio.application.port.in.GetPortfolioVsMarketPort;
+import com.finflow.backend.investment.portfolio.application.query.GetPortfolioVsMarketQuery;
 
-import com.finflow.backend.investment.portfolio.application.result.PortfolioHealthResult;
+import com.finflow.backend.investment.portfolio.application.dto.PortfolioMarketBenchmarkOutput;
+import com.finflow.backend.investment.portfolio.api.StockRatiosApi;
+import com.finflow.backend.investment.portfolio.application.dto.PortfolioHealthOutput;
 import com.finflow.backend.investment.portfolio.application.service.PortfolioHealthComputationService;
-import com.finflow.backend.investment.portfolio.infrastructure.VndirectRatiosClient;
-import com.finflow.backend.investment.portfolio.presentation.response.PortfolioMarketBenchmarkResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,32 +27,35 @@ public class GetPortfolioVsMarketUseCase implements GetPortfolioVsMarketPort {
     private static final String ROA_CODE = "82006";
 
     private final PortfolioHealthComputationService portfolioHealthComputationService;
-    private final VndirectRatiosClient vndirectRatiosClient;
+    private final StockRatiosApi stockRatiosApi;
 
     @Transactional(readOnly = true)
     @Override
-    public PortfolioMarketBenchmarkResponse execute(String userId, UUID portfolioId, String benchmarkCode) {
+    public PortfolioMarketBenchmarkOutput execute(GetPortfolioVsMarketQuery request) {
+        String userId = request.userId();
+        UUID portfolioId = request.portfolioId();
+        String benchmarkCode = request.benchmarkCode();
         String code = benchmarkCode == null || benchmarkCode.isBlank()
                 ? "VNINDEX"
                 : benchmarkCode.trim().toUpperCase();
 
-        PortfolioHealthResult health = portfolioHealthComputationService.compute(userId, portfolioId, 20);
-        Map<String, Double> benchmark = vndirectRatiosClient.getLatestRatios(
+        PortfolioHealthOutput health = portfolioHealthComputationService.compute(userId, portfolioId, 20);
+        Map<String, Double> benchmark = stockRatiosApi.getLatestRatios(
                 code, List.of(PE_CODE, PB_CODE, PS_CODE, ROE_CODE, ROA_CODE));
 
         Double portfolioPe = health.current().pe();
         Double portfolioPb = health.current().pb();
         Double portfolioPs = health.current().ps();
 
-        PortfolioHealthResult.HistoryPoint latestHistory = health.history().stream()
-                .max(Comparator.comparingInt(PortfolioHealthResult.HistoryPoint::year)
-                        .thenComparingInt(PortfolioHealthResult.HistoryPoint::quarter))
+        PortfolioHealthOutput.HistoryPoint latestHistory = health.history().stream()
+                .max(Comparator.comparingInt(PortfolioHealthOutput.HistoryPoint::year)
+                        .thenComparingInt(PortfolioHealthOutput.HistoryPoint::quarter))
                 .orElse(null);
 
         Double portfolioRoe = latestHistory != null ? latestHistory.roe() : null;
         Double portfolioRoa = latestHistory != null ? latestHistory.roa() : null;
 
-        return new PortfolioMarketBenchmarkResponse(
+        return new PortfolioMarketBenchmarkOutput(
                 code,
                 compare(portfolioPe, benchmark.get(PE_CODE)),
                 compare(portfolioPb, benchmark.get(PB_CODE)),
@@ -61,11 +65,11 @@ public class GetPortfolioVsMarketUseCase implements GetPortfolioVsMarketPort {
         );
     }
 
-    private PortfolioMarketBenchmarkResponse.MetricComparison compare(Double portfolio, Double benchmark) {
+    private PortfolioMarketBenchmarkOutput.MetricComparisonOutput compare(Double portfolio, Double benchmark) {
         Double deltaPct = null;
         if (portfolio != null && benchmark != null && benchmark != 0) {
             deltaPct = ((portfolio - benchmark) / Math.abs(benchmark)) * 100.0;
         }
-        return new PortfolioMarketBenchmarkResponse.MetricComparison(portfolio, benchmark, deltaPct);
+        return new PortfolioMarketBenchmarkOutput.MetricComparisonOutput(portfolio, benchmark, deltaPct);
     }
 }

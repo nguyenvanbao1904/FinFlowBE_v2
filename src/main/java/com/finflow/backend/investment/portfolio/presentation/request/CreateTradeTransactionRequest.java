@@ -1,7 +1,6 @@
 package com.finflow.backend.investment.portfolio.presentation.request;
 
-import com.finflow.backend.investment.portfolio.domain.entity.TradeType;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
@@ -12,8 +11,8 @@ import java.math.BigDecimal;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class CreateTradeTransactionRequest {
 
-    @NotNull(message = "TRADE_TYPE_REQUIRED")
-    TradeType tradeType;
+    @NotBlank(message = "TRADE_TYPE_REQUIRED")
+    String tradeType;
 
     // BUY/SELL/DIVIDEND
     String symbol;

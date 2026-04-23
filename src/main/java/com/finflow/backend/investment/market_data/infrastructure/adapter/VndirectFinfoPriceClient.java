@@ -1,4 +1,4 @@
-package com.finflow.backend.investment.portfolio.infrastructure;
+package com.finflow.backend.investment.market_data.infrastructure.adapter;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -17,14 +17,13 @@ import java.util.Optional;
 import java.util.TreeMap;
 
 /**
- * VNDirect Finfo v4: {@code stock_prices} (close VND) và {@code vnmarket_prices} (điểm index).
+ * VNDirect Finfo v4: {@code stock_prices} (close VND) and {@code vnmarket_prices} (index close).
  */
 @Slf4j
 @Component
 public class VndirectFinfoPriceClient {
 
     private static final String STOCK_URL = "https://api-finfo.vndirect.com.vn/v4/stock_prices";
-    private static final String MARKET_URL = "https://api-finfo.vndirect.com.vn/v4/vnmarket_prices";
     private static final int RANGE_PAGE_SIZE = 500;
 
     private final RestClient restClient = RestClient.builder().build();
@@ -32,20 +31,6 @@ public class VndirectFinfoPriceClient {
 
     public record StockDailyClose(LocalDate date, BigDecimal closeVnd) {}
 
-    /**
-     * Giá đóng cổ phiếu ngày {@code date} (VND), cùng quy ước normalize như VPS: &gt;1000 là VND đầy đủ, ngược lại ×1000.
-     */
-    public Optional<BigDecimal> getStockCloseVnd(String symbol, LocalDate date) {
-        String code = symbol == null ? "" : symbol.trim().toUpperCase();
-        if (code.isEmpty()) {
-            return Optional.empty();
-        }
-        return fetchClose(STOCK_URL, code, date, true);
-    }
-
-    /**
-     * Giá đóng cửa mỗi ngày trong {@code [start, end]} (Finfo), sort theo ngày tăng dần; gộp trùng ngày (lấy bản ghi đầu).
-     */
     public List<StockDailyClose> listStockClosesInRange(String symbol, LocalDate start, LocalDate end) {
         String code = symbol == null ? "" : symbol.trim().toUpperCase();
         if (code.isEmpty() || start == null || end == null || start.isAfter(end)) {
@@ -72,7 +57,7 @@ public class VndirectFinfoPriceClient {
                         .body(String.class);
                 chunk = parseStockClosesPage(body, true);
             } catch (Exception e) {
-                log.debug("Finfo range fetch failed {} page {}: {}", code, page, e.getMessage());
+                log.warn("Finfo range fetch failed {} page {}: {}", code, page, e.getMessage());
                 break;
             }
             if (chunk.isEmpty()) {
@@ -98,52 +83,6 @@ public class VndirectFinfoPriceClient {
                 .toList();
     }
 
-    /** Điểm đóng (close) của chỉ số, ví dụ VNINDEX — không scale như cổ phiếu. */
-    public Optional<BigDecimal> getMarketIndexClose(String indexCode, LocalDate date) {
-        String code = indexCode == null || indexCode.isBlank() ? "VNINDEX" : indexCode.trim().toUpperCase();
-        return fetchClose(MARKET_URL, code, date, false);
-    }
-
-    private Optional<BigDecimal> fetchClose(String baseUrl, String code, LocalDate date, boolean stockScaling) {
-        String q = "code:%s~date:gte:%s~date:lte:%s".formatted(code, date, date);
-        String uri = UriComponentsBuilder.fromUriString(baseUrl)
-                .queryParam("sort", "date")
-                .queryParam("q", q)
-                .queryParam("size", "20")
-                .build(true)
-                .toUriString();
-        try {
-            String body = restClient.get()
-                    .uri(uri)
-                    .header("User-Agent", "Mozilla/5.0")
-                    .header("Accept", "application/json")
-                    .retrieve()
-                    .body(String.class);
-            return parseClose(body, stockScaling);
-        } catch (Exception e) {
-            log.debug("Finfo price fetch failed {} {}: {}", code, date, e.getMessage());
-            return Optional.empty();
-        }
-    }
-
-    private Optional<BigDecimal> parseClose(String raw, boolean stockScaling) {
-        if (raw == null || raw.isBlank()) {
-            return Optional.empty();
-        }
-        try {
-            JsonNode root = mapper.readTree(raw);
-            JsonNode data = root.isArray() ? root : root.get("data");
-            if (data == null || !data.isArray() || data.isEmpty()) {
-                return Optional.empty();
-            }
-            JsonNode row = data.get(0);
-            return normalizeStockClose(row, stockScaling);
-        } catch (Exception e) {
-            log.debug("Cannot parse Finfo price payload: {}", e.getMessage());
-            return Optional.empty();
-        }
-    }
-
     private List<StockDailyClose> parseStockClosesPage(String raw, boolean stockScaling) {
         List<StockDailyClose> out = new ArrayList<>();
         if (raw == null || raw.isBlank()) {
@@ -163,7 +102,7 @@ public class VndirectFinfoPriceClient {
                 }
             }
         } catch (Exception e) {
-            log.debug("Cannot parse Finfo range payload: {}", e.getMessage());
+            log.warn("Cannot parse Finfo range payload: {}", e.getMessage());
         }
         return out;
     }

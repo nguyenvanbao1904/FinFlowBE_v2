@@ -32,14 +32,6 @@ public interface FinancialIndicatorRepository extends JpaRepository<FinancialInd
             int endQuarter
     );
 
-    /**
-     * Batch: tải N quý gần nhất cho nhiều mã cùng lúc — dùng cho Portfolio Health.
-     * Kết quả sort mới nhất trước để Pageable(quarters) cắt đúng.
-     */
-    List<FinancialIndicator> findByCompanyIdInOrderByYearDescQuarterDesc(
-            Collection<String> companyIds, Pageable pageable
-    );
-
     /** Batch full list để backend tự limit theo từng symbol (tránh lệch do global Pageable). */
     List<FinancialIndicator> findByCompanyIdInOrderByCompanyIdAscYearDescQuarterDesc(
             Collection<String> companyIds

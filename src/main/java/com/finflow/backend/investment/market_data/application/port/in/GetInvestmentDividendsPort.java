@@ -1,10 +1,9 @@
 package com.finflow.backend.investment.market_data.application.port.in;
 
-import com.finflow.backend.investment.market_data.presentation.response.InvestmentAnalysisResponse;
-
-import java.util.List;
+import com.finflow.backend.investment.market_data.application.dto.InvestmentDividendPointsOutput;
+import com.finflow.backend.investment.market_data.application.query.GetInvestmentDividendsQuery;
 
 public interface GetInvestmentDividendsPort {
 
-    List<InvestmentAnalysisResponse.DividendPoint> execute(String symbol, Integer annualLimit);
+    InvestmentDividendPointsOutput execute(GetInvestmentDividendsQuery query);
 }

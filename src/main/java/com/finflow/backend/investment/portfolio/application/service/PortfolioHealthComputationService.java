@@ -1,16 +1,16 @@
 package com.finflow.backend.investment.portfolio.application.service;
 
 import com.finflow.backend.common.exception.AppException;
-import com.finflow.backend.investment.portfolio.application.port.out.MarketIndicatorQueryPort;
-import com.finflow.backend.investment.portfolio.application.result.MarketIndicatorData;
-import com.finflow.backend.investment.portfolio.application.result.PortfolioHealthResult;
+import com.finflow.backend.investment.market_data.api.MarketIndicatorReadApi;
+import com.finflow.backend.investment.portfolio.api.MarketPriceApi;
+import com.finflow.backend.investment.portfolio.api.MarketPriceQuote;
+import com.finflow.backend.investment.market_data.api.MarketIndicatorData;
+import com.finflow.backend.investment.portfolio.application.dto.PortfolioHealthOutput;
 import com.finflow.backend.investment.portfolio.domain.entity.Portfolio;
 import com.finflow.backend.investment.portfolio.domain.entity.PortfolioAsset;
 import com.finflow.backend.investment.portfolio.domain.repository.PortfolioAssetRepository;
 import com.finflow.backend.investment.portfolio.domain.repository.PortfolioRepository;
 import com.finflow.backend.investment.portfolio.exception.PortfolioErrorCode;
-import com.finflow.backend.investment.portfolio.infrastructure.VpsMarketPriceClient;
-import com.finflow.backend.investment.portfolio.infrastructure.VpsMarketPriceClient.MarketPriceQuote;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -40,13 +40,13 @@ public class PortfolioHealthComputationService {
 
     private final PortfolioRepository portfolioRepository;
     private final PortfolioAssetRepository assetRepository;
-    private final MarketIndicatorQueryPort marketIndicatorQueryPort;
-    private final VpsMarketPriceClient vpsClient;
+    private final MarketIndicatorReadApi marketIndicatorReadApi;
+    private final MarketPriceApi marketPriceApi;
 
     /**
      * Loads portfolio data, prices, and indicators; returns aggregated health view.
      */
-    public PortfolioHealthResult compute(String userId, UUID portfolioId, int quartersLimit) {
+    public PortfolioHealthOutput compute(String userId, UUID portfolioId, int quartersLimit) {
         int safeQuartersLimit = Math.max(1, Math.min(quartersLimit, 40));
 
         Portfolio portfolio = portfolioRepository
@@ -59,9 +59,9 @@ public class PortfolioHealthComputationService {
         }
 
         List<String> symbols = assets.stream().map(PortfolioAsset::getSymbol).toList();
-        Map<String, MarketPriceQuote> closePrices = vpsClient.getClosePrices(symbols);
+        Map<String, MarketPriceQuote> closePrices = marketPriceApi.getClosePrices(symbols);
 
-        List<MarketIndicatorData> allIndicators = marketIndicatorQueryPort.findAllByCompanyIds(symbols);
+        List<MarketIndicatorData> allIndicators = marketIndicatorReadApi.findAllByCompanyIds(symbols);
 
         Map<String, List<MarketIndicatorData>> bySymbol = allIndicators.stream()
                 .collect(Collectors.groupingBy(
@@ -106,15 +106,15 @@ public class PortfolioHealthComputationService {
             marketWeight.put(a.getSymbol(), w);
         }
 
-        PortfolioHealthResult.CurrentSnapshot current =
+        PortfolioHealthOutput.CurrentSnapshot current =
                 buildCurrentSnapshot(assets, closePrices, bySymbol, marketWeight, costWeight, portfolio);
 
-        List<PortfolioHealthResult.HistoryPoint> history = buildHistory(assets, bySymbol, costWeight, safeQuartersLimit);
+        List<PortfolioHealthOutput.HistoryPoint> history = buildHistory(assets, bySymbol, costWeight, safeQuartersLimit);
 
-        return new PortfolioHealthResult(latestYear, latestQuarter, current, history);
+        return new PortfolioHealthOutput(latestYear, latestQuarter, current, history);
     }
 
-    private PortfolioHealthResult.CurrentSnapshot buildCurrentSnapshot(
+    private PortfolioHealthOutput.CurrentSnapshot buildCurrentSnapshot(
             List<PortfolioAsset> assets,
             Map<String, MarketPriceQuote> closePrices,
             Map<String, List<MarketIndicatorData>> bySymbol,
@@ -157,10 +157,10 @@ public class PortfolioHealthComputationService {
                     marketWeight, latest, fi -> safeDouble(fi.ps()));
         }
 
-        return new PortfolioHealthResult.CurrentSnapshot(totalValueClose, stockValueClose, cashBalance, pe, pb, ps, priceType);
+        return new PortfolioHealthOutput.CurrentSnapshot(totalValueClose, stockValueClose, cashBalance, pe, pb, ps, priceType);
     }
 
-    private List<PortfolioHealthResult.HistoryPoint> buildHistory(
+    private List<PortfolioHealthOutput.HistoryPoint> buildHistory(
             List<PortfolioAsset> assets,
             Map<String, List<MarketIndicatorData>> bySymbol,
             Map<String, Double> costWeight,
@@ -184,7 +184,7 @@ public class PortfolioHealthComputationService {
                 .toList();
 
         List<String> symbols = assets.stream().map(PortfolioAsset::getSymbol).toList();
-        List<PortfolioHealthResult.HistoryPoint> points = new ArrayList<>();
+        List<PortfolioHealthOutput.HistoryPoint> points = new ArrayList<>();
 
         for (Quarter q : sortedQuarters) {
             Map<String, MarketIndicatorData> snap = new HashMap<>();
@@ -216,7 +216,7 @@ public class PortfolioHealthComputationService {
             Double roe = arithmeticMeanSnap(symbols, costWeight, snap, fi -> safeDouble(fi.roe()));
             Double roa = arithmeticMeanSnap(symbols, costWeight, snap, fi -> safeDouble(fi.roa()));
 
-            points.add(new PortfolioHealthResult.HistoryPoint(q.year(), q.quarter(), pe, pb, ps, roe, roa, coverage));
+            points.add(new PortfolioHealthOutput.HistoryPoint(q.year(), q.quarter(), pe, pb, ps, roe, roa, coverage));
         }
 
         return points;
@@ -291,11 +291,11 @@ public class PortfolioHealthComputationService {
         return bd != null && bd.doubleValue() > 0;
     }
 
-    private PortfolioHealthResult emptyResult(Portfolio portfolio) {
-        PortfolioHealthResult.CurrentSnapshot empty = new PortfolioHealthResult.CurrentSnapshot(
+    private PortfolioHealthOutput emptyResult(Portfolio portfolio) {
+        PortfolioHealthOutput.CurrentSnapshot empty = new PortfolioHealthOutput.CurrentSnapshot(
                 portfolio.getCashBalance().doubleValue(), 0,
                 portfolio.getCashBalance().doubleValue(), null, null, null, "INSUFFICIENT"
         );
-        return new PortfolioHealthResult(0, 0, empty, List.of());
+        return new PortfolioHealthOutput(0, 0, empty, List.of());
     }
 }
