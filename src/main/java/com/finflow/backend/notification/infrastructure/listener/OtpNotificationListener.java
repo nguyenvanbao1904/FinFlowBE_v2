@@ -1,6 +1,6 @@
-package com.finflow.backend.notification.listener;
+package com.finflow.backend.notification.infrastructure.listener;
 
-import com.finflow.backend.identity.application.event.OtpRequestedEvent;
+import com.finflow.backend.identity.api.OtpRequestedEvent;
 import com.finflow.backend.notification.MdcCorrelationSupport;
 import com.finflow.backend.notification.application.port.out.EmailNotificationPort;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +20,7 @@ public class OtpNotificationListener {
     @EventListener
     public void handleOtpRequested(OtpRequestedEvent event) {
         MdcCorrelationSupport.run(event.getCorrelationId(), () -> {
-            log.info("Received OTP request event for: {}", event.getEmail());
+            log.debug("Received OTP request event for: {}", event.getEmail());
             String subject = "FinFlow Verification Code";
             String text = "Your verification code is: " + event.getOtpCode() + "\n\nThis code expires in 5 minutes.";
             emailNotificationPort.sendSimpleMessage(event.getEmail(), subject, text);

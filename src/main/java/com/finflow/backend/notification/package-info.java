@@ -1,5 +1,5 @@
 @org.springframework.modulith.ApplicationModule(
         displayName = "Notification",
-        allowedDependencies = {"identity::events", "common"}
+        allowedDependencies = {"identity::api", "common"}
 )
 package com.finflow.backend.notification;

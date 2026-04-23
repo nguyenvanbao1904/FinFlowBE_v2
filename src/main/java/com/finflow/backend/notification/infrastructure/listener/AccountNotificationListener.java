@@ -1,7 +1,7 @@
-package com.finflow.backend.notification.listener;
+package com.finflow.backend.notification.infrastructure.listener;
 
-import com.finflow.backend.identity.application.event.AccountHardDeletedEvent;
-import com.finflow.backend.identity.application.event.AccountSoftDeletedEvent;
+import com.finflow.backend.identity.api.AccountHardDeletedEvent;
+import com.finflow.backend.identity.api.AccountSoftDeletedEvent;
 import com.finflow.backend.notification.MdcCorrelationSupport;
 import com.finflow.backend.notification.application.port.out.EmailNotificationPort;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +21,7 @@ public class AccountNotificationListener {
     @EventListener
     public void handleSoftDelete(AccountSoftDeletedEvent event) {
         MdcCorrelationSupport.run(event.getCorrelationId(), () -> {
-            log.info("Sending soft delete notification to: {}", event.getEmail());
+            log.debug("Sending soft delete notification to: {}", event.getEmail());
             String subject = "Account Deletion Scheduled - FinFlow";
             String text = "Dear " + event.getUsername() + ",\n\n" +
                     "We received a request to delete your FinFlow account. Your account has been scheduled for permanent deletion in 30 days.\n\n" +
@@ -36,7 +36,7 @@ public class AccountNotificationListener {
     @EventListener
     public void handleHardDelete(AccountHardDeletedEvent event) {
         MdcCorrelationSupport.run(event.getCorrelationId(), () -> {
-            log.info("Sending hard delete notification to: {}", event.getEmail());
+            log.debug("Sending hard delete notification to: {}", event.getEmail());
             String subject = "Account Permanently Deleted - FinFlow";
             String text = "Dear " + event.getUsername() + ",\n\n" +
                     "Your FinFlow account and all associated data have been permanently deleted as scheduled.\n" +

@@ -42,5 +42,31 @@ class ArchitectureTests {
                     .should().dependOnClassesThat()
                     .resideInAPackage(BASE + "..application.usecase..")
                     .because("Controllers depend on port.in interfaces, not concrete UseCase classes");
+
+    @ArchTest
+    static final ArchRule finance_submodules_must_not_use_other_submodule_presentation =
+            noClasses().that().resideInAnyPackage(
+                            BASE + ".finance.budget.application..",
+                            BASE + ".finance.budget.domain..",
+                            BASE + ".finance.budget.infrastructure..",
+                            BASE + ".finance.transaction.application..",
+                            BASE + ".finance.transaction.domain..",
+                            BASE + ".finance.transaction.infrastructure..",
+                            BASE + ".finance.wealth.application..",
+                            BASE + ".finance.wealth.domain..",
+                            BASE + ".finance.wealth.infrastructure..")
+                    .should().dependOnClassesThat()
+                    .resideInAnyPackage(
+                            BASE + ".finance.budget.presentation..",
+                            BASE + ".finance.transaction.presentation..",
+                            BASE + ".finance.wealth.presentation..")
+                    .because("Finance submodules should integrate via application contracts, not presentation types");
+
+    @ArchTest
+    static final ArchRule investment_market_data_must_not_depend_on_portfolio_infrastructure =
+            noClasses().that().resideInAPackage(BASE + ".investment.market_data..")
+                    .should().dependOnClassesThat()
+                    .resideInAPackage(BASE + ".investment.portfolio.infrastructure..")
+                    .because("Market-data context must not rely on portfolio infrastructure adapters");
 }
 

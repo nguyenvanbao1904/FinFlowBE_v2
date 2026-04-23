@@ -1,5 +1,9 @@
 package com.finflow.backend.investment.market_data.application.usecase;
 
+import com.finflow.backend.investment.market_data.application.dto.InvestmentAnalysisOutput;
+import com.finflow.backend.investment.market_data.application.model.StockDailyClose;
+import com.finflow.backend.investment.market_data.application.port.out.FetchHistoricalPricePort;
+import com.finflow.backend.investment.market_data.application.query.GetDailyValuationSeriesQuery;
 import com.finflow.backend.investment.market_data.application.service.MarketDataReadService;
 import com.finflow.backend.investment.market_data.domain.entity.Company;
 import com.finflow.backend.investment.market_data.domain.entity.NonBankFinancialIndicator;
@@ -13,9 +17,6 @@ import com.finflow.backend.investment.market_data.domain.repository.FinancialInd
 import com.finflow.backend.investment.market_data.domain.repository.IndustryNodeRepository;
 import com.finflow.backend.investment.market_data.domain.repository.NonBankBalanceSheetRepository;
 import com.finflow.backend.investment.market_data.domain.repository.NonBankIncomeStatementRepository;
-import com.finflow.backend.investment.market_data.presentation.response.InvestmentAnalysisResponse;
-import com.finflow.backend.investment.portfolio.infrastructure.VndirectFinfoPriceClient;
-import com.finflow.backend.investment.portfolio.infrastructure.VndirectFinfoPriceClient.StockDailyClose;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -52,7 +53,7 @@ class GetDailyValuationSeriesUseCaseTest {
     @Mock
     IndustryNodeRepository industryNodeRepository;
     @Mock
-    VndirectFinfoPriceClient vndirectFinfoPriceClient;
+    FetchHistoricalPricePort fetchHistoricalPricePort;
 
     private GetDailyValuationSeriesUseCase useCase;
 
@@ -69,7 +70,7 @@ class GetDailyValuationSeriesUseCaseTest {
                 bankIncomeStatementRepository,
                 nonBankIncomeStatementRepository
         );
-        useCase = new GetDailyValuationSeriesUseCase(readService, vndirectFinfoPriceClient);
+        useCase = new GetDailyValuationSeriesUseCase(readService, fetchHistoricalPricePort);
     }
 
     @Test
@@ -83,7 +84,7 @@ class GetDailyValuationSeriesUseCaseTest {
                 .thenReturn(List.of(indicator(2023, 4)));
         when(nonBankIncomeStatementRepository.findByCompanyIdOrderByYearAscQuarterAsc("AAA"))
                 .thenReturn(List.of(income(2023, 4)));
-        when(vndirectFinfoPriceClient.listStockClosesInRange(
+        when(fetchHistoricalPricePort.listStockClosesInRange(
                 "AAA",
                 LocalDate.of(2024, 1, 1),
                 LocalDate.of(2024, 1, 2)
@@ -91,11 +92,11 @@ class GetDailyValuationSeriesUseCaseTest {
                 new StockDailyClose(LocalDate.of(2024, 1, 1), BigDecimal.valueOf(25_000))
         ));
 
-        List<InvestmentAnalysisResponse.DailyValuationPoint> result =
-                useCase.execute("AAA", "2024-01-01", "2024-01-02");
+        List<InvestmentAnalysisOutput.DailyValuationPoint> result =
+                useCase.execute(new GetDailyValuationSeriesQuery("AAA", "2024-01-01", "2024-01-02")).points();
 
         assertThat(result)
-                .extracting(InvestmentAnalysisResponse.DailyValuationPoint::date)
+                .extracting(InvestmentAnalysisOutput.DailyValuationPoint::date)
                 .containsExactly("2024-01-01");
     }
 

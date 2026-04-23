@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -84,28 +83,14 @@ public class GlobalExceptionHandler {
         return message.replace("{" + ValidationConstants.MIN_ATTRIBUTE + "}", minValue);
     }
 
-    // 2.5. Xử lý Spring Security BadCredentialsException
-    // (Username/Password sai - thrown từ Security filters)
-    @ExceptionHandler(value = BadCredentialsException.class)
-    ProblemDetail handlingBadCredentials(BadCredentialsException exception, HttpServletRequest request) {
-        String userMessage = "Invalid username or password";
-        log.warn("Bad credentials - returning: {}", userMessage);
-
-        return toProblemDetail(
-                CommonErrorCode.UNAUTHENTICATED,
-                userMessage,
-                request
-        );
-    }
-
     // 3. Xử lý lỗi hệ thống không mong muốn (Fallback)
     @ExceptionHandler(value = Exception.class)
     ProblemDetail handlingRuntimeException(Exception exception, HttpServletRequest request) {
-        log.error("Exception: ", exception);
+        log.error("Unexpected error: {}", exception.getMessage(), exception);
 
         return toProblemDetail(
                 CommonErrorCode.UNCATEGORIZED_EXCEPTION,
-                exception.getMessage(),
+                "An unexpected error occurred. Please try again later.",
                 request
         );
     }

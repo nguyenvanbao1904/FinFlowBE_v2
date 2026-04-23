@@ -1,13 +1,14 @@
 package com.finflow.backend.investment.market_data.application.usecase;
 
+import com.finflow.backend.investment.market_data.application.dto.InvestmentAnalysisOutput;
 import com.finflow.backend.investment.market_data.application.mapper.InvestmentAnalysisPointMapper;
 import com.finflow.backend.investment.market_data.application.mapper.InvestmentFinancialPointMapper;
+import com.finflow.backend.investment.market_data.application.query.GetInvestmentValuationsQuery;
 import com.finflow.backend.investment.market_data.application.service.MarketDataReadService;
 import com.finflow.backend.investment.market_data.domain.entity.BankFinancialIndicator;
 import com.finflow.backend.investment.market_data.domain.entity.Company;
 import com.finflow.backend.investment.market_data.domain.entity.FinancialIndicator;
 import com.finflow.backend.investment.market_data.domain.repository.*;
-import com.finflow.backend.investment.market_data.presentation.response.InvestmentAnalysisResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -75,8 +76,9 @@ class GetInvestmentAnalysisUseCaseValuationRangeTest {
         Company c = company();
         when(companyRepository.findByIdIgnoreCase("ACB")).thenReturn(Optional.of(c));
 
-        List<InvestmentAnalysisResponse.ValuationPoint> result =
-                valuationsUseCase.execute("ACB", null, "2020-01-01", "2020-11-30", false);
+        List<InvestmentAnalysisOutput.ValuationPoint> result =
+                valuationsUseCase.execute(new GetInvestmentValuationsQuery("ACB", null, "2020-01-01", "2020-11-30", false))
+                        .points();
 
         assertThat(result).isEmpty();
         verify(financialIndicatorRepository, never())
@@ -98,8 +100,9 @@ class GetInvestmentAnalysisUseCaseValuationRangeTest {
                 ))
                 .thenReturn(List.of(q1, q2));
 
-        List<InvestmentAnalysisResponse.ValuationPoint> result =
-                valuationsUseCase.execute("ACB", null, "2020-02-01", "2020-08-15", true);
+        List<InvestmentAnalysisOutput.ValuationPoint> result =
+                valuationsUseCase.execute(new GetInvestmentValuationsQuery("ACB", null, "2020-02-01", "2020-08-15", true))
+                        .points();
 
         assertThat(result).hasSize(2);
         assertThat(result.get(0).year()).isEqualTo(2020);
@@ -135,8 +138,9 @@ class GetInvestmentAnalysisUseCaseValuationRangeTest {
                 ))
                 .thenReturn(List.of(start2021q1));
 
-        List<InvestmentAnalysisResponse.ValuationPoint> result =
-                valuationsUseCase.execute("ACB", null, "2020-11-15", "2021-03-31", true);
+        List<InvestmentAnalysisOutput.ValuationPoint> result =
+                valuationsUseCase.execute(new GetInvestmentValuationsQuery("ACB", null, "2020-11-15", "2021-03-31", true))
+                        .points();
 
         assertThat(result).hasSize(2);
         assertThat(result.get(0).year()).isEqualTo(2020);

@@ -1,7 +1,9 @@
 package com.finflow.backend.investment.market_data.application.usecase;
 
+import com.finflow.backend.investment.market_data.application.dto.InvestmentAnalysisOutput;
 import com.finflow.backend.investment.market_data.application.mapper.InvestmentAnalysisPointMapper;
 import com.finflow.backend.investment.market_data.application.mapper.InvestmentFinancialPointMapper;
+import com.finflow.backend.investment.market_data.application.query.GetInvestmentFullAnalysisQuery;
 import com.finflow.backend.investment.market_data.application.service.InvestmentAnalysisFinancialSeriesLoader;
 import com.finflow.backend.investment.market_data.application.service.InvestmentAnalysisOverviewBuilder;
 import com.finflow.backend.investment.market_data.application.service.InvestmentFinancialSeriesBuilder;
@@ -11,8 +13,7 @@ import com.finflow.backend.investment.market_data.domain.entity.BankFinancialInd
 import com.finflow.backend.investment.market_data.domain.entity.BankIncomeStatement;
 import com.finflow.backend.investment.market_data.domain.entity.Company;
 import com.finflow.backend.investment.market_data.domain.repository.*;
-import com.finflow.backend.investment.market_data.presentation.response.InvestmentAnalysisResponse;
-import com.finflow.backend.investment.portfolio.infrastructure.VpsMarketPriceClient;
+import com.finflow.backend.investment.portfolio.api.MarketPriceApi;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,6 +25,7 @@ import org.springframework.data.domain.Pageable;
 import java.math.BigDecimal;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -53,7 +55,7 @@ class GetInvestmentAnalysisUseCaseOrderingTest {
     @Mock
     IndustryNodeRepository industryNodeRepository;
     @Mock
-    VpsMarketPriceClient vpsMarketPriceClient;
+    MarketPriceApi marketPriceApi;
 
     private GetInvestmentFullAnalysisUseCase useCase;
 
@@ -75,8 +77,9 @@ class GetInvestmentAnalysisUseCaseOrderingTest {
                 bankIncomeStatementRepository,
                 nonBankIncomeStatementRepository
         );
+        when(marketPriceApi.getClosePrices(any())).thenReturn(Map.of());
         InvestmentAnalysisOverviewBuilder overviewBuilder =
-                new InvestmentAnalysisOverviewBuilder(vpsMarketPriceClient, readService);
+                new InvestmentAnalysisOverviewBuilder(marketPriceApi, readService);
         InvestmentAnalysisFinancialSeriesLoader financialSeriesLoader =
                 new InvestmentAnalysisFinancialSeriesLoader(readService, financialSeriesBuilder);
 
@@ -120,18 +123,18 @@ class GetInvestmentAnalysisUseCaseOrderingTest {
         when(bankIncomeStatementRepository.findByCompanyIdOrderByYearDescQuarterDesc(eq("ACB"), any(Pageable.class)))
                 .thenReturn(List.of(inc));
 
-        InvestmentAnalysisResponse r = useCase.execute("ACB", 4, 4);
+        InvestmentAnalysisOutput r = useCase.execute(new GetInvestmentFullAnalysisQuery("ACB", 4, 4));
 
-        Comparator<InvestmentAnalysisResponse.ValuationPoint> valuationAsc = Comparator
-                .comparing(InvestmentAnalysisResponse.ValuationPoint::year, Comparator.nullsLast(Comparator.naturalOrder()))
-                .thenComparing(InvestmentAnalysisResponse.ValuationPoint::quarter, Comparator.nullsLast(Comparator.naturalOrder()));
+        Comparator<InvestmentAnalysisOutput.ValuationPoint> valuationAsc = Comparator
+                .comparing(InvestmentAnalysisOutput.ValuationPoint::year, Comparator.nullsLast(Comparator.naturalOrder()))
+                .thenComparing(InvestmentAnalysisOutput.ValuationPoint::quarter, Comparator.nullsLast(Comparator.naturalOrder()));
         assertThat(r.valuations()).isSortedAccordingTo(valuationAsc);
 
-        List<InvestmentAnalysisResponse.BankFinancialPoint> bank = r.financials().bank();
+        List<InvestmentAnalysisOutput.BankFinancialPoint> bank = r.financials().bank();
         assertThat(bank).isNotEmpty();
-        Comparator<InvestmentAnalysisResponse.BankFinancialPoint> bankAsc = Comparator
-                .comparing(InvestmentAnalysisResponse.BankFinancialPoint::year, Comparator.nullsLast(Comparator.naturalOrder()))
-                .thenComparing(InvestmentAnalysisResponse.BankFinancialPoint::quarter, Comparator.nullsLast(Comparator.naturalOrder()));
+        Comparator<InvestmentAnalysisOutput.BankFinancialPoint> bankAsc = Comparator
+                .comparing(InvestmentAnalysisOutput.BankFinancialPoint::year, Comparator.nullsLast(Comparator.naturalOrder()))
+                .thenComparing(InvestmentAnalysisOutput.BankFinancialPoint::quarter, Comparator.nullsLast(Comparator.naturalOrder()));
         assertThat(bank).isSortedAccordingTo(bankAsc);
     }
 
