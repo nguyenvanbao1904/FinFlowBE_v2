@@ -9,7 +9,6 @@ import com.finflow.backend.identity.application.command.ToggleBiometricCommand;
 import com.finflow.backend.identity.exception.IdentityErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,7 +20,6 @@ public class ToggleBiometricUseCase implements ToggleBiometricPort {
     private final UserRepository userRepository;
 
     @Transactional
-    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     @Override
     public void execute(ToggleBiometricCommand command) {
         User user = userRepository.findById(command.userId())

@@ -1,7 +1,8 @@
 package com.finflow.backend.identity.application.port.in;
+import com.finflow.backend.identity.application.query.GetProfileQuery;
 
-import com.finflow.backend.identity.presentation.response.UserResponse;
+import com.finflow.backend.identity.application.dto.UserOutput;
 
 public interface GetProfilePort {
-    UserResponse execute(String userId);
+    UserOutput execute(GetProfileQuery query);
 }

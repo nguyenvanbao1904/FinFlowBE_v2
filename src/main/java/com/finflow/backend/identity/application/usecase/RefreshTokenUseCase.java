@@ -3,8 +3,8 @@ package com.finflow.backend.identity.application.usecase;
 import com.finflow.backend.identity.application.port.in.RefreshTokenPort;
 
 import com.finflow.backend.common.exception.AppException;
-import com.finflow.backend.identity.infrastructure.configuration.TokenConfig;
-import com.finflow.backend.identity.presentation.response.AuthResponse;
+import com.finflow.backend.identity.application.dto.AuthOutput;
+import com.finflow.backend.identity.application.model.TokenLifetimePolicy;
 import com.finflow.backend.identity.exception.IdentityErrorCode;
 import com.finflow.backend.identity.domain.entity.InvalidatedToken;
 import com.finflow.backend.identity.domain.entity.Role;
@@ -14,17 +14,16 @@ import com.finflow.backend.identity.domain.repository.UserRepository;
 import com.finflow.backend.identity.application.command.RefreshTokenCommand;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.oauth2.jwt.Jwt;
 
 
 import com.finflow.backend.identity.application.port.out.TokenServicePort;
+import com.finflow.backend.identity.domain.constant.IdentityConstants;
 
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Date;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Component
@@ -36,14 +35,17 @@ public class RefreshTokenUseCase implements RefreshTokenPort {
     private final UserRepository userRepository;
     private final InvalidatedTokenRepository invalidatedTokenRepository;
 
+    @Transactional
     @Override
-    public AuthResponse execute(RefreshTokenCommand command) {
+    public AuthOutput execute(RefreshTokenCommand command) {
         log.info("Executing refresh token use case");
 
         TokenServicePort.DecodedToken decoded;
         try {
             // Validate signature, expiry, and blacklist (via SecurityConfig validator)
             decoded = tokenServicePort.decodeToken(command.refreshToken());
+        } catch (AppException ex) {
+            throw ex; // re-throw business exceptions as-is
         } catch (Exception ex) {
             log.warn("Refresh token invalid: {}", ex.getMessage());
             throw new AppException(IdentityErrorCode.INVALID_TOKEN);
@@ -51,7 +53,7 @@ public class RefreshTokenUseCase implements RefreshTokenPort {
 
         // Enforce token type
         String type = decoded.type();
-        if (!"refresh".equals(type)) {
+        if (!IdentityConstants.TOKEN_TYPE_REFRESH.equals(type)) {
             log.warn("Token type is not refresh");
             throw new AppException(IdentityErrorCode.INVALID_TOKEN);
         }
@@ -65,15 +67,15 @@ public class RefreshTokenUseCase implements RefreshTokenPort {
         // Rotate refresh token: blacklist old token
         blacklistToken(decoded);
 
-        String newAccessToken = tokenServicePort.generateToken(userId, scope, TokenConfig.ACCESS_TOKEN_EXPIRY_SECONDS, "access");
-        String newRefreshToken = tokenServicePort.generateToken(userId, scope, TokenConfig.REFRESH_TOKEN_EXPIRY_SECONDS, "refresh");
+        String newAccessToken = tokenServicePort.generateToken(userId, scope, TokenLifetimePolicy.ACCESS_TOKEN_EXPIRY_SECONDS, IdentityConstants.TOKEN_TYPE_ACCESS);
+        String newRefreshToken = tokenServicePort.generateToken(userId, scope, TokenLifetimePolicy.REFRESH_TOKEN_EXPIRY_SECONDS, IdentityConstants.TOKEN_TYPE_REFRESH);
 
-        return AuthResponse.builder()
+        return AuthOutput.builder()
                 .token(newAccessToken)
                 .refreshToken(newRefreshToken)
                 .type("Bearer")
-                .expiresIn(TokenConfig.ACCESS_TOKEN_EXPIRY_SECONDS)
-                .refreshTokenExpiresIn(TokenConfig.REFRESH_TOKEN_EXPIRY_SECONDS)
+                .expiresIn(TokenLifetimePolicy.ACCESS_TOKEN_EXPIRY_SECONDS)
+                .refreshTokenExpiresIn(TokenLifetimePolicy.REFRESH_TOKEN_EXPIRY_SECONDS)
                 .username(user.getUsername())
                 .email(user.getEmail())
                 .build();

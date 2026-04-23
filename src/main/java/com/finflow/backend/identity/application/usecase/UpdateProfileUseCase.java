@@ -3,15 +3,14 @@ package com.finflow.backend.identity.application.usecase;
 import com.finflow.backend.identity.application.port.in.UpdateProfilePort;
 
 import com.finflow.backend.common.exception.AppException;
+import com.finflow.backend.identity.application.dto.UserOutput;
 import com.finflow.backend.identity.domain.entity.User;
 import com.finflow.backend.identity.domain.repository.UserRepository;
 import com.finflow.backend.identity.application.command.UpdateProfileCommand;
-import com.finflow.backend.identity.presentation.response.UserResponse;
 import com.finflow.backend.identity.exception.IdentityErrorCode;
 import com.finflow.backend.identity.application.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,9 +25,8 @@ public class UpdateProfileUseCase implements UpdateProfilePort {
     private final UserMapper userMapper;
 
     @Transactional
-    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     @Override
-    public UserResponse execute(UpdateProfileCommand command) {
+    public UserOutput execute(UpdateProfileCommand command) {
         User user = userRepository.findById(command.userId())
                 .orElseThrow(() -> new AppException(IdentityErrorCode.USER_NOT_FOUND));
 
@@ -44,11 +42,17 @@ public class UpdateProfileUseCase implements UpdateProfilePort {
 
         User savedUser = userRepository.save(user);
 
-        UserResponse response = userMapper.toUserResponse(savedUser);
-        response.setRoles(savedUser.getRoles().stream()
-                .map(role -> role.getName())
-                .collect(Collectors.toSet()));
-
-        return response;
+        UserOutput response = userMapper.toUserOutput(savedUser);
+        return UserOutput.builder()
+                .id(response.id())
+                .username(response.username())
+                .email(response.email())
+                .firstName(response.firstName())
+                .lastName(response.lastName())
+                .dob(response.dob())
+                .isBiometricEnabled(response.isBiometricEnabled())
+                .hasPassword(response.hasPassword())
+                .roles(savedUser.getRoles().stream().map(role -> role.getName()).collect(Collectors.toSet()))
+                .build();
     }
 }

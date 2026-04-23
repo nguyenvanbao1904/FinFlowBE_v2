@@ -6,6 +6,7 @@ import com.finflow.backend.identity.application.port.in.ResetPasswordPort;
 import com.finflow.backend.common.exception.AppException;
 import com.finflow.backend.identity.domain.repository.UserRepository;
 import com.finflow.backend.identity.application.command.ResetPasswordCommand;
+import com.finflow.backend.identity.domain.constant.IdentityConstants;
 import com.finflow.backend.identity.exception.IdentityErrorCode;
 import com.finflow.backend.identity.domain.entity.User;
 import lombok.RequiredArgsConstructor;
@@ -42,7 +43,7 @@ public class ResetPasswordUseCase implements ResetPasswordPort {
         user.setPassword(passwordEncoder.encode(command.newPassword()));
         userRepository.save(user);
         
-        log.info("Password reset successfully for user: {}", email);
+        log.info("Password reset successfully");
     }
     
     private String validateTokenAndGetEmail(String token) {
@@ -51,7 +52,7 @@ public class ResetPasswordUseCase implements ResetPasswordPort {
             
             // Validate Token Type
             String type = decoded.type();
-            if (!"RESET_PASSWORD_TOKEN".equals(type)) {
+            if (!IdentityConstants.TOKEN_TYPE_RESET_PASSWORD.equals(type)) {
                 log.warn("Invalid token type for reset password: {}", type);
                 throw new AppException(IdentityErrorCode.INVALID_TOKEN);
             }

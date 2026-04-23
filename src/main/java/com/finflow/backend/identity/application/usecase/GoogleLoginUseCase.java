@@ -3,49 +3,48 @@ package com.finflow.backend.identity.application.usecase;
 import com.finflow.backend.identity.application.port.in.GoogleLoginPort;
 
 import com.finflow.backend.common.exception.AppException;
+import com.finflow.backend.identity.application.dto.AuthOutput;
+import com.finflow.backend.identity.application.model.GoogleUserInfo;
+import com.finflow.backend.identity.application.model.TokenLifetimePolicy;
+import com.finflow.backend.identity.application.port.out.VerifyGoogleTokenPort;
 import com.finflow.backend.identity.exception.IdentityErrorCode;
-import com.finflow.backend.identity.infrastructure.configuration.TokenConfig;
-import com.finflow.backend.identity.presentation.response.AuthResponse;
 import com.finflow.backend.identity.application.command.GoogleLoginCommand;
 import com.finflow.backend.identity.domain.entity.Role;
 import com.finflow.backend.identity.domain.entity.User;
+import com.finflow.backend.identity.domain.enums.AuthProvider;
 import com.finflow.backend.identity.domain.repository.RoleRepository;
 import com.finflow.backend.identity.domain.repository.UserRepository;
-import com.finflow.backend.identity.infrastructure.configuration.GoogleTokenVerifier;
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.finflow.backend.identity.application.port.out.TokenServicePort;
+import com.finflow.backend.identity.domain.constant.IdentityConstants;
 
 
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
 public class GoogleLoginUseCase implements GoogleLoginPort {
 
-    private final GoogleTokenVerifier googleTokenVerifier;
+    private final VerifyGoogleTokenPort verifyGoogleTokenPort;
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final TokenServicePort tokenServicePort;
 
     @Transactional
     @Override
-    public AuthResponse execute(GoogleLoginCommand command) {
+    public AuthOutput execute(GoogleLoginCommand command) {
         // 1. Verify Google Token
-        GoogleIdToken.Payload payload = googleTokenVerifier.verify(command.idToken());
-        String email = payload.getEmail();
+        GoogleUserInfo userInfo = verifyGoogleTokenPort.verify(command.idToken());
+        String email = userInfo.email();
 
     // 2. Find or Create User
         User user = userRepository.findByEmail(email)
-                .orElseGet(() -> createNewUser(email, payload));
+                .orElseGet(() -> createNewUser(email, userInfo));
         
         // 3. Check if account was soft-deleted and restore it
         boolean isReactivated = false;
@@ -64,14 +63,14 @@ public class GoogleLoginUseCase implements GoogleLoginPort {
                 .map(this::normalizeRole)
                 .collect(Collectors.joining(" "));
 
-        String accessToken = tokenServicePort.generateToken(user.getId(), scope, TokenConfig.ACCESS_TOKEN_EXPIRY_SECONDS, "access");
-        String refreshToken = tokenServicePort.generateToken(user.getId(), scope, TokenConfig.REFRESH_TOKEN_EXPIRY_SECONDS, "refresh");
+        String accessToken = tokenServicePort.generateToken(user.getId(), scope, TokenLifetimePolicy.ACCESS_TOKEN_EXPIRY_SECONDS, IdentityConstants.TOKEN_TYPE_ACCESS);
+        String refreshToken = tokenServicePort.generateToken(user.getId(), scope, TokenLifetimePolicy.REFRESH_TOKEN_EXPIRY_SECONDS, IdentityConstants.TOKEN_TYPE_REFRESH);
 
-        return AuthResponse.builder()
+        return AuthOutput.builder()
                 .token(accessToken)
                 .refreshToken(refreshToken)
-                .expiresIn(TokenConfig.ACCESS_TOKEN_EXPIRY_SECONDS)
-                .refreshTokenExpiresIn(TokenConfig.REFRESH_TOKEN_EXPIRY_SECONDS)
+                .expiresIn(TokenLifetimePolicy.ACCESS_TOKEN_EXPIRY_SECONDS)
+                .refreshTokenExpiresIn(TokenLifetimePolicy.REFRESH_TOKEN_EXPIRY_SECONDS)
                 .type("Bearer")
                 .username(user.getUsername())
                 .email(user.getEmail())
@@ -79,27 +78,27 @@ public class GoogleLoginUseCase implements GoogleLoginPort {
                 .build();
     }
 
-    private User createNewUser(String email, GoogleIdToken.Payload payload) {
+    private User createNewUser(String email, GoogleUserInfo userInfo) {
         // Fetch default role
-        Role userRole = roleRepository.findById("ROLE_USER")
+        Role userRole = roleRepository.findById(IdentityConstants.ROLE_USER)
                 .orElseThrow(() -> new AppException(IdentityErrorCode.ROLE_NOT_FOUND));
 
         User user = new User();
         user.setEmail(email);
         user.setUsername(email); // Use email as username for Google users
         user.setPassword(null); // OAuth2 users have no password
-        user.setProvider(com.finflow.backend.identity.domain.enums.AuthProvider.GOOGLE);
+        user.setProvider(AuthProvider.GOOGLE);
         user.setRoles(new HashSet<>(Collections.singletonList(userRole))); // Use Set<Role>
-        user.setAccountVerified(payload.getEmailVerified());
-        
+        user.setAccountVerified(userInfo.emailVerified());
+
         // Populate names if available
-        if (payload.get("given_name") != null) {
-            user.setFirstName((String) payload.get("given_name"));
+        if (userInfo.givenName() != null) {
+            user.setFirstName(userInfo.givenName());
         }
-        if (payload.get("family_name") != null) {
-            user.setLastName((String) payload.get("family_name"));
+        if (userInfo.familyName() != null) {
+            user.setLastName(userInfo.familyName());
         }
-        
+
         return userRepository.save(user);
     }
 

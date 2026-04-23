@@ -1,29 +1,29 @@
 package com.finflow.backend.identity.application.usecase;
 
+import com.finflow.backend.identity.api.AccountSoftDeletedEvent;
+import com.finflow.backend.identity.application.command.DeleteAccountCommand;
 import com.finflow.backend.identity.application.port.in.DeleteAccountPort;
-
+import com.finflow.backend.identity.application.port.out.PasswordEncoderPort;
 import com.finflow.backend.identity.domain.entity.User;
 import com.finflow.backend.identity.domain.repository.UserRepository;
 import com.finflow.backend.identity.exception.IdentityErrorCode;
 import com.finflow.backend.common.exception.AppException;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.MDC;
-import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.finflow.backend.identity.application.command.DeleteAccountCommand;
-import com.finflow.backend.identity.application.port.out.PasswordEncoderPort;
+import java.time.LocalDateTime;
 
 @Component
 @RequiredArgsConstructor
 public class DeleteAccountUseCase implements DeleteAccountPort {
     private final UserRepository userRepository;
     private final PasswordEncoderPort passwordEncoder;
-    private final org.springframework.context.ApplicationEventPublisher eventPublisher;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
-    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     @Override
     public void execute(DeleteAccountCommand command) {
         User user = userRepository.findById(command.userId())
@@ -46,13 +46,13 @@ public class DeleteAccountUseCase implements DeleteAccountPort {
 
         // Soft delete: Mark as inactive and set deletion timestamp
         user.setIsActive(false);
-        user.setDeletedAt(java.time.LocalDateTime.now());
+        user.setDeletedAt(LocalDateTime.now());
         userRepository.save(user);
 
         // Publish event for email notification
         String correlationId = MDC.get("correlationId");
         eventPublisher.publishEvent(
-                com.finflow.backend.identity.application.event.AccountSoftDeletedEvent.builder()
+                AccountSoftDeletedEvent.builder()
                         .email(user.getEmail())
                         .username(user.getUsername())
                         .correlationId(correlationId)

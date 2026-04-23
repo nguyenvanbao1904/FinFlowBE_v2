@@ -1,7 +1,6 @@
 package com.finflow.backend.identity.presentation.request;
 
 import com.finflow.backend.identity.domain.constant.IdentityValidationConstants;
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.AccessLevel;
@@ -23,7 +22,7 @@ public class RegisterRequest {
     @Size(min = IdentityValidationConstants.PASSWORD_MIN_LENGTH, message = "PASSWORD_INVALID")
     String password;
 
-    @NotBlank(message = "EMAIL_INVALID") // Creating a new code or reusing INVALID_KEY if needed. Reusing existing pattern if possible or adding new. Let's check ErrorCode.
+    @NotBlank(message = "EMAIL_INVALID")
     @jakarta.validation.constraints.Pattern(regexp = "^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$", message = "EMAIL_INVALID")
     String email;
 

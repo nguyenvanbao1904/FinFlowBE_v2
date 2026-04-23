@@ -8,7 +8,6 @@ import com.finflow.backend.identity.exception.IdentityErrorCode;
 import com.finflow.backend.identity.application.command.ChangePasswordCommand;
 import com.finflow.backend.common.exception.AppException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.prepost.PreAuthorize;
 import com.finflow.backend.identity.application.port.out.PasswordEncoderPort;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,7 +19,6 @@ public class ChangePasswordUseCase implements ChangePasswordPort {
     private final PasswordEncoderPort passwordEncoder;
 
     @Transactional
-    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     @Override
     public void execute(ChangePasswordCommand command) {
         User user = userRepository.findById(command.userId())

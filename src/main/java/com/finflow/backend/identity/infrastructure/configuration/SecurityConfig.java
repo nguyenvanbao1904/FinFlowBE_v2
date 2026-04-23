@@ -2,7 +2,8 @@ package com.finflow.backend.identity.infrastructure.configuration;
 
 import com.finflow.backend.common.exception.AppException;
 import com.finflow.backend.common.exception.CommonErrorCode;
-import com.finflow.backend.identity.domain.repository.InvalidatedTokenRepository;
+import com.finflow.backend.identity.application.port.out.TokenBlacklistCheckPort;
+import com.finflow.backend.identity.infrastructure.security.CustomUserDetailsService;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;
@@ -10,6 +11,7 @@ import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -34,59 +36,96 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtGra
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
-import java.security.SecureRandom;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
-import java.nio.charset.StandardCharsets;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.Base64;
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 @RequiredArgsConstructor
+@Slf4j
 public class SecurityConfig {
 
     private final CustomUserDetailsService customUserDetailsService;
-    private final InvalidatedTokenRepository invalidatedTokenRepository;
+    private final TokenBlacklistCheckPort tokenBlacklistCheckPort;
     private final InternalApiKeyFilter internalApiKeyFilter;
 
-    // Prefer config property: jwt.signerKey=${FINFLOW_JWTSIGNERKEY}
-    // Fallback: FINFLOW_JWTSIGNERKEY from env/system properties.
-    @Value("${jwt.signerKey:}")
-    private String jwtSignerKey;
+    /**
+     * PEM-encoded RSA private key (PKCS#8). Injected from environment variable
+     * FINFLOW_JWT_PRIVATE_KEY. If absent, a random dev-only key pair is generated.
+     */
+    @Value("${FINFLOW_JWT_PRIVATE_KEY:}")
+    private String privateKeyPem;
+
+    /**
+     * PEM-encoded RSA public key (X.509/SubjectPublicKeyInfo). Injected from
+     * environment variable FINFLOW_JWT_PUBLIC_KEY.
+     */
+    @Value("${FINFLOW_JWT_PUBLIC_KEY:}")
+    private String publicKeyPem;
 
     // --- 1. KEY MANAGEMENT (RSA) ---
     @Bean
     public KeyPair keyPair() {
-        String signerKey = jwtSignerKey;
-        if (signerKey == null || signerKey.isBlank()) {
-            signerKey = System.getProperty("FINFLOW_JWTSIGNERKEY");
-        }
-        if (signerKey == null || signerKey.isBlank()) {
-            signerKey = System.getenv("FINFLOW_JWTSIGNERKEY");
-        }
-        if (signerKey == null || signerKey.isBlank()) {
-            throw new AppException(CommonErrorCode.UNCATEGORIZED_EXCEPTION);
+        boolean hasPrivate = privateKeyPem != null && !privateKeyPem.isBlank();
+        boolean hasPublic  = publicKeyPem  != null && !publicKeyPem.isBlank();
+
+        if (hasPrivate && hasPublic) {
+            return loadKeyPairFromPem(privateKeyPem, publicKeyPem);
         }
 
-        byte[] seed = toSeedBytes(signerKey);
-        SecureRandom secureRandom;
-        try {
-            secureRandom = SecureRandom.getInstance("SHA1PRNG");
-        } catch (Exception ignored) {
-            secureRandom = new SecureRandom();
-        }
-        secureRandom.setSeed(seed);
-
+        // Dev fallback: generate a fresh random key pair each startup.
+        // WARNING: tokens will be invalidated on every restart. Never use in production.
+        log.warn("*** [SECURITY] FINFLOW_JWT_PRIVATE_KEY / FINFLOW_JWT_PUBLIC_KEY are not set. " +
+                 "Generating a random RSA key pair for DEV MODE. " +
+                 "All existing JWT tokens will be invalidated on restart. " +
+                 "Set these environment variables before deploying to production. ***");
         try {
             var keyPairGenerator = KeyPairGenerator.getInstance("RSA");
-            // Deterministic primes => stable JWT keys across restarts (dev simplification).
-            keyPairGenerator.initialize(2048, secureRandom);
+            keyPairGenerator.initialize(2048);  // uses platform SecureRandom — non-deterministic
             return keyPairGenerator.generateKeyPair();
         } catch (Exception e) {
             throw new AppException(CommonErrorCode.UNCATEGORIZED_EXCEPTION);
         }
+    }
+
+    /**
+     * Parse PEM strings into a {@link KeyPair}.
+     * Expected formats:
+     * <ul>
+     *   <li>Private key: PKCS#8 PEM (-----BEGIN PRIVATE KEY-----)</li>
+     *   <li>Public key:  X.509 SubjectPublicKeyInfo PEM (-----BEGIN PUBLIC KEY-----)</li>
+     * </ul>
+     */
+    private static KeyPair loadKeyPairFromPem(String privatePem, String publicPem) {
+        try {
+            KeyFactory kf = KeyFactory.getInstance("RSA");
+
+            byte[] privateBytes = decodePem(privatePem);
+            RSAPrivateKey privateKey = (RSAPrivateKey) kf.generatePrivate(new PKCS8EncodedKeySpec(privateBytes));
+
+            byte[] publicBytes = decodePem(publicPem);
+            RSAPublicKey publicKey = (RSAPublicKey) kf.generatePublic(new X509EncodedKeySpec(publicBytes));
+
+            return new KeyPair(publicKey, privateKey);
+        } catch (Exception e) {
+            throw new AppException(CommonErrorCode.UNCATEGORIZED_EXCEPTION);
+        }
+    }
+
+    /** Strip PEM headers/footers and Base64-decode to raw DER bytes. */
+    private static byte[] decodePem(String pem) {
+        String stripped = pem
+                .replaceAll("-----BEGIN [^-]+-----", "")
+                .replaceAll("-----END [^-]+-----", "")
+                .replaceAll("\\s+", "");
+        return Base64.getDecoder().decode(stripped);
     }
 
     @Bean
@@ -105,7 +144,7 @@ public class SecurityConfig {
         // Định nghĩa Validator check blacklist
         OAuth2TokenValidator<Jwt> withBlacklist = token -> {
             String jti = token.getId(); // Lấy ID của token đang gửi lên
-            if (invalidatedTokenRepository.existsById(jti)) {
+            if (tokenBlacklistCheckPort.isBlacklisted(jti)) {
                 return OAuth2TokenValidatorResult.failure(
                         new OAuth2Error("token_blacklisted", "Token has been invalidated", null)
                 );
@@ -120,21 +159,6 @@ public class SecurityConfig {
         ));
 
         return jwtDecoder;
-    }
-
-    private static byte[] toSeedBytes(String signerKey) {
-        String raw = signerKey.trim();
-        // If it looks like hex, decode it. Otherwise use raw UTF-8 bytes.
-        if (raw.length() % 2 == 0 && raw.matches("[0-9a-fA-F]+")) {
-            int len = raw.length() / 2;
-            byte[] out = new byte[len];
-            for (int i = 0; i < len; i++) {
-                int idx = i * 2;
-                out[i] = (byte) Integer.parseInt(raw.substring(idx, idx + 2), 16);
-            }
-            return out;
-        }
-        return raw.getBytes(StandardCharsets.UTF_8);
     }
 
     // --- 2. AUTHENTICATION MANAGER ---
@@ -166,7 +190,8 @@ public class SecurityConfig {
         "/api/auth/check-user-existence",
         "/v3/api-docs/**",
         "/swagger-ui/**",
-        "/swagger-ui.html"
+        "/swagger-ui.html",
+        "/actuator/**"
     };
 
     // --- 3. FILTER CHAIN (Quy định đường đi của Request) ---
@@ -179,7 +204,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Public Endpoints
                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
-                        .requestMatchers("/api/internal/**").permitAll()
+                        .requestMatchers("/api/internal/**").hasRole("INTERNAL_SERVICE")
                         // Any other request must be authenticated
                         .anyRequest().authenticated()
                 )

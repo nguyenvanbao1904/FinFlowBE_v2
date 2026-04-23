@@ -2,53 +2,41 @@ package com.finflow.backend.identity.application.usecase;
 
 import com.finflow.backend.identity.application.port.in.LoginPort;
 
-import com.finflow.backend.identity.infrastructure.configuration.TokenConfig;
 import com.finflow.backend.identity.application.command.LoginCommand;
-import com.finflow.backend.identity.presentation.response.AuthResponse;
+import com.finflow.backend.identity.application.dto.AuthOutput;
+import com.finflow.backend.identity.application.model.TokenLifetimePolicy;
+import com.finflow.backend.identity.application.port.out.CredentialAuthenticationPort;
 import com.finflow.backend.identity.domain.entity.User;
 import com.finflow.backend.identity.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.LockedException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 
 import com.finflow.backend.identity.application.port.out.TokenServicePort;
+import com.finflow.backend.identity.domain.constant.IdentityConstants;
 
 import org.springframework.stereotype.Component;
-
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.UUID;
-import java.util.stream.Collectors;
+import org.springframework.transaction.annotation.Transactional;
 
 @Component
 @RequiredArgsConstructor
 @Slf4j
 public class LoginUseCase implements LoginPort {
 
-    private final AuthenticationManager authenticationManager;
+    private final CredentialAuthenticationPort credentialAuthenticationPort;
     private final TokenServicePort tokenServicePort;
     private final UserRepository userRepository;
 
    
+    @Transactional
     @Override
-    public AuthResponse execute(LoginCommand command) {
-        log.info("Executing login use case for user: {}", command.username());
+    public AuthOutput execute(LoginCommand command) {
+        log.debug("Executing login use case for user: {}", command.username());
 
-        Authentication authentication;
+        CredentialAuthenticationPort.AuthenticatedPrincipal authenticatedPrincipal;
         boolean isReactivated = false;
         try {
-            // 1. Authenticate user (will throw AuthenticationException if invalid)
-            authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(
-                            command.username(),
-                            command.password()
-                    )
-            );
-        } catch (LockedException e) {
+            authenticatedPrincipal = credentialAuthenticationPort.authenticate(command.username(), command.password());
+        } catch (CredentialAuthenticationPort.AccountLockedException e) {
             log.warn("Account is locked (possibly soft-deleted). Checking for reactivation...");
             // Handle reactivation logic if user is soft-deleted
             User user = userRepository.findByUsername(command.username())
@@ -56,7 +44,7 @@ public class LoginUseCase implements LoginPort {
                     .orElseThrow(() -> e); // Should not happen if locked
 
             if (user.getDeletedAt() != null) {
-                log.info("User {} is soft-deleted. Reactivating account...", user.getUsername());
+                log.info("Soft-deleted user reactivating account");
                 user.setIsActive(true);
                 user.setDeletedAt(null);
                 user.setLastLogin(java.time.LocalDateTime.now());
@@ -64,12 +52,7 @@ public class LoginUseCase implements LoginPort {
                 isReactivated = true;
 
                 // Retry authentication
-                authentication = authenticationManager.authenticate(
-                        new UsernamePasswordAuthenticationToken(
-                                command.username(),
-                                command.password()
-                        )
-                );
+                authenticatedPrincipal = credentialAuthenticationPort.authenticate(command.username(), command.password());
             } else {
                 throw e; // Locked for other reasons (e.g. admin ban)
             }
@@ -83,23 +66,23 @@ public class LoginUseCase implements LoginPort {
         // 2. Generate Access & Refresh Tokens
         String accessToken = tokenServicePort.generateToken(
                 user.getId(),
-                getScope(authentication),
-                TokenConfig.ACCESS_TOKEN_EXPIRY_SECONDS,
-                "access"
+                authenticatedPrincipal.scope(),
+                TokenLifetimePolicy.ACCESS_TOKEN_EXPIRY_SECONDS,
+                IdentityConstants.TOKEN_TYPE_ACCESS
         );
         String refreshToken = tokenServicePort.generateToken(
                 user.getId(),
-                getScope(authentication),
-                TokenConfig.REFRESH_TOKEN_EXPIRY_SECONDS,
-                "refresh"
+                authenticatedPrincipal.scope(),
+                TokenLifetimePolicy.REFRESH_TOKEN_EXPIRY_SECONDS,
+                IdentityConstants.TOKEN_TYPE_REFRESH
         );
 
         // 4. Build and return response
-        AuthResponse response = AuthResponse.builder()
+        AuthOutput response = AuthOutput.builder()
                 .token(accessToken)
                 .refreshToken(refreshToken)
-                .expiresIn(TokenConfig.ACCESS_TOKEN_EXPIRY_SECONDS)
-                .refreshTokenExpiresIn(TokenConfig.REFRESH_TOKEN_EXPIRY_SECONDS)
+                .expiresIn(TokenLifetimePolicy.ACCESS_TOKEN_EXPIRY_SECONDS)
+                .refreshTokenExpiresIn(TokenLifetimePolicy.REFRESH_TOKEN_EXPIRY_SECONDS)
                 .type("Bearer")
                 .username(user.getUsername())
                 .email(user.getEmail())
@@ -108,26 +91,7 @@ public class LoginUseCase implements LoginPort {
                 .isReactivated(isReactivated) // Set the flag
                 .build();
 
-        log.info("Login successful for user: {}", command.username());
+        log.info("Login successful");
         return response;
-    }
-
-    /**
-     * Build scope string from authorities
-     */
-    private String getScope(Authentication authentication) {
-        return authentication.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .map(this::normalizeAuthorityForToken)
-                .collect(Collectors.joining(" "));
-    }
-
-    private String normalizeAuthorityForToken(String authority) {
-        if (authority == null) {
-            return "";
-        }
-        return authority.startsWith("ROLE_ROLE_")
-                ? authority.replaceFirst("ROLE_ROLE_", "ROLE_")
-                : authority;
     }
 }

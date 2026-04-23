@@ -1,10 +1,10 @@
-package com.finflow.backend.identity.infrastructure.configuration;
+package com.finflow.backend.identity.infrastructure.security;
 
 import com.finflow.backend.identity.domain.entity.User;
 import com.finflow.backend.identity.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -23,14 +23,10 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        // 1. Find user in database
-        // 1. Find user in database by Username OR Email
         User user = userRepository.findByUsername(username)
                 .or(() -> userRepository.findByEmail(username))
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
 
-        // 2. Transform our User entity to Spring Security UserDetails
-        // Add "ROLE_" prefix as per Spring Security convention
         return org.springframework.security.core.userdetails.User
                 .withUsername(user.getUsername())
                 .password(user.getPassword())

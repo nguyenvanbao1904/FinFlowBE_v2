@@ -1,8 +1,8 @@
 package com.finflow.backend.identity.application.port.in;
 
 import com.finflow.backend.identity.application.command.LoginCommand;
-import com.finflow.backend.identity.presentation.response.AuthResponse;
+import com.finflow.backend.identity.application.dto.AuthOutput;
 
 public interface LoginPort {
-    AuthResponse execute(LoginCommand command);
+    AuthOutput execute(LoginCommand command);
 }

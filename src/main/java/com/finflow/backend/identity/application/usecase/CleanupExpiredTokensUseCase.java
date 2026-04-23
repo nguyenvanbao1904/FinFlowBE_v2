@@ -1,5 +1,6 @@
 package com.finflow.backend.identity.application.usecase;
 
+import com.finflow.backend.identity.application.port.in.CleanupExpiredTokensPort;
 import com.finflow.backend.identity.domain.repository.InvalidatedTokenRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,7 +12,7 @@ import java.util.Date;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class CleanupExpiredTokensUseCase {
+public class CleanupExpiredTokensUseCase implements CleanupExpiredTokensPort {
 
     private final InvalidatedTokenRepository invalidatedTokenRepository;
 
@@ -20,6 +21,7 @@ public class CleanupExpiredTokensUseCase {
      * Intended to be invoked by a scheduler at off-peak hours.
      */
     @Transactional
+    @Override
     public void execute() {
         long startTime = System.currentTimeMillis();
         Date now = new Date();

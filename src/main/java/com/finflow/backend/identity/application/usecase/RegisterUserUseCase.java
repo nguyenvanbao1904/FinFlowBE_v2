@@ -1,5 +1,6 @@
 package com.finflow.backend.identity.application.usecase;
 import com.finflow.backend.identity.application.port.out.TokenServicePort;
+import com.finflow.backend.identity.domain.constant.IdentityConstants;
 
 import com.finflow.backend.identity.application.port.in.RegisterUserPort;
 
@@ -23,7 +24,7 @@ import java.util.Set;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class RegisterUseCase implements RegisterUserPort {
+public class RegisterUserUseCase implements RegisterUserPort {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -34,17 +35,17 @@ public class RegisterUseCase implements RegisterUserPort {
     @Override
     public void execute(RegisterCommand command) {
         String registrationToken = command.registrationToken();
-        log.info("Executing register use case for user: {}", command.username());
+        log.debug("Executing register use case");
 
         // 1. Validate username is unique
         if (userRepository.existsByUsername(command.username())) {
-            log.warn("Registration failed: Username {} already exists", command.username());
+            log.warn("Registration failed: Username already exists");
             throw new AppException(IdentityErrorCode.USERNAME_ALREADY_EXISTS);
         }
 
         // 2. Validate email is unique
         if (userRepository.existsByEmail(command.email())) {
-            log.warn("Registration failed: Email {} already in use", command.email());
+            log.warn("Registration failed: Email already in use");
             throw new AppException(IdentityErrorCode.EMAIL_ALREADY_EXISTS);
         }
 
@@ -52,7 +53,7 @@ public class RegisterUseCase implements RegisterUserPort {
         validateRegistrationToken(registrationToken, command.email());
         
         // 4. Get or create default USER role
-        Role userRole = roleRepository.findById("ROLE_USER")
+        Role userRole = roleRepository.findById(IdentityConstants.ROLE_USER)
                 .orElseThrow(() -> new AppException(IdentityErrorCode.ROLE_NOT_FOUND));
 
         // 5. Create user entity
@@ -71,7 +72,7 @@ public class RegisterUseCase implements RegisterUserPort {
         // 6. Save to database
         userRepository.save(newUser);
         
-        log.info("User {} registered successfully", command.username());
+        log.info("User registered successfully");
     }
 
     private void validateRegistrationToken(String token, String email) {
@@ -80,7 +81,7 @@ public class RegisterUseCase implements RegisterUserPort {
             
             // Validate Token Type
             String type = decoded.type();
-            if (!"REGISTRATION_TOKEN".equals(type)) {
+            if (!IdentityConstants.TOKEN_TYPE_REGISTRATION.equals(type)) {
                 log.warn("Invalid token type: {}", type);
                 throw new AppException(IdentityErrorCode.INVALID_TOKEN);
             }
@@ -88,12 +89,14 @@ public class RegisterUseCase implements RegisterUserPort {
             // Validate Email (Subject)
             String subject = decoded.subject();
             if (!email.equals(subject)) {
-                log.warn("Token subject {} does not match email {}", subject, email);
+                log.warn("Token subject does not match registration email");
                 throw new AppException(IdentityErrorCode.INVALID_TOKEN);
             }
             
             // Expiry is checked automatically by jwtDecoder
             
+        } catch (AppException e) {
+            throw e;
         } catch (Exception e) {
             log.warn("Token validation failed: {}", e.getMessage());
             throw new AppException(IdentityErrorCode.INVALID_TOKEN);

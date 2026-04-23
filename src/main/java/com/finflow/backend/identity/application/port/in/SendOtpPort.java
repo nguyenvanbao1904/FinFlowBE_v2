@@ -1,7 +1,6 @@
 package com.finflow.backend.identity.application.port.in;
-
-import com.finflow.backend.identity.domain.enums.OtpPurpose;
+import com.finflow.backend.identity.application.command.SendOtpCommand;
 
 public interface SendOtpPort {
-    void execute(String email, OtpPurpose purpose);
+    void execute(SendOtpCommand command);
 }

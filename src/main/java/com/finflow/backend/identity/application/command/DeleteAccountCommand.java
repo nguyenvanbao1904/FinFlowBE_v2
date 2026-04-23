@@ -5,6 +5,5 @@ package com.finflow.backend.identity.application.command;
  */
 public record DeleteAccountCommand(
         String userId,
-        String password,
-        String verificationToken
+        String password
 ) {}

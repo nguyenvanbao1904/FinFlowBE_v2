@@ -1,4 +1,4 @@
-package com.finflow.backend.identity.application.event;
+package com.finflow.backend.identity.api;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,8 +9,8 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class AccountSoftDeletedEvent {
+public class OtpRequestedEvent {
     private String email;
-    private String username;
+    private String otpCode;
     private String correlationId;
 }

@@ -1,8 +1,8 @@
 package com.finflow.backend.identity.application.port.in;
 
 import com.finflow.backend.identity.application.command.UpdateProfileCommand;
-import com.finflow.backend.identity.presentation.response.UserResponse;
+import com.finflow.backend.identity.application.dto.UserOutput;
 
 public interface UpdateProfilePort {
-    UserResponse execute(UpdateProfileCommand command);
+    UserOutput execute(UpdateProfileCommand command);
 }

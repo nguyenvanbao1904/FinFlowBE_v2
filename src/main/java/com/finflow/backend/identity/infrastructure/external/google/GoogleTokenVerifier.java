@@ -1,4 +1,4 @@
-package com.finflow.backend.identity.infrastructure.configuration;
+package com.finflow.backend.identity.infrastructure.external.google;
 
 import com.finflow.backend.common.exception.AppException;
 import com.finflow.backend.identity.exception.IdentityErrorCode;

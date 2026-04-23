@@ -1,12 +1,15 @@
 package com.finflow.backend.identity.infrastructure.adapter;
 
+import com.finflow.backend.common.exception.AppException;
 import com.finflow.backend.identity.application.port.out.TokenServicePort;
+import com.finflow.backend.identity.exception.IdentityErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
+import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -39,11 +42,15 @@ public class JwtTokenAdapter implements TokenServicePort {
 
     @Override
     public DecodedToken decodeToken(String token) {
-        Jwt jwt = jwtDecoder.decode(token);
-        return new DecodedToken(
-                jwt.getSubject(),
-                jwt.getClaimAsString("type"),
-                jwt.getClaims()
-        );
+        try {
+            Jwt jwt = jwtDecoder.decode(token);
+            return new DecodedToken(
+                    jwt.getSubject(),
+                    jwt.getClaimAsString("type"),
+                    jwt.getClaims()
+            );
+        } catch (JwtException e) {
+            throw new AppException(IdentityErrorCode.INVALID_TOKEN);
+        }
     }
 }

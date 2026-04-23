@@ -1,6 +1,6 @@
-package com.finflow.backend.identity.infrastructure.persistence;
+package com.finflow.backend.identity.infrastructure.job;
 
-import com.finflow.backend.identity.application.usecase.SeedIdentityDataUseCase;
+import com.finflow.backend.identity.application.port.in.SeedIdentityDataPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -13,12 +13,11 @@ import org.springframework.stereotype.Component;
 @Order(1)
 public class IdentityDataSeeder implements CommandLineRunner {
 
-    private final SeedIdentityDataUseCase seedIdentityDataUseCase;
+    private final SeedIdentityDataPort seedIdentityDataPort;
 
     @Override
-    public void run(String... args) throws Exception {
+    public void run(String... args) {
         log.info("Triggering identity data seeding on startup...");
-        seedIdentityDataUseCase.execute();
+        seedIdentityDataPort.execute();
     }
 }
-
