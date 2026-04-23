@@ -1,6 +1,9 @@
 package com.finflow.backend.ai_chat.application.usecase;
 
 import com.finflow.backend.ai_chat.application.port.in.ListChatMessagesPort;
+import com.finflow.backend.ai_chat.application.query.ListChatMessagesQuery;
+import com.finflow.backend.ai_chat.application.dto.ChatMessageOutput;
+import com.finflow.backend.ai_chat.application.dto.ChatMessageSourceOutput;
 
 import com.finflow.backend.ai_chat.domain.entity.ChatMessage;
 import com.finflow.backend.ai_chat.domain.entity.ChatMessageSource;
@@ -9,11 +12,9 @@ import com.finflow.backend.ai_chat.domain.repository.ChatMessageRepository;
 import com.finflow.backend.ai_chat.domain.repository.ChatMessageSourceRepository;
 import com.finflow.backend.ai_chat.domain.repository.ChatThreadRepository;
 import com.finflow.backend.ai_chat.exception.ChatErrorCode;
-import com.finflow.backend.ai_chat.presentation.response.ChatMessageResponse;
-import com.finflow.backend.ai_chat.presentation.response.ChatMessageSourceResponse;
 import com.finflow.backend.common.exception.AppException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,32 +32,32 @@ public class ListChatMessagesUseCase implements ListChatMessagesPort {
     private final ChatMessageSourceRepository chatMessageSourceRepository;
 
     @Transactional(readOnly = true)
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @Override
-    public List<ChatMessageResponse> execute(String userId, String threadId) {
+    public Page<ChatMessageOutput> execute(ListChatMessagesQuery request) {
+        String userId = request.userId();
+        String threadId = request.threadId();
         ChatThread thread = chatThreadRepository.findByIdAndUserId(threadId, userId)
                 .orElseThrow(() -> new AppException(ChatErrorCode.CHAT_THREAD_NOT_FOUND));
 
-        List<ChatMessage> messages = chatMessageRepository.findByThreadIdOrderByCreatedAtAsc(thread.getId());
-        if (messages.isEmpty()) {
-            return List.of();
+        Page<ChatMessage> messagePage = chatMessageRepository.findByThreadId(thread.getId(), request.pageable());
+        if (messagePage.isEmpty()) {
+            return messagePage.map(m -> toResponse(m, Collections.emptyList()));
         }
 
-        List<String> messageIds = messages.stream().map(ChatMessage::getId).toList();
-        Map<String, List<ChatMessageSourceResponse>> sourceMap = chatMessageSourceRepository.findByMessageIdIn(messageIds)
+        List<String> messageIds = messagePage.getContent().stream().map(ChatMessage::getId).toList();
+        Map<String, List<ChatMessageSourceOutput>> sourceMap = chatMessageSourceRepository.findByMessageIdIn(messageIds)
                 .stream()
                 .collect(Collectors.groupingBy(
                         ChatMessageSource::getMessageId,
                         Collectors.mapping(ListChatMessagesUseCase::toSourceResponse, Collectors.toList())
                 ));
 
-        return messages.stream()
-                .map(message -> toResponse(message, sourceMap.getOrDefault(message.getId(), Collections.emptyList())))
-                .toList();
+        return messagePage.map(message ->
+                toResponse(message, sourceMap.getOrDefault(message.getId(), Collections.emptyList())));
     }
 
-    private static ChatMessageResponse toResponse(ChatMessage message, List<ChatMessageSourceResponse> sources) {
-        return new ChatMessageResponse(
+    private static ChatMessageOutput toResponse(ChatMessage message, List<ChatMessageSourceOutput> sources) {
+        return new ChatMessageOutput(
                 message.getId(),
                 message.getThreadId(),
                 message.getRole(),
@@ -74,8 +75,8 @@ public class ListChatMessagesUseCase implements ListChatMessagesPort {
         );
     }
 
-    private static ChatMessageSourceResponse toSourceResponse(ChatMessageSource source) {
-        return new ChatMessageSourceResponse(
+    private static ChatMessageSourceOutput toSourceResponse(ChatMessageSource source) {
+        return new ChatMessageSourceOutput(
                 source.getChunkId(),
                 source.getSourceTitle(),
                 source.getPageNumber(),
@@ -83,3 +84,4 @@ public class ListChatMessagesUseCase implements ListChatMessagesPort {
         );
     }
 }
+

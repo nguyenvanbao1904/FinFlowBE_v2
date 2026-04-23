@@ -6,5 +6,4 @@ public record SendChatMessageResponse(
         String clarificationQuestion,
         ChatMessageResponse userMessage,
         ChatMessageResponse assistantMessage
-) {
-}
+) {}

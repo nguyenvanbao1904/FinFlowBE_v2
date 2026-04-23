@@ -5,10 +5,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.finflow.backend.ai_chat.application.port.out.AiChatGatewayPort;
 import com.finflow.backend.ai_chat.exception.ChatErrorCode;
+import com.finflow.backend.ai_chat.infrastructure.config.DataAiProperties;
 import com.finflow.backend.common.exception.AppException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.slf4j.MDC;
 
@@ -34,15 +34,7 @@ public class RestDataAiChatAdapter implements AiChatGatewayPort {
     private static final String THREAD_SUMMARY_PATH = "/api/v1/ai/chat/thread-summary";
 
     private final ObjectMapper objectMapper;
-
-    @Value("${data.ai.base-url:http://localhost:8001}")
-    private String dataAiBaseUrl;
-
-    @Value("${data.ai.internal-api-key:}")
-    private String dataAiInternalApiKey;
-
-    @Value("${data.ai.chat-timeout-seconds:120}")
-    private int timeoutSeconds;
+    private final DataAiProperties dataAiProperties;
 
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
@@ -146,13 +138,13 @@ public class RestDataAiChatAdapter implements AiChatGatewayPort {
         }
 
         HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
-                .uri(URI.create(dataAiBaseUrl + path))
-                .timeout(Duration.ofSeconds(Math.max(10, timeoutSeconds)))
+                .uri(URI.create(dataAiProperties.getBaseUrl() + path))
+                .timeout(Duration.ofSeconds(Math.max(10, dataAiProperties.getChatTimeoutSeconds())))
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(body));
 
-        if (dataAiInternalApiKey != null && !dataAiInternalApiKey.isBlank()) {
-            requestBuilder.header("X-Internal-Api-Key", dataAiInternalApiKey);
+        if (dataAiProperties.getInternalApiKey() != null && !dataAiProperties.getInternalApiKey().isBlank()) {
+            requestBuilder.header("X-Internal-Api-Key", dataAiProperties.getInternalApiKey());
         }
 
         String correlationId = MDC.get("correlationId");

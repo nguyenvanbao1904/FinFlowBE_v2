@@ -1,7 +1,7 @@
 package com.finflow.backend.ai_chat.application.mapper;
 
+import com.finflow.backend.ai_chat.application.dto.ChatThreadOutput;
 import com.finflow.backend.ai_chat.domain.entity.ChatThread;
-import com.finflow.backend.ai_chat.presentation.response.ChatThreadResponse;
 
 /**
  * Maps {@link ChatThread} domain entities to API responses. Shared by multiple use cases
@@ -12,8 +12,8 @@ public final class ChatThreadResponseMapper {
     private ChatThreadResponseMapper() {
     }
 
-    public static ChatThreadResponse toResponse(ChatThread thread) {
-        return new ChatThreadResponse(
+    public static ChatThreadOutput toOutput(ChatThread thread) {
+        return new ChatThreadOutput(
                 thread.getId(),
                 thread.getTitle(),
                 thread.getLastTicker(),

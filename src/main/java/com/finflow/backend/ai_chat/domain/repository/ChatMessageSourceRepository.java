@@ -8,4 +8,5 @@ import java.util.List;
 
 public interface ChatMessageSourceRepository extends JpaRepository<ChatMessageSource, Long> {
     List<ChatMessageSource> findByMessageIdIn(Collection<String> messageIds);
+    void deleteByMessageIdIn(Collection<String> messageIds);
 }

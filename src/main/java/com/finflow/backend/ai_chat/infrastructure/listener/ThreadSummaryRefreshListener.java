@@ -1,7 +1,8 @@
-package com.finflow.backend.ai_chat.infrastructure.service;
+package com.finflow.backend.ai_chat.infrastructure.listener;
 
 import com.finflow.backend.ai_chat.application.event.ThreadSummaryRefreshRequestedEvent;
-import com.finflow.backend.ai_chat.application.usecase.RefreshThreadSummaryUseCase;
+import com.finflow.backend.ai_chat.application.command.RefreshThreadSummaryCommand;
+import com.finflow.backend.ai_chat.application.port.in.RefreshThreadSummaryPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -13,13 +14,13 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class ThreadSummaryRefreshListener {
 
-    private final RefreshThreadSummaryUseCase refreshThreadSummaryUseCase;
+    private final RefreshThreadSummaryPort refreshThreadSummaryPort;
 
     @Async
     @EventListener
     public void handle(ThreadSummaryRefreshRequestedEvent event) {
         try {
-            refreshThreadSummaryUseCase.execute(event.threadId());
+            refreshThreadSummaryPort.execute(new RefreshThreadSummaryCommand(event.threadId()));
         } catch (Exception ex) {
             log.warn("Refresh thread summary failed threadId={} reason={}", event.threadId(), ex.getMessage());
         }
