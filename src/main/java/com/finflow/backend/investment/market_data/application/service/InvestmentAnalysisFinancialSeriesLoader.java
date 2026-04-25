@@ -8,6 +8,8 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.Optional;
 
+import static com.finflow.backend.investment.market_data.application.service.InvestmentAnalysisNumberUtils.toDouble;
+
 @Component
 @RequiredArgsConstructor
 public class InvestmentAnalysisFinancialSeriesLoader {
@@ -21,6 +23,17 @@ public class InvestmentAnalysisFinancialSeriesLoader {
             Integer annualLimit,
             Integer quarterlyLimit
     ) {
+        List<CashFlowStatement> cashFlows = readService.loadCashFlows(companyId);
+        List<InvestmentAnalysisOutput.CashFlowPoint> cfPoints = cashFlows.stream()
+                .map(cf -> new InvestmentAnalysisOutput.CashFlowPoint(
+                        cf.getYear(),
+                        cf.getQuarter(),
+                        toDouble(cf.getOperatingCashflow()),
+                        toDouble(cf.getInvestingCashflow()),
+                        toDouble(cf.getFinancingCashflow())
+                ))
+                .toList();
+
         String normalizedType = Optional.ofNullable(companyType).orElse("").toUpperCase();
         if ("BANK".equals(normalizedType)) {
             List<BankBalanceSheet> balances = readService.loadBankBalances(companyId, annualLimit, quarterlyLimit);
@@ -33,7 +46,8 @@ public class InvestmentAnalysisFinancialSeriesLoader {
                     balances,
                     incomes,
                     null,
-                    null
+                    null,
+                    cfPoints
             );
         }
 
@@ -47,7 +61,8 @@ public class InvestmentAnalysisFinancialSeriesLoader {
                 null,
                 null,
                 balances,
-                incomes
+                incomes,
+                cfPoints
         );
     }
 }

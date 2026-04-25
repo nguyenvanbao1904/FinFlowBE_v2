@@ -48,6 +48,8 @@ class GetInvestmentAnalysisUseCaseValuationRangeTest {
     NonBankIncomeStatementRepository nonBankIncomeStatementRepository;
     @Mock
     IndustryNodeRepository industryNodeRepository;
+    @Mock
+    CashFlowStatementRepository cashFlowStatementRepository;
 
     private GetInvestmentValuationsUseCase valuationsUseCase;
 
@@ -65,7 +67,8 @@ class GetInvestmentAnalysisUseCaseValuationRangeTest {
                 bankBalanceSheetRepository,
                 nonBankBalanceSheetRepository,
                 bankIncomeStatementRepository,
-                nonBankIncomeStatementRepository
+                nonBankIncomeStatementRepository,
+                cashFlowStatementRepository
         );
 
         valuationsUseCase = new GetInvestmentValuationsUseCase(readService, pointMapper);

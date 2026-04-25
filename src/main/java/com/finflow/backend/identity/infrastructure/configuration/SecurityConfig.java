@@ -122,6 +122,7 @@ public class SecurityConfig {
     /** Strip PEM headers/footers and Base64-decode to raw DER bytes. */
     private static byte[] decodePem(String pem) {
         String stripped = pem
+                .replace("\\n", "\n")
                 .replaceAll("-----BEGIN [^-]+-----", "")
                 .replaceAll("-----END [^-]+-----", "")
                 .replaceAll("\\s+", "");

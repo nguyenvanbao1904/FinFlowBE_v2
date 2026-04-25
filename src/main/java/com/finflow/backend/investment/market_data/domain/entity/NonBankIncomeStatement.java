@@ -25,4 +25,16 @@ public class NonBankIncomeStatement extends IncomeStatement {
     // --- LỢI NHUẬN ---
     @Column(name = "net_profit", precision = 19, scale = 2)
     private BigDecimal netProfit; // Lợi nhuận thuần
+
+    @Column(name = "gross_profit", precision = 20, scale = 2)
+    private BigDecimal grossProfit;
+
+    @Column(name = "cost_of_goods_sold", precision = 20, scale = 2)
+    private BigDecimal costOfGoodsSold;
+
+    @Column(name = "selling_expense", precision = 20, scale = 2)
+    private BigDecimal sellingExpense;
+
+    @Column(name = "managing_expense", precision = 20, scale = 2)
+    private BigDecimal managingExpense;
 }

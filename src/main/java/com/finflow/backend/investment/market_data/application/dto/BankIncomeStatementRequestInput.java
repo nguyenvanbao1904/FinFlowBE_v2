@@ -10,8 +10,13 @@ public record BankIncomeStatementRequestInput(
         Integer year,
         Integer quarter,
         BigDecimal netInterestIncome,
-        BigDecimal feeAndCommissionIncome,
-        BigDecimal otherIncome,
+        BigDecimal netFeeAndCommissionIncome,
+        BigDecimal netOtherIncomeOrExpenses,
         BigDecimal profitAfterTax,
-        BigDecimal interestExpense
+        BigDecimal interestExpense,
+        BigDecimal netProfit,
+        BigDecimal totalOperatingIncome,
+        BigDecimal totalOperatingExpense,
+        BigDecimal creditRiskProvisionsExpense,
+        BigDecimal interestAndSimilarIncome
 ) {}

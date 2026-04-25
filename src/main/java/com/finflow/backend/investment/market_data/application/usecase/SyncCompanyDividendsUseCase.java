@@ -32,6 +32,7 @@ public class SyncCompanyDividendsUseCase implements SyncCompanyDividendsPort {
         
         List<CompanyDividend> entities = requests.stream()
                 .map(mapper::toEntity)
+                .peek(e -> e.setCompanyId(companyId))
                 .toList();
 
         repository.saveAll(entities);

@@ -47,4 +47,31 @@ public class BankBalanceSheet extends BalanceSheet {
     // --- NỢ CHI TIẾT ---
     @Column(name = "total_liabilities", precision = 19, scale = 2)
     private BigDecimal totalLiabilities; // NỢ PHẢI TRẢ (đồng)
+
+    @Column(name = "customer_loan", precision = 20, scale = 2)
+    private BigDecimal customerLoan;
+
+    @Column(name = "standard_debt", precision = 20, scale = 2)
+    private BigDecimal standardDebt;
+
+    @Column(name = "watchlist_debt", precision = 20, scale = 2)
+    private BigDecimal watchlistDebt;
+
+    @Column(name = "substandard_debt", precision = 20, scale = 2)
+    private BigDecimal substandardDebt;
+
+    @Column(name = "doubtful_debt", precision = 20, scale = 2)
+    private BigDecimal doubtfulDebt;
+
+    @Column(name = "bad_debt", precision = 20, scale = 2)
+    private BigDecimal badDebt;
+
+    @Column(name = "provision_for_customer_loan_loss", precision = 20, scale = 2)
+    private BigDecimal provisionForCustomerLoanLoss;
+
+    @Column(name = "issuing_valuable_paper", precision = 20, scale = 2)
+    private BigDecimal issuingValuablePaper;
+
+    @Column(name = "total_equity", precision = 20, scale = 2)
+    private BigDecimal totalEquity;
 }

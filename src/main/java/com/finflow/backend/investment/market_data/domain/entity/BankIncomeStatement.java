@@ -32,4 +32,16 @@ public class BankIncomeStatement extends IncomeStatement {
     // --- LỢI NHUẬN ---
     @Column(name = "net_profit", precision = 19, scale = 2)
     private BigDecimal netProfit; // Lợi nhuận thuần
+
+    @Column(name = "total_operating_income", precision = 20, scale = 2)
+    private BigDecimal totalOperatingIncome;
+
+    @Column(name = "total_operating_expense", precision = 20, scale = 2)
+    private BigDecimal totalOperatingExpense;
+
+    @Column(name = "credit_risk_provisions_expense", precision = 20, scale = 2)
+    private BigDecimal creditRiskProvisionsExpense;
+
+    @Column(name = "interest_and_similar_income", precision = 20, scale = 2)
+    private BigDecimal interestAndSimilarIncome;
 }

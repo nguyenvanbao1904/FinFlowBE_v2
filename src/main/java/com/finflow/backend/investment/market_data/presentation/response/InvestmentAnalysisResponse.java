@@ -68,7 +68,8 @@ public record InvestmentAnalysisResponse(
     public record FinancialSeries(
             String companyType,
             List<BankFinancialPoint> bank,
-            List<NonBankFinancialPoint> nonBank
+            List<NonBankFinancialPoint> nonBank,
+            List<CashFlowPoint> cashFlows
     ) {}
 
     public record BankFinancialPoint(
@@ -88,15 +89,44 @@ public record InvestmentAnalysisResponse(
             Double customerDeposits,
             Double valuablePapers,
             Double equity,
+            Double depositsBorrowingsOthers,
+            Double totalLiabilities,
+            Double totalEquity,
+            Double issuingValuablePaper,
+            Double customerLoan,
+            Double standardDebt,
+            Double watchlistDebt,
+            Double substandardDebt,
+            Double doubtfulDebt,
+            Double badDebt,
+            Double provisionForCustomerLoanLoss,
             Double roe,
             Double roa,
+            Double nim,
+            Double yoea,
+            Double cof,
+            Double cir,
+            Double ldr,
+            Double nplToLoan,
+            Double loanlossReservesToNPL,
+            Double pe,
+            Double pb,
+            Double eps,
+            Double bvps,
+            Double saleGrowth,
+            Double profitGrowth,
+            Double payoutRatio,
+            Double cashDividend,
+            Double shareAtPeriodEnd,
             Double netInterestIncome,
             Double feeAndCommissionIncome,
             Double otherIncome,
             Double profitAfterTax,
-            Double depositsBorrowingsOthers,
-            Double totalLiabilities,
-            Double interestExpense
+            Double interestExpense,
+            Double totalOperatingIncome,
+            Double totalOperatingExpense,
+            Double creditRiskProvisionsExpense,
+            Double interestAndSimilarIncome
     ) {}
 
     public record NonBankFinancialPoint(
@@ -108,24 +138,47 @@ public record InvestmentAnalysisResponse(
             Double inventories,
             Double fixedAssets,
             Double longTermReceivables,
-            /** Tổng tài sản theo BCTC (cột total_assets); dùng để tính phần "khác" = total − các khoản chi tiết đã có. */
             Double totalAssets,
+            Double inProgressLongTermAsset,
             Double equity,
             Double shortTermBorrowings,
             Double longTermBorrowings,
             Double advancesFromCustomers,
-            /** Tổng nguồn vốn theo BCTC (cột total_capital); dùng tính phần khác = total − các khoản chi tiết. */
             Double totalCapital,
+            Double totalLiabilities,
+            Double convertibleBond,
             Double roe,
             Double roa,
+            Double grossMargin,
+            Double netMargin,
+            Double pe,
+            Double pb,
+            Double eps,
+            Double bvps,
+            Double saleGrowth,
+            Double profitGrowth,
+            Double currentRatio,
+            Double totalDebtOverEquity,
+            Double evOverEbitda,
+            Double inventoryTurnover,
+            Double payoutRatio,
+            Double cashDividend,
+            Double shareAtPeriodEnd,
             Double netRevenue,
             Double profitAfterTax,
-            /** Biên LN gộp (%) — `gross_margin` / lng trong DB; không suy từ LNST/DT. */
-            Double grossMargin,
-            /** Biên LN ròng (%) — `net_margin` / lnr; có thể suy từ LNST/DT khi thiếu trong DB. */
-            Double netMargin,
-            Double totalLiabilities,
-            Double totalRevenue
+            Double totalRevenue,
+            Double grossProfit,
+            Double costOfGoodsSold,
+            Double sellingExpense,
+            Double managingExpense
+    ) {}
+
+    public record CashFlowPoint(
+            Integer year,
+            Integer quarter,
+            Double operatingCashflow,
+            Double investingCashflow,
+            Double financingCashflow
     ) {}
 
     public record DividendPoint(

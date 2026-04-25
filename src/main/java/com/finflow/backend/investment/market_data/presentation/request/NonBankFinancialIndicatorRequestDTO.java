@@ -17,5 +17,14 @@ public record NonBankFinancialIndicatorRequestDTO(
         BigDecimal bvps,
         BigDecimal cplh,
         BigDecimal lng,
-        BigDecimal lnr
+        BigDecimal lnr,
+        BigDecimal saleGrowth,
+        BigDecimal profitGrowth,
+        BigDecimal currentRatio,
+        BigDecimal totalDebtOverEquity,
+        BigDecimal evOverEbitda,
+        BigDecimal inventoryTurnover,
+        BigDecimal payoutRatio,
+        BigDecimal cashDividend,
+        BigDecimal shareAtPeriodEnd
 ) {}

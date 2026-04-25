@@ -41,19 +41,21 @@ public class SyncIndustryNodesUseCase implements SyncIndustryNodesPort {
                 .stream()
                 .collect(Collectors.toMap(IndustryNode::getId, Function.identity()));
 
+        Map<UUID, IndustryNode> nodeById = new java.util.HashMap<>(existingById);
         List<IndustryNode> toSave = new ArrayList<>(ordered.size());
         for (IndustryNodeRequestInput dto : ordered) {
-            IndustryNode node = existingById.getOrDefault(dto.id(), new IndustryNode());
+            IndustryNode node = nodeById.getOrDefault(dto.id(), new IndustryNode());
             node.setId(dto.id());
             node.setLevel(dto.level());
             node.setNameVi(dto.nameVi());
             node.setIcbCode(emptyToNull(dto.icbCode()));
             node.setDetailLabel(emptyToNull(dto.detailLabel()));
             if (dto.parentId() != null) {
-                node.setParent(industryNodeRepository.getReferenceById(dto.parentId()));
+                node.setParent(nodeById.get(dto.parentId()));
             } else {
                 node.setParent(null);
             }
+            nodeById.put(dto.id(), node);
             toSave.add(node);
         }
 

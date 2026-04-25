@@ -44,4 +44,10 @@ public class NonBankBalanceSheet extends BalanceSheet {
     // --- NỢ PHẢI TRẢ (GỌI CHUNG) ---
     @Column(name = "total_liabilities", precision = 19, scale = 2)
     private BigDecimal totalLiabilities; // NỢ PHẢI TRẢ (đồng)
+
+    @Column(name = "in_progress_long_term_asset", precision = 20, scale = 2)
+    private BigDecimal inProgressLongTermAsset;
+
+    @Column(name = "convertible_bond", precision = 20, scale = 2)
+    private BigDecimal convertibleBond;
 }

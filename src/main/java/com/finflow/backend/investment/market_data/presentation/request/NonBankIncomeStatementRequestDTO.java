@@ -13,5 +13,9 @@ public record NonBankIncomeStatementRequestDTO(
     
     // --- DOANH THU CHI TIẾT (New Fields) ---
     BigDecimal totalRevenue,
-    BigDecimal netProfit
+    BigDecimal netProfit,
+    BigDecimal grossProfit,
+    BigDecimal costOfGoodsSold,
+    BigDecimal sellingExpense,
+    BigDecimal managingExpense
 ) {}

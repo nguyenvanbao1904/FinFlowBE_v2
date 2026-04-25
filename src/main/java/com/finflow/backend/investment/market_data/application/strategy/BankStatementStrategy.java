@@ -13,10 +13,6 @@ import static com.finflow.backend.investment.market_data.application.service.Inv
 import static com.finflow.backend.investment.market_data.application.service.InvestmentAnalysisNumberUtils.sumBigDecimals;
 import static com.finflow.backend.investment.market_data.application.service.InvestmentAnalysisNumberUtils.toDouble;
 
-/**
- * Strategy for building BANK financial series points.
- * Pure transformation: no repository access.
- */
 public class BankStatementStrategy {
     private final InvestmentFinancialPointMapper pointMapper;
 
@@ -58,9 +54,14 @@ public class BankStatementStrategy {
             Double annualOther = sumBigDecimals(quarterIncomes, BankIncomeStatement::getNetOtherIncomeOrExpenses);
             Double annualProfit = sumBigDecimals(quarterIncomes, BankIncomeStatement::getProfitAfterTax);
             Double annualInterestExpense = sumBigDecimals(quarterIncomes, BankIncomeStatement::getInterestExpense);
+            Double annualTOI = sumBigDecimals(quarterIncomes, BankIncomeStatement::getTotalOperatingIncome);
+            Double annualTOE = sumBigDecimals(quarterIncomes, BankIncomeStatement::getTotalOperatingExpense);
+            Double annualProvision = sumBigDecimals(quarterIncomes, BankIncomeStatement::getCreditRiskProvisionsExpense);
+            Double annualInterestIncome = sumBigDecimals(quarterIncomes, BankIncomeStatement::getInterestAndSimilarIncome);
 
             points.add(makeBankPoint(year, 0, b, f,
-                    annualNetInterest, annualFee, annualOther, annualProfit, annualInterestExpense));
+                    annualNetInterest, annualFee, annualOther, annualProfit, annualInterestExpense,
+                    annualTOI, annualTOE, annualProvision, annualInterestIncome));
 
             for (BankIncomeStatement qi : quarterIncomes) {
                 BankBalanceSheet qb = balances.stream()
@@ -76,7 +77,11 @@ public class BankStatementStrategy {
                         toDouble(qi.getNetFeeAndCommissionIncome()),
                         toDouble(qi.getNetOtherIncomeOrExpenses()),
                         toDouble(qi.getProfitAfterTax()),
-                        toDouble(qi.getInterestExpense())));
+                        toDouble(qi.getInterestExpense()),
+                        toDouble(qi.getTotalOperatingIncome()),
+                        toDouble(qi.getTotalOperatingExpense()),
+                        toDouble(qi.getCreditRiskProvisionsExpense()),
+                        toDouble(qi.getInterestAndSimilarIncome())));
             }
         }
 
@@ -122,34 +127,72 @@ public class BankStatementStrategy {
             Double fee,
             Double other,
             Double profit,
-            Double interestExpense
+            Double interestExpense,
+            Double totalOperatingIncome,
+            Double totalOperatingExpense,
+            Double creditRiskProvisionsExpense,
+            Double interestAndSimilarIncome
     ) {
         return pointMapper.toBankFinancialPoint(
                 year,
                 quarter,
+                // Balance sheet — assets
                 b == null ? null : toDouble(b.getCashAndCashEquivalents()),
                 b == null ? null : toDouble(b.getBalancesWithSbv()),
                 b == null ? null : toDouble(b.getInterbankPlacementsAndLoans()),
                 b == null ? null : toDouble(b.getTradingSecurities()),
                 b == null ? null : toDouble(b.getInvestmentSecurities()),
                 b == null ? null : toDouble(b.getLoansToCustomers()),
-                null,
-                null,
-                null,
-                null,
+                null, // shortTermLoans
+                null, // mediumLongTermLoans
+                null, // personalLoans
+                null, // corporateLoans
+                // Balance sheet — liabilities & equity
                 b == null ? null : toDouble(b.getGovAndSbvDebt()),
                 b == null ? null : toDouble(b.getDepositsFromCustomers()),
                 b == null ? null : toDouble(b.getConvertibleAndOtherPapers()),
-                b == null ? null : toDouble(b.getEquity()),
+                b == null ? null : toDouble(b.getTotalEquity()),
+                b == null ? null : toDouble(b.getDepositsBorrowingsOthers()),
+                b == null ? null : toDouble(b.getTotalLiabilities()),
+                b == null ? null : toDouble(b.getTotalEquity()),
+                b == null ? null : toDouble(b.getIssuingValuablePaper()),
+                // Balance sheet — loan quality
+                b == null ? null : toDouble(b.getCustomerLoan()),
+                b == null ? null : toDouble(b.getStandardDebt()),
+                b == null ? null : toDouble(b.getWatchlistDebt()),
+                b == null ? null : toDouble(b.getSubstandardDebt()),
+                b == null ? null : toDouble(b.getDoubtfulDebt()),
+                b == null ? null : toDouble(b.getBadDebt()),
+                b == null ? null : toDouble(b.getProvisionForCustomerLoanLoss()),
+                // Indicators
                 f == null ? null : toDouble(f.getRoe()),
                 f == null ? null : toDouble(f.getRoa()),
+                f == null ? null : toDouble(f.getNim()),
+                f == null ? null : toDouble(f.getYoea()),
+                f == null ? null : toDouble(f.getCof()),
+                f == null ? null : toDouble(f.getCir()),
+                f == null ? null : toDouble(f.getLdr()),
+                f == null ? null : toDouble(f.getNplToLoan()),
+                f == null ? null : toDouble(f.getLoanlossReservesToNPL()),
+                f == null ? null : toDouble(f.getPe()),
+                f == null ? null : toDouble(f.getPb()),
+                f == null ? null : toDouble(f.getEps()),
+                f == null ? null : toDouble(f.getBvps()),
+                f == null ? null : toDouble(f.getSaleGrowth()),
+                f == null ? null : toDouble(f.getProfitGrowth()),
+                f == null ? null : toDouble(f.getPayoutRatio()),
+                f == null ? null : toDouble(f.getCashDividend()),
+                f == null ? null : toDouble(f.getShareAtPeriodEnd()),
+                // Income statement
                 netInterest,
                 fee,
                 other,
                 profit,
-                b == null ? null : toDouble(b.getDepositsBorrowingsOthers()),
-                b == null ? null : toDouble(b.getTotalLiabilities()),
-                interestExpense
+                interestExpense,
+                totalOperatingIncome,
+                totalOperatingExpense,
+                creditRiskProvisionsExpense,
+                interestAndSimilarIncome
         );
     }
 }

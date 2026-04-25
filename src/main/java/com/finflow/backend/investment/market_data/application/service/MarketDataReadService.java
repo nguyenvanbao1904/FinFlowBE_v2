@@ -30,6 +30,7 @@ public class MarketDataReadService {
     private final NonBankBalanceSheetRepository nonBankBalanceSheetRepository;
     private final BankIncomeStatementRepository bankIncomeStatementRepository;
     private final NonBankIncomeStatementRepository nonBankIncomeStatementRepository;
+    private final CashFlowStatementRepository cashFlowStatementRepository;
 
     public Company resolveCompany(String rawSymbol) {
         String symbol = normalizeSymbol(rawSymbol);
@@ -335,5 +336,9 @@ public class MarketDataReadService {
 
     private static int computeIndicatorCap(Integer annualLimit, Integer quarterlyLimit) {
         return (int) Math.min(800L, Math.max(24L, (long) computeTimeSeriesCap(annualLimit, quarterlyLimit) + 32L));
+    }
+
+    public List<CashFlowStatement> loadCashFlows(String companyId) {
+        return cashFlowStatementRepository.findByCompanyIdOrderByYearAscQuarterAsc(companyId);
     }
 }

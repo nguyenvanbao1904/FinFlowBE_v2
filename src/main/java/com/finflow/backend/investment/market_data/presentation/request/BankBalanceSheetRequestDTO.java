@@ -23,6 +23,14 @@ public record BankBalanceSheetRequestDTO(
     BigDecimal depositsFromCustomers,
     BigDecimal convertibleAndOtherPapers,
 
-    // --- NỢ CHI TIẾT ---
-    BigDecimal totalLiabilities
+    BigDecimal totalLiabilities,
+    BigDecimal customerLoan,
+    BigDecimal standardDebt,
+    BigDecimal watchlistDebt,
+    BigDecimal substandardDebt,
+    BigDecimal doubtfulDebt,
+    BigDecimal badDebt,
+    BigDecimal provisionForCustomerLoanLoss,
+    BigDecimal issuingValuablePaper,
+    BigDecimal totalEquity
 ) {}

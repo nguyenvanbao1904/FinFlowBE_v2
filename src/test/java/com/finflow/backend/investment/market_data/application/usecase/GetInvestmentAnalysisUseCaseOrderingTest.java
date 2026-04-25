@@ -55,6 +55,8 @@ class GetInvestmentAnalysisUseCaseOrderingTest {
     @Mock
     IndustryNodeRepository industryNodeRepository;
     @Mock
+    CashFlowStatementRepository cashFlowStatementRepository;
+    @Mock
     MarketPriceApi marketPriceApi;
 
     private GetInvestmentFullAnalysisUseCase useCase;
@@ -75,7 +77,8 @@ class GetInvestmentAnalysisUseCaseOrderingTest {
                 bankBalanceSheetRepository,
                 nonBankBalanceSheetRepository,
                 bankIncomeStatementRepository,
-                nonBankIncomeStatementRepository
+                nonBankIncomeStatementRepository,
+                cashFlowStatementRepository
         );
         when(marketPriceApi.getClosePrices(any())).thenReturn(Map.of());
         InvestmentAnalysisOverviewBuilder overviewBuilder =

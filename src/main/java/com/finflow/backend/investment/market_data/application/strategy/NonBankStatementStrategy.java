@@ -13,10 +13,6 @@ import static com.finflow.backend.investment.market_data.application.service.Inv
 import static com.finflow.backend.investment.market_data.application.service.InvestmentAnalysisNumberUtils.sumBigDecimals;
 import static com.finflow.backend.investment.market_data.application.service.InvestmentAnalysisNumberUtils.toDouble;
 
-/**
- * Strategy for building NON_BANK financial series points.
- * Pure transformation: no repository access.
- */
 public class NonBankStatementStrategy {
     private final InvestmentFinancialPointMapper pointMapper;
 
@@ -32,15 +28,9 @@ public class NonBankStatementStrategy {
             Integer quarterlyLimit
     ) {
         Map<Integer, NonBankBalanceSheet> balByYear = keepLatestQuarterByYear(
-                balances,
-                NonBankBalanceSheet::getYear,
-                NonBankBalanceSheet::getQuarter
-        );
+                balances, NonBankBalanceSheet::getYear, NonBankBalanceSheet::getQuarter);
         Map<Integer, FinancialIndicator> indByYear = keepLatestQuarterByYear(
-                indicators,
-                FinancialIndicator::getYear,
-                FinancialIndicator::getQuarter
-        );
+                indicators, FinancialIndicator::getYear, FinancialIndicator::getQuarter);
 
         Map<Integer, List<NonBankIncomeStatement>> incGrouped = new HashMap<>();
         for (NonBankIncomeStatement inc : incomes) {
@@ -62,23 +52,17 @@ public class NonBankStatementStrategy {
             Double annualNetRevenue = sumBigDecimals(quarterIncomes, NonBankIncomeStatement::getNetRevenue);
             Double annualProfit = sumBigDecimals(quarterIncomes, NonBankIncomeStatement::getProfitAfterTax);
             Double annualTotalRevenue = sumBigDecimals(quarterIncomes, NonBankIncomeStatement::getTotalRevenue);
+            Double annualGrossProfit = sumBigDecimals(quarterIncomes, NonBankIncomeStatement::getGrossProfit);
+            Double annualCOGS = sumBigDecimals(quarterIncomes, NonBankIncomeStatement::getCostOfGoodsSold);
+            Double annualSelling = sumBigDecimals(quarterIncomes, NonBankIncomeStatement::getSellingExpense);
+            Double annualManaging = sumBigDecimals(quarterIncomes, NonBankIncomeStatement::getManagingExpense);
+
             Double grossMargin = f == null ? null : toDouble(f.getLng());
             Double netMargin = f == null ? null : toDouble(f.getLnr());
-            if (netMargin == null && annualNetRevenue != null && annualProfit != null && annualNetRevenue > 0) {
-                netMargin = annualProfit / annualNetRevenue * 100.0;
-            }
 
-            points.add(makeNonBankPoint(
-                    year,
-                    0,
-                    b,
-                    f,
-                    annualNetRevenue,
-                    annualProfit,
-                    grossMargin,
-                    netMargin,
-                    annualTotalRevenue
-            ));
+            points.add(makeNonBankPoint(year, 0, b, f,
+                    annualNetRevenue, annualProfit, grossMargin, netMargin, annualTotalRevenue,
+                    annualGrossProfit, annualCOGS, annualSelling, annualManaging));
 
             for (NonBankIncomeStatement qi : quarterIncomes) {
                 NonBankBalanceSheet qb = balances.stream()
@@ -93,21 +77,11 @@ public class NonBankStatementStrategy {
                 Double qProfit = toDouble(qi.getProfitAfterTax());
                 Double qGross = qf == null ? null : toDouble(qf.getLng());
                 Double qNet = qf == null ? null : toDouble(qf.getLnr());
-                if (qNet == null && qNetRevenue != null && qProfit != null && qNetRevenue > 0) {
-                    qNet = qProfit / qNetRevenue * 100.0;
-                }
 
-                points.add(makeNonBankPoint(
-                        year,
-                        qi.getQuarter(),
-                        qb,
-                        qf,
-                        qNetRevenue,
-                        qProfit,
-                        qGross,
-                        qNet,
-                        toDouble(qi.getTotalRevenue())
-                ));
+                points.add(makeNonBankPoint(year, qi.getQuarter(), qb, qf,
+                        qNetRevenue, qProfit, qGross, qNet, toDouble(qi.getTotalRevenue()),
+                        toDouble(qi.getGrossProfit()), toDouble(qi.getCostOfGoodsSold()),
+                        toDouble(qi.getSellingExpense()), toDouble(qi.getManagingExpense())));
             }
         }
 
@@ -153,11 +127,16 @@ public class NonBankStatementStrategy {
             Double profit,
             Double grossMargin,
             Double netMargin,
-            Double totalRevenue
+            Double totalRevenue,
+            Double grossProfit,
+            Double costOfGoodsSold,
+            Double sellingExpense,
+            Double managingExpense
     ) {
         return pointMapper.toNonBankFinancialPoint(
                 year,
                 quarter,
+                // Balance sheet — assets
                 b == null ? null : toDouble(b.getCashAndCashEquivalents()),
                 b == null ? null : toDouble(b.getShortTermInvestments()),
                 b == null ? null : toDouble(b.getShortTermReceivables()),
@@ -165,19 +144,41 @@ public class NonBankStatementStrategy {
                 b == null ? null : toDouble(b.getFixedAssets()),
                 b == null ? null : toDouble(b.getLongTermReceivables()),
                 b == null ? null : toDouble(b.getTotalAssets()),
+                b == null ? null : toDouble(b.getInProgressLongTermAsset()),
+                // Balance sheet — liabilities & equity
                 b == null ? null : toDouble(b.getEquity()),
                 b == null ? null : toDouble(b.getShortTermBorrowings()),
                 b == null ? null : toDouble(b.getLongTermBorrowings()),
                 b == null ? null : toDouble(b.getAdvancesFromCustomers()),
                 b == null ? null : toDouble(b.getTotalCapital()),
+                b == null ? null : toDouble(b.getTotalLiabilities()),
+                b == null ? null : toDouble(b.getConvertibleBond()),
+                // Indicators
                 f == null ? null : toDouble(f.getRoe()),
                 f == null ? null : toDouble(f.getRoa()),
-                netRevenue,
-                profit,
                 grossMargin,
                 netMargin,
-                b == null ? null : toDouble(b.getTotalLiabilities()),
-                totalRevenue
+                f == null ? null : toDouble(f.getPe()),
+                f == null ? null : toDouble(f.getPb()),
+                f == null ? null : toDouble(f.getEps()),
+                f == null ? null : toDouble(f.getBvps()),
+                f == null ? null : toDouble(f.getSaleGrowth()),
+                f == null ? null : toDouble(f.getProfitGrowth()),
+                f == null ? null : toDouble(f.getCurrentRatio()),
+                f == null ? null : toDouble(f.getTotalDebtOverEquity()),
+                f == null ? null : toDouble(f.getEvOverEbitda()),
+                f == null ? null : toDouble(f.getInventoryTurnover()),
+                f == null ? null : toDouble(f.getPayoutRatio()),
+                f == null ? null : toDouble(f.getCashDividend()),
+                f == null ? null : toDouble(f.getShareAtPeriodEnd()),
+                // Income statement
+                netRevenue,
+                profit,
+                totalRevenue,
+                grossProfit,
+                costOfGoodsSold,
+                sellingExpense,
+                managingExpense
         );
     }
 }

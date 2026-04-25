@@ -53,6 +53,10 @@ public interface InvestmentPresentationMapper {
 
     List<IndustryNodeRequestInput> toIndustryNodeInputs(List<IndustryNodeRequestDTO> dtos);
 
+    CashFlowStatementRequestInput toInput(CashFlowStatementRequestDTO dto);
+
+    List<CashFlowStatementRequestInput> toCashFlowStatementInputs(List<CashFlowStatementRequestDTO> dtos);
+
     InvestmentAnalysisResponse toResponse(InvestmentAnalysisOutput output);
 
     InvestmentAnalysisResponse.FinancialSeries toResponse(InvestmentAnalysisOutput.FinancialSeries output);

@@ -31,4 +31,6 @@ public interface InvestmentDataMapper {
     CompanyShareholder toEntity(CompanyShareholderRequestInput dto);
 
     CompanyDividend toEntity(CompanyDividendRequestInput dto);
+
+    CashFlowStatement toEntity(CashFlowStatementRequestInput dto);
 }

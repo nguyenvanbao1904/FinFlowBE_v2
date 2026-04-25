@@ -12,6 +12,9 @@ public record NonBankIncomeStatementRequestInput(
         BigDecimal netRevenue,
         BigDecimal totalRevenue,
         BigDecimal profitAfterTax,
-        BigDecimal grossMargin,
-        BigDecimal netMargin
+        BigDecimal netProfit,
+        BigDecimal grossProfit,
+        BigDecimal costOfGoodsSold,
+        BigDecimal sellingExpense,
+        BigDecimal managingExpense
 ) {}

@@ -21,5 +21,9 @@ public record BankIncomeStatementRequestDTO(
     BigDecimal netOtherIncomeOrExpenses,
     
     // --- LỢI NHUẬN & EPS ---
-    BigDecimal netProfit
+    BigDecimal netProfit,
+    BigDecimal totalOperatingIncome,
+    BigDecimal totalOperatingExpense,
+    BigDecimal creditRiskProvisionsExpense,
+    BigDecimal interestAndSimilarIncome
 ) {}

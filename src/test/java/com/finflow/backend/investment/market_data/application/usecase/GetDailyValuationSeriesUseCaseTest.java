@@ -17,6 +17,7 @@ import com.finflow.backend.investment.market_data.domain.repository.FinancialInd
 import com.finflow.backend.investment.market_data.domain.repository.IndustryNodeRepository;
 import com.finflow.backend.investment.market_data.domain.repository.NonBankBalanceSheetRepository;
 import com.finflow.backend.investment.market_data.domain.repository.NonBankIncomeStatementRepository;
+import com.finflow.backend.investment.market_data.domain.repository.CashFlowStatementRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -53,6 +54,8 @@ class GetDailyValuationSeriesUseCaseTest {
     @Mock
     IndustryNodeRepository industryNodeRepository;
     @Mock
+    CashFlowStatementRepository cashFlowStatementRepository;
+    @Mock
     FetchHistoricalPricePort fetchHistoricalPricePort;
 
     private GetDailyValuationSeriesUseCase useCase;
@@ -68,7 +71,8 @@ class GetDailyValuationSeriesUseCaseTest {
                 bankBalanceSheetRepository,
                 nonBankBalanceSheetRepository,
                 bankIncomeStatementRepository,
-                nonBankIncomeStatementRepository
+                nonBankIncomeStatementRepository,
+                cashFlowStatementRepository
         );
         useCase = new GetDailyValuationSeriesUseCase(readService, fetchHistoricalPricePort);
     }

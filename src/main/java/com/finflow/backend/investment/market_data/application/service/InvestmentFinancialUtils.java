@@ -9,51 +9,32 @@ import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.function.ToDoubleFunction;
 
 public final class InvestmentFinancialUtils {
     private InvestmentFinancialUtils() {
     }
 
     static Double computeEpsTtm(List<FinancialIndicator> indicators) {
-        if (indicators == null || indicators.isEmpty()) return null;
-
-        // Sum eps across latest 4 available quarters (latest by (year, quarter) desc).
-        List<FinancialIndicator> latest4 = indicators.stream()
-                .filter(i -> i.getEps() != null)
-                .sorted(
-                        Comparator.comparingInt(FinancialIndicator::getYear).reversed()
-                                .thenComparing(Comparator.comparingInt(FinancialIndicator::getQuarter).reversed())
-                )
-                .limit(4)
-                .toList();
-        if (latest4.isEmpty()) return null;
-
-        return latest4.stream()
-                .map(FinancialIndicator::getEps)
-                .filter(Objects::nonNull)
-                .mapToDouble(BigDecimal::doubleValue)
-                .sum();
+        return sumLatestFourQuarters(
+                indicators,
+                i -> i.getEps() != null,
+                FinancialIndicator::getYear,
+                FinancialIndicator::getQuarter,
+                i -> i.getEps().doubleValue()
+        );
     }
 
-    /**
-     * Tổng doanh thu thuần 4 quý gần nhất (chỉ {@code netRevenue}, không dùng {@code totalRevenue}).
-     */
     static Double computeNetRevenueTtm(List<NonBankIncomeStatement> incomes) {
-        if (incomes == null || incomes.isEmpty()) return null;
-        List<NonBankIncomeStatement> latest4 = incomes.stream()
-                .filter(i -> i.getNetRevenue() != null)
-                .sorted(
-                        Comparator.comparingInt(NonBankIncomeStatement::getYear).reversed()
-                                .thenComparing(Comparator.comparingInt(NonBankIncomeStatement::getQuarter).reversed())
-                )
-                .limit(4)
-                .toList();
-        if (latest4.isEmpty()) return null;
-        return latest4.stream()
-                .map(NonBankIncomeStatement::getNetRevenue)
-                .filter(Objects::nonNull)
-                .mapToDouble(BigDecimal::doubleValue)
-                .sum();
+        return sumLatestFourQuarters(
+                incomes,
+                i -> i.getNetRevenue() != null,
+                NonBankIncomeStatement::getYear,
+                NonBankIncomeStatement::getQuarter,
+                i -> i.getNetRevenue().doubleValue()
+        );
     }
 
     /**
@@ -153,40 +134,26 @@ public final class InvestmentFinancialUtils {
 
     /** Tổng “top line” NH 4 quý gần nhất (cùng logic thời gian với DTT non-bank). */
     static Double computeBankTopLineTtm(List<BankIncomeStatement> incomes) {
-        if (incomes == null || incomes.isEmpty()) {
-            return null;
-        }
-        List<BankIncomeStatement> latest4 = incomes.stream()
-                .filter(InvestmentFinancialUtils::bankQuarterHasTopLine)
-                .sorted(
-                        Comparator.comparingInt(BankIncomeStatement::getYear).reversed()
-                                .thenComparing(Comparator.comparingInt(BankIncomeStatement::getQuarter).reversed())
-                )
-                .limit(4)
-                .toList();
-        if (latest4.isEmpty()) {
-            return null;
-        }
-        double sum = latest4.stream().mapToDouble(InvestmentFinancialUtils::bankQuarterTopLineVnd).sum();
-        return sum > 0 ? sum : null;
+        Double sum = sumLatestFourQuarters(
+                incomes,
+                InvestmentFinancialUtils::bankQuarterHasTopLine,
+                BankIncomeStatement::getYear,
+                BankIncomeStatement::getQuarter,
+                InvestmentFinancialUtils::bankQuarterTopLineVnd
+        );
+        return sum != null && sum > 0 ? sum : null;
     }
 
     /** Tổng top-line NH 4 quý gần nhất có quarterEnd ≤ {@code d}. */
     public static Double bankTopLineTtmAsOf(List<BankIncomeStatement> incomesAsc, LocalDate d) {
-        if (incomesAsc == null || incomesAsc.isEmpty()) {
-            return null;
-        }
-        List<BankIncomeStatement> latest4 = incomesAsc.stream()
-                .filter(InvestmentFinancialUtils::bankQuarterHasTopLine)
-                .filter(i -> !quarterEnd(i).isAfter(d))
-                .sorted(Comparator.comparing((BankIncomeStatement i) -> quarterEnd(i)).reversed())
-                .limit(4)
-                .toList();
-        if (latest4.isEmpty()) {
-            return null;
-        }
-        double sum = latest4.stream().mapToDouble(InvestmentFinancialUtils::bankQuarterTopLineVnd).sum();
-        return sum > 0 ? sum : null;
+        Double sum = sumLatestFourAsOf(
+                incomesAsc,
+                InvestmentFinancialUtils::bankQuarterHasTopLine,
+                InvestmentFinancialUtils::quarterEnd,
+                d,
+                InvestmentFinancialUtils::bankQuarterTopLineVnd
+        );
+        return sum != null && sum > 0 ? sum : null;
     }
 
     /**
@@ -207,42 +174,69 @@ public final class InvestmentFinancialUtils {
 
     /** Tổng EPS 4 quý gần nhất có quarterEnd ≤ {@code d}. */
     public static Double epsTtmAsOf(List<FinancialIndicator> indicatorsAsc, LocalDate d) {
-        if (indicatorsAsc == null || indicatorsAsc.isEmpty()) {
-            return null;
-        }
-        List<FinancialIndicator> latest4 = indicatorsAsc.stream()
-                .filter(i -> i.getEps() != null && !quarterEnd(i).isAfter(d))
-                .sorted(Comparator.comparing((FinancialIndicator i) -> quarterEnd(i)).reversed())
-                .limit(4)
-                .toList();
-        if (latest4.isEmpty()) {
-            return null;
-        }
-        return latest4.stream()
-                .map(FinancialIndicator::getEps)
-                .filter(Objects::nonNull)
-                .mapToDouble(BigDecimal::doubleValue)
-                .sum();
+        return sumLatestFourAsOf(
+                indicatorsAsc,
+                i -> i.getEps() != null,
+                InvestmentFinancialUtils::quarterEnd,
+                d,
+                i -> i.getEps().doubleValue()
+        );
     }
 
-    /** Tổng doanh thu thuần 4 quý gần nhất có quarterEnd ≤ {@code d} (chỉ {@code netRevenue}). */
     public static Double netRevenueTtmAsOf(List<NonBankIncomeStatement> incomesAsc, LocalDate d) {
-        if (incomesAsc == null || incomesAsc.isEmpty()) {
+        return sumLatestFourAsOf(
+                incomesAsc,
+                i -> i.getNetRevenue() != null,
+                InvestmentFinancialUtils::quarterEnd,
+                d,
+                i -> i.getNetRevenue().doubleValue()
+        );
+    }
+
+    private static <T> Double sumLatestFourQuarters(
+            List<T> items,
+            Predicate<T> valid,
+            ToDoubleFunction<T> yearFn,
+            ToDoubleFunction<T> quarterFn,
+            ToDoubleFunction<T> valueFn
+    ) {
+        if (items == null || items.isEmpty()) {
             return null;
         }
-        List<NonBankIncomeStatement> latest4 = incomesAsc.stream()
-                .filter(i -> i.getNetRevenue() != null && !quarterEnd(i).isAfter(d))
-                .sorted(Comparator.comparing((NonBankIncomeStatement i) -> quarterEnd(i)).reversed())
+        List<T> latest4 = items.stream()
+                .filter(valid)
+                .sorted(
+                        Comparator.comparingDouble(yearFn).reversed()
+                                .thenComparing(Comparator.comparingDouble(quarterFn).reversed())
+                )
                 .limit(4)
                 .toList();
         if (latest4.isEmpty()) {
             return null;
         }
-        return latest4.stream()
-                .map(NonBankIncomeStatement::getNetRevenue)
-                .filter(Objects::nonNull)
-                .mapToDouble(BigDecimal::doubleValue)
-                .sum();
+        return latest4.stream().mapToDouble(valueFn).sum();
+    }
+
+    private static <T> Double sumLatestFourAsOf(
+            List<T> items,
+            Predicate<T> valid,
+            Function<T, LocalDate> dateFn,
+            LocalDate maxDate,
+            ToDoubleFunction<T> valueFn
+    ) {
+        if (items == null || items.isEmpty()) {
+            return null;
+        }
+        List<T> latest4 = items.stream()
+                .filter(valid)
+                .filter(i -> !dateFn.apply(i).isAfter(maxDate))
+                .sorted(Comparator.comparing(dateFn).reversed())
+                .limit(4)
+                .toList();
+        if (latest4.isEmpty()) {
+            return null;
+        }
+        return latest4.stream().mapToDouble(valueFn).sum();
     }
 
 }

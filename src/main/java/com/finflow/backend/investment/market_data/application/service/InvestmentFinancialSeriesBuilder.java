@@ -11,10 +11,6 @@ import org.springframework.util.Assert;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Director for building InvestmentAnalysisOutput.FinancialSeries.
- * Uses Strategy pattern to avoid BANK/NON_BANK code branching in the director itself.
- */
 @Component
 public class InvestmentFinancialSeriesBuilder {
     private final BankStatementStrategy bankStrategy;
@@ -34,29 +30,18 @@ public class InvestmentFinancialSeriesBuilder {
             List<BankBalanceSheet> bankBalances,
             List<BankIncomeStatement> bankIncomes,
             List<NonBankBalanceSheet> nonBankBalances,
-            List<NonBankIncomeStatement> nonBankIncomes
+            List<NonBankIncomeStatement> nonBankIncomes,
+            List<InvestmentAnalysisOutput.CashFlowPoint> cashFlows
     ) {
         String normalizedType = Optional.ofNullable(companyType).orElse("").toUpperCase();
         if ("BANK".equals(normalizedType)) {
             List<InvestmentAnalysisOutput.BankFinancialPoint> points =
-                    bankStrategy.buildPoints(
-                            bankBalances,
-                            bankIncomes,
-                            indicators,
-                            annualLimit,
-                            quarterlyLimit
-                    );
-            return new InvestmentAnalysisOutput.FinancialSeries("BANK", points, List.of());
+                    bankStrategy.buildPoints(bankBalances, bankIncomes, indicators, annualLimit, quarterlyLimit);
+            return new InvestmentAnalysisOutput.FinancialSeries("BANK", points, List.of(), cashFlows);
         }
 
         List<InvestmentAnalysisOutput.NonBankFinancialPoint> points =
-                nonBankStrategy.buildPoints(
-                        nonBankBalances,
-                        nonBankIncomes,
-                        indicators,
-                        annualLimit,
-                        quarterlyLimit
-                );
-        return new InvestmentAnalysisOutput.FinancialSeries("NON_BANK", List.of(), points);
+                nonBankStrategy.buildPoints(nonBankBalances, nonBankIncomes, indicators, annualLimit, quarterlyLimit);
+        return new InvestmentAnalysisOutput.FinancialSeries("NON_BANK", List.of(), points, cashFlows);
     }
 }

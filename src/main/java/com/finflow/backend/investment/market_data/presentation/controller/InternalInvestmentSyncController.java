@@ -3,9 +3,11 @@ package com.finflow.backend.investment.market_data.presentation.controller;
 import com.finflow.backend.investment.market_data.application.port.in.SyncBankBalanceSheetsPort;
 import com.finflow.backend.investment.market_data.application.port.in.SyncBankFinancialIndicatorsPort;
 import com.finflow.backend.investment.market_data.application.port.in.SyncBankIncomeStatementsPort;
+import com.finflow.backend.investment.market_data.application.port.in.SyncCashFlowStatementsPort;
 import com.finflow.backend.investment.market_data.application.port.in.SyncCompaniesPort;
 import com.finflow.backend.investment.market_data.application.port.in.SyncCompanyDividendsPort;
 import com.finflow.backend.investment.market_data.application.port.in.SyncCompanyShareholdersPort;
+import com.finflow.backend.investment.market_data.application.command.SyncCashFlowStatementsCommand;
 import com.finflow.backend.investment.market_data.application.command.SyncCompanyDividendsCommand;
 import com.finflow.backend.investment.market_data.application.command.SyncCompaniesCommand;
 import com.finflow.backend.investment.market_data.application.command.SyncCompanyShareholdersCommand;
@@ -31,6 +33,7 @@ import com.finflow.backend.investment.market_data.presentation.request.CompanySh
 import com.finflow.backend.investment.market_data.presentation.request.NonBankBalanceSheetRequestDTO;
 import com.finflow.backend.investment.market_data.presentation.request.NonBankFinancialIndicatorRequestDTO;
 import com.finflow.backend.investment.market_data.presentation.request.NonBankIncomeStatementRequestDTO;
+import com.finflow.backend.investment.market_data.presentation.request.CashFlowStatementRequestDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -56,6 +59,7 @@ public class InternalInvestmentSyncController {
     private final SyncBankFinancialIndicatorsPort syncBankFinancialIndicatorsPort;
     private final SyncNonBankFinancialIndicatorsPort syncNonBankFinancialIndicatorsPort;
 
+    private final SyncCashFlowStatementsPort syncCashFlowStatementsPort;
     private final SyncCompaniesPort syncCompaniesPort;
     private final SyncCompanyShareholdersPort syncCompanyShareholdersPort;
     private final SyncCompanyDividendsPort syncCompanyDividendsPort;
@@ -115,6 +119,14 @@ public class InternalInvestmentSyncController {
     public ResponseEntity<Void> syncNonBankBalanceSheets(@RequestBody @Valid List<NonBankBalanceSheetRequestDTO> request) {
         log.info("Received sync request for {} non-bank balance sheets", request.size());
         syncNonBankBalanceSheetsPort.execute(new SyncNonBankBalanceSheetsCommand(presentationMapper.toNonBankBalanceSheetInputs(request)));
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "Sync cash flow statements")
+    @PostMapping("/cash-flow-statements")
+    public ResponseEntity<Void> syncCashFlowStatements(@RequestBody @Valid List<CashFlowStatementRequestDTO> request) {
+        log.info("Received sync request for {} cash flow statements", request.size());
+        syncCashFlowStatementsPort.execute(new SyncCashFlowStatementsCommand(presentationMapper.toCashFlowStatementInputs(request)));
         return ResponseEntity.ok().build();
     }
 
