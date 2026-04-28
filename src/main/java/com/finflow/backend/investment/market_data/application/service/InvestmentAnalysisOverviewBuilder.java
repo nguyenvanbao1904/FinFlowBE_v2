@@ -37,7 +37,8 @@ public class InvestmentAnalysisOverviewBuilder {
                 : company.getIndustryNode().getNameVi();
         String icbCode = company.getIndustryNode() == null ? null : company.getIndustryNode().getIcbCode();
 
-        Double epsTtm = InvestmentFinancialUtils.computeEpsTtm(indicators);
+        // FireAnt BasicEPS is already TTM — use the latest value directly, don't sum 4 quarters.
+        Double epsTtm = latest == null ? null : toDouble(latest.getEps());
         Double bvps = latest == null ? null : toDouble(latest.getBvps());
         Double cplhRaw = latest == null ? null : toDouble(latest.getCplh());
 

@@ -80,7 +80,8 @@ public class GetDailyValuationSeriesUseCase implements GetDailyValuationSeriesPo
                 continue;
             }
 
-            Double epsTtm = InvestmentFinancialUtils.epsTtmAsOf(indicatorsAsc, d);
+            // FireAnt BasicEPS is already TTM — use the value from the latest indicator as-of date.
+            Double epsTtm = indLatest.getEps() != null ? indLatest.getEps().doubleValue() : null;
             Double pe = epsTtm != null && epsTtm > 0 ? price / epsTtm : null;
 
             Double bvps = indLatest.getBvps() != null ? indLatest.getBvps().doubleValue() : null;
