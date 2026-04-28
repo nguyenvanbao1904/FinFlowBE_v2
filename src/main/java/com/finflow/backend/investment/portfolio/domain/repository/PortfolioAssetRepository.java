@@ -31,5 +31,7 @@ public interface PortfolioAssetRepository extends JpaRepository<PortfolioAsset, 
             @Param("userId") String userId,
             @Param("portfolioIds") List<UUID> portfolioIds
     );
+
+    void deleteByPortfolio_Id(UUID portfolioId);
 }
 

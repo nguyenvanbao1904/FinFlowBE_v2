@@ -6,5 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.UUID;
 
 public interface TradeTransactionRepository extends JpaRepository<TradeTransaction, UUID> {
+
+    void deleteByPortfolio_Id(UUID portfolioId);
 }
 

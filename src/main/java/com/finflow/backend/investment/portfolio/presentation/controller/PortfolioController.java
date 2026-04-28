@@ -4,11 +4,15 @@ import com.finflow.backend.common.versioning.ApiVersion;
 import com.finflow.backend.investment.portfolio.application.command.CreatePortfolioCommand;
 import com.finflow.backend.investment.portfolio.application.command.CreatePortfolioAssetCommand;
 import com.finflow.backend.investment.portfolio.application.command.CreateTradeTransactionCommand;
+import com.finflow.backend.investment.portfolio.application.command.DeletePortfolioCommand;
 import com.finflow.backend.investment.portfolio.application.command.ImportPortfolioSnapshotCommand;
+import com.finflow.backend.investment.portfolio.application.command.UpdatePortfolioCommand;
 import com.finflow.backend.investment.portfolio.application.port.in.CreateTradeTransactionPort;
+import com.finflow.backend.investment.portfolio.application.port.in.DeletePortfolioPort;
 import com.finflow.backend.investment.portfolio.application.port.in.GetPortfolioHealthPort;
 import com.finflow.backend.investment.portfolio.application.port.in.GetPortfolioVsMarketPort;
 import com.finflow.backend.investment.portfolio.application.port.in.ImportPortfolioSnapshotPort;
+import com.finflow.backend.investment.portfolio.application.port.in.UpdatePortfolioPort;
 
 import com.finflow.backend.investment.portfolio.application.port.in.CreatePortfolioAssetPort;
 import com.finflow.backend.investment.portfolio.application.port.in.GetPortfolioAssetsPort;
@@ -23,6 +27,7 @@ import com.finflow.backend.investment.portfolio.presentation.request.CreatePortf
 import com.finflow.backend.investment.portfolio.presentation.request.CreatePortfolioAssetRequest;
 import com.finflow.backend.investment.portfolio.presentation.request.CreateTradeTransactionRequest;
 import com.finflow.backend.investment.portfolio.presentation.request.ImportPortfolioSnapshotRequest;
+import com.finflow.backend.investment.portfolio.presentation.request.UpdatePortfolioRequest;
 import com.finflow.backend.investment.portfolio.presentation.response.PortfolioAssetResponse;
 import com.finflow.backend.investment.portfolio.presentation.response.PortfolioHealthResponse;
 import com.finflow.backend.investment.portfolio.presentation.response.PortfolioMarketBenchmarkResponse;
@@ -36,16 +41,17 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -56,6 +62,8 @@ import java.util.UUID;
 public class PortfolioController {
 
     private final CreatePortfolioPort createPortfolioUseCase;
+    private final UpdatePortfolioPort updatePortfolioUseCase;
+    private final DeletePortfolioPort deletePortfolioUseCase;
     private final GetPortfoliosPort getPortfoliosUseCase;
     private final GetPortfolioAssetsPort getPortfolioAssetsUseCase;
     private final CreatePortfolioAssetPort createPortfolioAssetUseCase;
@@ -89,31 +97,31 @@ public class PortfolioController {
     @Operation(summary = "Add an asset to a portfolio (current user)")
     @PostMapping("/{portfolioId}/assets")
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public ResponseEntity<Map<String, UUID>> createPortfolioAsset(
+    public ResponseEntity<PortfolioAssetResponse> createPortfolioAsset(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable UUID portfolioId,
             @Valid @RequestBody CreatePortfolioAssetRequest request
     ) {
         String userId = jwt.getSubject();
-        var id = createPortfolioAssetUseCase.execute(
+        var output = createPortfolioAssetUseCase.execute(
             new CreatePortfolioAssetCommand(userId, portfolioId, request.getSymbol(),
                 request.getQuantity(), request.getAveragePrice())
-        ).id();
-        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", id));
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toResponse(output));
     }
 
     @Operation(summary = "Create a new empty portfolio (cashBalance=0)")
     @PostMapping
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public ResponseEntity<Map<String, UUID>> createPortfolio(
+    public ResponseEntity<PortfolioResponse> createPortfolio(
             @AuthenticationPrincipal Jwt jwt,
             @Valid @RequestBody CreatePortfolioRequest request
     ) {
         String userId = jwt.getSubject();
-        var id = createPortfolioUseCase.execute(
+        var output = createPortfolioUseCase.execute(
             new CreatePortfolioCommand(userId, request.getName())
-        ).id();
-        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", id));
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toResponse(output));
     }
 
     @Operation(summary = "Create a new trade transaction (BUY/SELL/DEPOSIT/WITHDRAW)")
@@ -186,4 +194,31 @@ public class PortfolioController {
         return ResponseEntity.ok(mapper.toBenchmarkResponse(
                 getPortfolioVsMarketUseCase.execute(new GetPortfolioVsMarketQuery(userId, portfolioId, code))));
     }
+
+    @Operation(summary = "Rename a portfolio")
+    @PutMapping("/{portfolioId}")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<PortfolioResponse> updatePortfolio(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID portfolioId,
+            @Valid @RequestBody UpdatePortfolioRequest request
+    ) {
+        String userId = jwt.getSubject();
+        var output = updatePortfolioUseCase.execute(
+                new UpdatePortfolioCommand(userId, portfolioId, request.getName()));
+        return ResponseEntity.ok(mapper.toResponse(output));
+    }
+
+    @Operation(summary = "Delete a portfolio and all its assets and trade transactions")
+    @DeleteMapping("/{portfolioId}")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<Void> deletePortfolio(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID portfolioId
+    ) {
+        String userId = jwt.getSubject();
+        deletePortfolioUseCase.execute(new DeletePortfolioCommand(userId, portfolioId));
+        return ResponseEntity.noContent().build();
+    }
+
 }
