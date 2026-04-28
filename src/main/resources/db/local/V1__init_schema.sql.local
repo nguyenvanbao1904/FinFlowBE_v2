@@ -1,0 +1,438 @@
+-- ============================================================
+-- V1: Complete FinFlow v2 schema (generated from Hibernate entities)
+-- ============================================================
+
+-- ========================
+-- IDENTITY MODULE
+-- ========================
+
+CREATE TABLE `permissions` (
+  `description` varchar(255) DEFAULT NULL,
+  `name` varchar(255) NOT NULL,
+  PRIMARY KEY (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `roles` (
+  `description` varchar(255) DEFAULT NULL,
+  `name` varchar(255) NOT NULL,
+  PRIMARY KEY (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `role_permissions` (
+  `permission_name` varchar(255) NOT NULL,
+  `role_name` varchar(255) NOT NULL,
+  PRIMARY KEY (`permission_name`,`role_name`),
+  KEY `FKq893o9jg7ihgdxfwtiswn0uk2` (`role_name`),
+  CONSTRAINT `FKie537gni0kx7t0vxakg9kbur9` FOREIGN KEY (`permission_name`) REFERENCES `permissions` (`name`),
+  CONSTRAINT `FKq893o9jg7ihgdxfwtiswn0uk2` FOREIGN KEY (`role_name`) REFERENCES `roles` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `users` (
+  `account_verified` bit(1) DEFAULT NULL,
+  `dob` date DEFAULT NULL,
+  `is_active` bit(1) DEFAULT NULL,
+  `is_biometric_enabled` bit(1) DEFAULT NULL,
+  `deleted_at` datetime(6) DEFAULT NULL,
+  `last_login` datetime(6) DEFAULT NULL,
+  `register_date` datetime(6) DEFAULT NULL,
+  `email` varchar(255) NOT NULL,
+  `first_name` varchar(255) DEFAULT NULL,
+  `id` varchar(255) NOT NULL,
+  `last_name` varchar(255) DEFAULT NULL,
+  `password` varchar(255) DEFAULT NULL,
+  `username` varchar(255) NOT NULL,
+  `provider` enum('GOOGLE','LOCAL') DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `UK6dotkott2kjsp8vw4d0m25fb7` (`email`),
+  UNIQUE KEY `UKr43af9ap4edm43mmtq01oddj6` (`username`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `user_roles` (
+  `role_name` varchar(255) NOT NULL,
+  `user_id` varchar(255) NOT NULL,
+  PRIMARY KEY (`role_name`,`user_id`),
+  KEY `FKhfh9dx7w3ubf1co1vdev94g3f` (`user_id`),
+  CONSTRAINT `FKdcdh0gl1mdce42vy0klyio6fi` FOREIGN KEY (`role_name`) REFERENCES `roles` (`name`),
+  CONSTRAINT `FKhfh9dx7w3ubf1co1vdev94g3f` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `invalidated_tokens` (
+  `expiry_time` datetime(6) DEFAULT NULL,
+  `id` varchar(255) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- ========================
+-- FINANCE MODULE
+-- ========================
+
+CREATE TABLE `wealth_account_type` (
+  `is_debt` bit(1) NOT NULL,
+  `is_transaction_eligible` bit(1) NOT NULL,
+  `id` binary(16) NOT NULL,
+  `color` varchar(32) DEFAULT NULL,
+  `code` varchar(64) NOT NULL,
+  `icon` varchar(64) DEFAULT NULL,
+  `display_name` varchar(128) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `UKe2f4a3mldik8dwtvt9bsap0lm` (`code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `wealth_account` (
+  `balance` decimal(19,2) NOT NULL,
+  `include_in_net_worth` bit(1) NOT NULL,
+  `is_synced` bit(1) NOT NULL,
+  `created_at` datetime(6) DEFAULT NULL,
+  `updated_at` datetime(6) DEFAULT NULL,
+  `account_type_id` binary(16) NOT NULL,
+  `id` binary(16) NOT NULL,
+  `name` varchar(256) NOT NULL,
+  `user_id` varchar(255) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `FKtpcbkbavs81elep7yrocnajws` (`account_type_id`),
+  CONSTRAINT `FKtpcbkbavs81elep7yrocnajws` FOREIGN KEY (`account_type_id`) REFERENCES `wealth_account_type` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `categories` (
+  `is_system` bit(1) NOT NULL,
+  `created_at` datetime(6) DEFAULT NULL,
+  `updated_at` datetime(6) DEFAULT NULL,
+  `id` binary(16) NOT NULL,
+  `color` varchar(255) DEFAULT NULL,
+  `icon` varchar(255) DEFAULT NULL,
+  `name` varchar(255) NOT NULL,
+  `user_id` varchar(255) NOT NULL,
+  `type` enum('EXPENSE','INCOME','SAVING') NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `transactions` (
+  `amount` decimal(19,2) NOT NULL,
+  `created_at` datetime(6) DEFAULT NULL,
+  `transaction_date` datetime(6) NOT NULL,
+  `updated_at` datetime(6) DEFAULT NULL,
+  `account_id` binary(16) NOT NULL,
+  `category_id` binary(16) NOT NULL,
+  `id` binary(16) NOT NULL,
+  `note` varchar(255) DEFAULT NULL,
+  `user_id` varchar(255) NOT NULL,
+  `type` enum('EXPENSE','INCOME','SAVING') NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `FKsqqi7sneo04kast0o138h19mv` (`category_id`),
+  CONSTRAINT `FKsqqi7sneo04kast0o138h19mv` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `budgets` (
+  `end_date` date NOT NULL,
+  `is_recurring` bit(1) DEFAULT NULL,
+  `recurring_start_date` date DEFAULT NULL,
+  `start_date` date NOT NULL,
+  `target_amount` decimal(38,2) NOT NULL,
+  `created_at` datetime(6) DEFAULT NULL,
+  `updated_at` datetime(6) DEFAULT NULL,
+  `category_id` binary(16) NOT NULL,
+  `id` binary(16) NOT NULL,
+  `user_id` varchar(255) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_budget_recurring_end` (`user_id`,`is_recurring`,`end_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- ========================
+-- AI CHAT MODULE
+-- ========================
+
+CREATE TABLE `chat_threads` (
+  `last_year` int DEFAULT NULL,
+  `created_at` datetime(6) NOT NULL,
+  `updated_at` datetime(6) NOT NULL,
+  `last_ticker` varchar(16) DEFAULT NULL,
+  `id` varchar(36) NOT NULL,
+  `user_id` varchar(64) NOT NULL,
+  `context_summary` text,
+  `title` varchar(255) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_chat_threads_user_updated` (`user_id`,`updated_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `chat_messages` (
+  `cost_usd` decimal(18,8) DEFAULT NULL,
+  `input_tokens` int DEFAULT NULL,
+  `latency_ms` int DEFAULT NULL,
+  `output_tokens` int DEFAULT NULL,
+  `total_tokens` int DEFAULT NULL,
+  `created_at` datetime(6) NOT NULL,
+  `role` varchar(16) NOT NULL,
+  `provider` varchar(32) DEFAULT NULL,
+  `id` varchar(36) NOT NULL,
+  `thread_id` varchar(36) NOT NULL,
+  `model` varchar(64) DEFAULT NULL,
+  `tool_call_id` varchar(255) DEFAULT NULL,
+  `content` longtext NOT NULL,
+  `tool_calls_json` longtext,
+  PRIMARY KEY (`id`),
+  KEY `idx_chat_messages_thread_created` (`thread_id`,`created_at`),
+  KEY `idx_chat_messages_thread_role` (`thread_id`,`role`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `chat_message_sources` (
+  `page_number` int DEFAULT NULL,
+  `score` decimal(12,6) DEFAULT NULL,
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `message_id` varchar(36) NOT NULL,
+  `chunk_id` varchar(100) DEFAULT NULL,
+  `source_title` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_chat_message_sources_message` (`message_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- ========================
+-- INVESTMENT — MARKET DATA
+-- ========================
+
+CREATE TABLE `industry_nodes` (
+  `level` int NOT NULL,
+  `id` binary(16) NOT NULL,
+  `parent_id` binary(16) DEFAULT NULL,
+  `icb_code` varchar(32) DEFAULT NULL,
+  `name_vi` varchar(500) NOT NULL,
+  `detail_label` varchar(2000) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `UKirmfrh9bmcgs4ribw21631ux5` (`icb_code`),
+  KEY `FK8pr84ah87rsg483i0orb3x7fd` (`parent_id`),
+  CONSTRAINT `FK8pr84ah87rsg483i0orb3x7fd` FOREIGN KEY (`parent_id`) REFERENCES `industry_nodes` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `companies` (
+  `id` varchar(10) NOT NULL,
+  `industry_node_id` binary(16) DEFAULT NULL,
+  `company_type` varchar(50) NOT NULL,
+  `exchange` varchar(50) NOT NULL,
+  `company_name` varchar(500) DEFAULT NULL,
+  `description` varchar(2000) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `FKjabg5oh71wy8u6wnnghbru4r` (`industry_node_id`),
+  CONSTRAINT `FKjabg5oh71wy8u6wnnghbru4r` FOREIGN KEY (`industry_node_id`) REFERENCES `industry_nodes` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `company_shareholders` (
+  `share_own_percent` decimal(5,4) DEFAULT NULL,
+  `update_date` date DEFAULT NULL,
+  `quantity` bigint DEFAULT NULL,
+  `company_id` varchar(10) NOT NULL,
+  `id` binary(16) NOT NULL,
+  `shareholder_name` varchar(500) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `company_dividends` (
+  `exright_date` date DEFAULT NULL,
+  `issue_date` date DEFAULT NULL,
+  `record_date` date DEFAULT NULL,
+  `value` decimal(38,2) DEFAULT NULL,
+  `company_id` varchar(10) NOT NULL,
+  `id` binary(16) NOT NULL,
+  `event_type` varchar(50) NOT NULL,
+  `ratio` varchar(100) DEFAULT NULL,
+  `event_title` varchar(1000) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `financial_indicators` (
+  `bvps` decimal(19,2) DEFAULT NULL,
+  `cash_dividend` decimal(20,6) DEFAULT NULL,
+  `cir` decimal(20,6) DEFAULT NULL,
+  `cof` decimal(20,6) DEFAULT NULL,
+  `current_ratio` decimal(20,6) DEFAULT NULL,
+  `eps` decimal(19,2) DEFAULT NULL,
+  `ev_over_ebitda` decimal(20,6) DEFAULT NULL,
+  `gross_margin` decimal(10,2) DEFAULT NULL,
+  `inventory_turnover` decimal(20,6) DEFAULT NULL,
+  `ldr` decimal(20,6) DEFAULT NULL,
+  `loanloss_reserves_to_npl` decimal(20,6) DEFAULT NULL,
+  `net_margin` decimal(10,2) DEFAULT NULL,
+  `nim` decimal(20,6) DEFAULT NULL,
+  `npl_to_loan` decimal(20,6) DEFAULT NULL,
+  `payout_ratio` decimal(20,6) DEFAULT NULL,
+  `pb` decimal(10,2) DEFAULT NULL,
+  `pe` decimal(10,2) DEFAULT NULL,
+  `profit_growth` decimal(20,6) DEFAULT NULL,
+  `ps` decimal(10,2) DEFAULT NULL,
+  `quarter` int NOT NULL,
+  `roa` decimal(10,2) DEFAULT NULL,
+  `roe` decimal(10,2) DEFAULT NULL,
+  `sale_growth` decimal(20,6) DEFAULT NULL,
+  `share_at_period_end` decimal(20,2) DEFAULT NULL,
+  `shares_outstanding` decimal(19,2) DEFAULT NULL,
+  `total_debt_over_equity` decimal(20,6) DEFAULT NULL,
+  `year` int NOT NULL,
+  `yoea` decimal(20,6) DEFAULT NULL,
+  `id` binary(16) NOT NULL,
+  `company_type` varchar(31) NOT NULL,
+  `company_id` varchar(255) NOT NULL,
+  PRIMARY KEY (`id`),
+  CONSTRAINT `financial_indicators_chk_1` CHECK ((`company_type` in (_utf8mb4'BANK',_utf8mb4'NORMAL')))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `balance_sheets` (
+  `cash_and_equivalents` decimal(19,2) DEFAULT NULL,
+  `equity` decimal(19,2) DEFAULT NULL,
+  `quarter` int NOT NULL,
+  `total_assets` decimal(19,2) DEFAULT NULL,
+  `total_capital` decimal(19,2) DEFAULT NULL,
+  `year` int NOT NULL,
+  `id` binary(16) NOT NULL,
+  `company_type` varchar(31) NOT NULL,
+  `company_id` varchar(255) NOT NULL,
+  PRIMARY KEY (`id`),
+  CONSTRAINT `balance_sheets_chk_1` CHECK ((`company_type` in (_utf8mb4'BANK',_utf8mb4'NON_BANK')))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `bank_balance_sheets` (
+  `bad_debt` decimal(20,2) DEFAULT NULL,
+  `balances_with_sbv` decimal(19,2) DEFAULT NULL,
+  `convertible_other_papers` decimal(19,2) DEFAULT NULL,
+  `customer_loan` decimal(20,2) DEFAULT NULL,
+  `deposits_borrowings_others` decimal(19,2) DEFAULT NULL,
+  `deposits_from_customers` decimal(19,2) DEFAULT NULL,
+  `doubtful_debt` decimal(20,2) DEFAULT NULL,
+  `gov_sbv_debt` decimal(19,2) DEFAULT NULL,
+  `interbank_placements_loans` decimal(19,2) DEFAULT NULL,
+  `investment_securities` decimal(19,2) DEFAULT NULL,
+  `issuing_valuable_paper` decimal(20,2) DEFAULT NULL,
+  `loans_to_customers` decimal(19,2) DEFAULT NULL,
+  `provision_for_customer_loan_loss` decimal(20,2) DEFAULT NULL,
+  `standard_debt` decimal(20,2) DEFAULT NULL,
+  `substandard_debt` decimal(20,2) DEFAULT NULL,
+  `total_equity` decimal(20,2) DEFAULT NULL,
+  `total_liabilities` decimal(19,2) DEFAULT NULL,
+  `trading_securities` decimal(19,2) DEFAULT NULL,
+  `watchlist_debt` decimal(20,2) DEFAULT NULL,
+  `id` binary(16) NOT NULL,
+  PRIMARY KEY (`id`),
+  CONSTRAINT `FKd0rlkac8yqb5ses72hisjndl6` FOREIGN KEY (`id`) REFERENCES `balance_sheets` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `non_bank_balance_sheets` (
+  `advances_from_customers` decimal(19,2) DEFAULT NULL,
+  `convertible_bond` decimal(20,2) DEFAULT NULL,
+  `fixed_assets` decimal(19,2) DEFAULT NULL,
+  `in_progress_long_term_asset` decimal(20,2) DEFAULT NULL,
+  `inventories` decimal(19,2) DEFAULT NULL,
+  `long_term_borrowings` decimal(19,2) DEFAULT NULL,
+  `long_term_receivables` decimal(19,2) DEFAULT NULL,
+  `short_term_borrowings` decimal(19,2) DEFAULT NULL,
+  `short_term_investments` decimal(19,2) DEFAULT NULL,
+  `short_term_receivables` decimal(19,2) DEFAULT NULL,
+  `total_liabilities` decimal(19,2) DEFAULT NULL,
+  `id` binary(16) NOT NULL,
+  PRIMARY KEY (`id`),
+  CONSTRAINT `FK649rx5v2346tbh775ar5ouxky` FOREIGN KEY (`id`) REFERENCES `balance_sheets` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `income_statements` (
+  `profit_after_tax` decimal(19,2) DEFAULT NULL,
+  `quarter` int NOT NULL,
+  `year` int NOT NULL,
+  `id` binary(16) NOT NULL,
+  `company_type` varchar(31) NOT NULL,
+  `company_id` varchar(255) NOT NULL,
+  PRIMARY KEY (`id`),
+  CONSTRAINT `income_statements_chk_1` CHECK ((`company_type` in (_utf8mb4'BANK',_utf8mb4'NON_BANK')))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `bank_income_statements` (
+  `credit_risk_provisions_expense` decimal(20,2) DEFAULT NULL,
+  `interest_and_similar_income` decimal(20,2) DEFAULT NULL,
+  `interest_expense` decimal(19,2) DEFAULT NULL,
+  `net_fee_commission_income` decimal(19,2) DEFAULT NULL,
+  `net_interest_income` decimal(19,2) DEFAULT NULL,
+  `net_other_income_expenses` decimal(19,2) DEFAULT NULL,
+  `net_profit` decimal(19,2) DEFAULT NULL,
+  `total_operating_expense` decimal(20,2) DEFAULT NULL,
+  `total_operating_income` decimal(20,2) DEFAULT NULL,
+  `id` binary(16) NOT NULL,
+  PRIMARY KEY (`id`),
+  CONSTRAINT `FKls9eraq1yldqmbvmdy4hr8i2c` FOREIGN KEY (`id`) REFERENCES `income_statements` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `non_bank_income_statements` (
+  `cost_of_goods_sold` decimal(20,2) DEFAULT NULL,
+  `gross_profit` decimal(20,2) DEFAULT NULL,
+  `managing_expense` decimal(20,2) DEFAULT NULL,
+  `net_profit` decimal(19,2) DEFAULT NULL,
+  `net_revenue` decimal(19,2) DEFAULT NULL,
+  `selling_expense` decimal(20,2) DEFAULT NULL,
+  `total_revenue` decimal(19,2) DEFAULT NULL,
+  `id` binary(16) NOT NULL,
+  PRIMARY KEY (`id`),
+  CONSTRAINT `FKds0nxpr0hggapely5tesisw2j` FOREIGN KEY (`id`) REFERENCES `income_statements` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `cash_flow_statements` (
+  `financing_cashflow` decimal(20,2) DEFAULT NULL,
+  `investing_cashflow` decimal(20,2) DEFAULT NULL,
+  `operating_cashflow` decimal(20,2) DEFAULT NULL,
+  `quarter` int NOT NULL,
+  `year` int NOT NULL,
+  `company_id` varchar(255) NOT NULL,
+  PRIMARY KEY (`quarter`,`year`,`company_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- ========================
+-- INVESTMENT — PORTFOLIO
+-- ========================
+
+CREATE TABLE `portfolios` (
+  `cash_balance` decimal(19,2) NOT NULL,
+  `created_at` datetime(6) DEFAULT NULL,
+  `updated_at` datetime(6) DEFAULT NULL,
+  `id` binary(16) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `user_id` varchar(255) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `portfolio_assets` (
+  `average_price` decimal(19,2) NOT NULL,
+  `total_quantity` decimal(19,0) NOT NULL,
+  `updated_at` datetime(6) DEFAULT NULL,
+  `symbol` varchar(10) NOT NULL,
+  `id` binary(16) NOT NULL,
+  `portfolio_id` binary(16) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_portfolio_symbol` (`portfolio_id`,`symbol`),
+  CONSTRAINT `FKefixiwgd2oar167tv3pn1wifo` FOREIGN KEY (`portfolio_id`) REFERENCES `portfolios` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `trade_transactions` (
+  `fee_amount` decimal(19,2) DEFAULT NULL,
+  `price` decimal(19,2) DEFAULT NULL,
+  `quantity` decimal(19,0) DEFAULT NULL,
+  `tax_amount` decimal(19,2) DEFAULT NULL,
+  `total_amount` decimal(19,2) NOT NULL,
+  `transaction_date` datetime(6) NOT NULL,
+  `symbol` varchar(10) DEFAULT NULL,
+  `id` binary(16) NOT NULL,
+  `portfolio_id` binary(16) NOT NULL,
+  `trade_type` enum('BUY','DEPOSIT','DIVIDEND','SELL','WITHDRAW') NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `FK6k25qeolpsfiskmaaean2trpl` (`portfolio_id`),
+  CONSTRAINT `FK6k25qeolpsfiskmaaean2trpl` FOREIGN KEY (`portfolio_id`) REFERENCES `portfolios` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- ========================
+-- SPRING EVENT PUBLICATION
+-- ========================
+
+CREATE TABLE `event_publication` (
+  `completion_attempts` int NOT NULL,
+  `completion_date` datetime(6) DEFAULT NULL,
+  `last_resubmission_date` datetime(6) DEFAULT NULL,
+  `publication_date` datetime(6) DEFAULT NULL,
+  `id` binary(16) NOT NULL,
+  `event_type` varchar(255) DEFAULT NULL,
+  `listener_id` varchar(255) DEFAULT NULL,
+  `serialized_event` varchar(255) DEFAULT NULL,
+  `status` enum('COMPLETED','FAILED','PROCESSING','PUBLISHED','RESUBMITTED') DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

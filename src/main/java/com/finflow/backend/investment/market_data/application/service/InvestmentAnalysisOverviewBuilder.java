@@ -129,11 +129,8 @@ public class InvestmentAnalysisOverviewBuilder {
 
     private static FinancialIndicator selectOverviewIndicator(List<FinancialIndicator> indicators) {
         if (indicators == null || indicators.isEmpty()) return null;
-        Optional<FinancialIndicator> latestQ4 = indicators.stream()
-                .filter(i -> i.getQuarter() == 4)
-                .max(Comparator.comparingInt(FinancialIndicator::getYear));
-        if (latestQ4.isPresent()) return latestQ4.get();
         return indicators.stream()
+                .filter(i -> i.getQuarter() > 0)
                 .max(
                         Comparator.comparingInt(FinancialIndicator::getYear)
                                 .thenComparingInt(FinancialIndicator::getQuarter)

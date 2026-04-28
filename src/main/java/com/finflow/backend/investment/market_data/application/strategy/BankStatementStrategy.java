@@ -8,10 +8,7 @@ import com.finflow.backend.investment.market_data.application.dto.InvestmentAnal
 
 import java.util.*;
 
-import static com.finflow.backend.investment.market_data.application.service.InvestmentAnalysisNumberUtils.keepLatestQuarterByYear;
-import static com.finflow.backend.investment.market_data.application.service.InvestmentAnalysisNumberUtils.normalizeLimit;
-import static com.finflow.backend.investment.market_data.application.service.InvestmentAnalysisNumberUtils.sumBigDecimals;
-import static com.finflow.backend.investment.market_data.application.service.InvestmentAnalysisNumberUtils.toDouble;
+import static com.finflow.backend.investment.market_data.application.service.InvestmentAnalysisNumberUtils.*;
 
 public class BankStatementStrategy {
     private final InvestmentFinancialPointMapper pointMapper;
@@ -43,11 +40,75 @@ public class BankStatementStrategy {
         allYears.addAll(incGrouped.keySet());
         List<Integer> years = allYears.stream().sorted().toList();
 
+        // --- Quarterly lookup maps for per-metric YoY ---
+        Map<String, Double> qProfitMap = new HashMap<>();
+        Map<String, Double> qCustomerLoanMap = new HashMap<>();
+        Map<String, Double> qToiMap = new HashMap<>();
+        Map<String, Double> qNplMap = new HashMap<>();
+
+        for (BankIncomeStatement inc : incomes) {
+            String key = inc.getYear() + "-" + inc.getQuarter();
+            Double pat = toDouble(inc.getProfitAfterTax());
+            if (pat != null) qProfitMap.put(key, pat);
+            Double toi = sumNullableDoubles(
+                    toDouble(inc.getNetInterestIncome()),
+                    toDouble(inc.getNetFeeAndCommissionIncome()),
+                    toDouble(inc.getNetOtherIncomeOrExpenses()));
+            if (toi != null) qToiMap.put(key, toi);
+        }
+        for (BankBalanceSheet bs : balances) {
+            String key = bs.getYear() + "-" + bs.getQuarter();
+            Double cl = toDouble(bs.getCustomerLoan());
+            if (cl != null) qCustomerLoanMap.put(key, cl);
+            Double npl = sumNullableDoubles(
+                    toDouble(bs.getSubstandardDebt()),
+                    toDouble(bs.getDoubtfulDebt()),
+                    toDouble(bs.getBadDebt()));
+            if (npl != null) qNplMap.put(key, npl);
+        }
+
+        // --- Annual aggregate maps ---
+        Map<Integer, Double> annualProfitMap = new HashMap<>();
+        Map<Integer, Double> annualToiMap = new HashMap<>();
+        Map<Integer, Double> annualCustomerLoanMap = new HashMap<>();
+        Map<Integer, Double> annualNplMap = new HashMap<>();
+        Map<Integer, Integer> annualQuarterCountMap = new HashMap<>();
+
+        for (Integer year : years) {
+            List<BankIncomeStatement> quarterIncomes = incGrouped.getOrDefault(year, List.of());
+            int qCount = (int) quarterIncomes.stream()
+                    .filter(qi -> qi.getProfitAfterTax() != null)
+                    .count();
+            annualQuarterCountMap.put(year, qCount);
+
+            Double profit = sumBigDecimals(quarterIncomes, BankIncomeStatement::getProfitAfterTax);
+            if (profit != null) annualProfitMap.put(year, profit);
+
+            Double toi = sumNullableDoubles(
+                    sumBigDecimals(quarterIncomes, BankIncomeStatement::getNetInterestIncome),
+                    sumBigDecimals(quarterIncomes, BankIncomeStatement::getNetFeeAndCommissionIncome),
+                    sumBigDecimals(quarterIncomes, BankIncomeStatement::getNetOtherIncomeOrExpenses));
+            if (toi != null) annualToiMap.put(year, toi);
+
+            BankBalanceSheet b = balByYear.get(year);
+            if (b != null) {
+                Double cl = toDouble(b.getCustomerLoan());
+                if (cl != null) annualCustomerLoanMap.put(year, cl);
+                Double npl = sumNullableDoubles(
+                        toDouble(b.getSubstandardDebt()),
+                        toDouble(b.getDoubtfulDebt()),
+                        toDouble(b.getBadDebt()));
+                if (npl != null) annualNplMap.put(year, npl);
+            }
+        }
+
+        // --- Build points ---
         List<InvestmentAnalysisOutput.BankFinancialPoint> points = new ArrayList<>();
         for (Integer year : years) {
             BankBalanceSheet b = balByYear.get(year);
             FinancialIndicator f = indByYear.get(year);
             List<BankIncomeStatement> quarterIncomes = incGrouped.getOrDefault(year, List.of());
+            int quarterCount = quarterIncomes.size();
 
             Double annualNetInterest = sumBigDecimals(quarterIncomes, BankIncomeStatement::getNetInterestIncome);
             Double annualFee = sumBigDecimals(quarterIncomes, BankIncomeStatement::getNetFeeAndCommissionIncome);
@@ -59,9 +120,24 @@ public class BankStatementStrategy {
             Double annualProvision = sumBigDecimals(quarterIncomes, BankIncomeStatement::getCreditRiskProvisionsExpense);
             Double annualInterestIncome = sumBigDecimals(quarterIncomes, BankIncomeStatement::getInterestAndSimilarIncome);
 
-            points.add(makeBankPoint(year, 0, b, f,
-                    annualNetInterest, annualFee, annualOther, annualProfit, annualInterestExpense,
-                    annualTOI, annualTOE, annualProvision, annualInterestIncome));
+            // Annual YoY — flow metrics require both years have 4 quarters
+            int prevQCount = annualQuarterCountMap.getOrDefault(year - 1, 0);
+            boolean fullBothYears = quarterCount == 4 && prevQCount == 4;
+
+            Double annualYoY = fullBothYears ? computeYoY(annualProfit, annualProfitMap.get(year - 1)) : null;
+            Double annualYoYToi = fullBothYears ? computeYoY(annualToiMap.get(year), annualToiMap.get(year - 1)) : null;
+            // Balance-sheet snapshots — no quarterCount guard
+            Double annualYoYCustomerLoan = computeYoY(annualCustomerLoanMap.get(year), annualCustomerLoanMap.get(year - 1));
+            Double annualYoYNpl = computeYoY(annualNplMap.get(year), annualNplMap.get(year - 1));
+
+            // Computed aggregates
+            Double totalAssetsVal = computeBankTotalAssets(b);
+            Double nplVal = computeBankNpl(b);
+
+            points.add(makeBankPoint(year, 0, quarterCount, annualYoY,
+                    totalAssetsVal, nplVal, annualYoYCustomerLoan, annualYoYToi, annualYoYNpl,
+                    b, f, annualNetInterest, annualFee, annualOther, annualProfit,
+                    annualInterestExpense, annualTOI, annualTOE, annualProvision, annualInterestIncome));
 
             for (BankIncomeStatement qi : quarterIncomes) {
                 BankBalanceSheet qb = balances.stream()
@@ -72,7 +148,20 @@ public class BankStatementStrategy {
                         .filter(ind -> ind.getYear() == year && ind.getQuarter() == qi.getQuarter())
                         .findFirst().orElse(null);
 
-                points.add(makeBankPoint(year, qi.getQuarter(), qb, qf,
+                String prevKey = (year - 1) + "-" + qi.getQuarter();
+                Double qYoY = computeYoY(toDouble(qi.getProfitAfterTax()), qProfitMap.get(prevKey));
+                Double qYoYCustomerLoan = computeYoY(toDouble(qb.getCustomerLoan()), qCustomerLoanMap.get(prevKey));
+                Double qToiCur = sumNullableDoubles(
+                        toDouble(qi.getNetInterestIncome()),
+                        toDouble(qi.getNetFeeAndCommissionIncome()),
+                        toDouble(qi.getNetOtherIncomeOrExpenses()));
+                Double qYoYToi = computeYoY(qToiCur, qToiMap.get(prevKey));
+                Double qNplCur = computeBankNpl(qb);
+                Double qYoYNpl = computeYoY(qNplCur, qNplMap.get(prevKey));
+
+                points.add(makeBankPoint(year, qi.getQuarter(), 1, qYoY,
+                        computeBankTotalAssets(qb), qNplCur, qYoYCustomerLoan, qYoYToi, qYoYNpl,
+                        qb, qf,
                         toDouble(qi.getNetInterestIncome()),
                         toDouble(qi.getNetFeeAndCommissionIncome()),
                         toDouble(qi.getNetOtherIncomeOrExpenses()),
@@ -86,6 +175,25 @@ public class BankStatementStrategy {
         }
 
         return applyFinancialLimitsBank(points, annualLimit, quarterlyLimit);
+    }
+
+    private Double computeBankTotalAssets(BankBalanceSheet b) {
+        if (b == null) return null;
+        return sumNullableDoubles(
+                toDouble(b.getCashAndCashEquivalents()),
+                toDouble(b.getBalancesWithSbv()),
+                toDouble(b.getInterbankPlacementsAndLoans()),
+                toDouble(b.getTradingSecurities()),
+                toDouble(b.getInvestmentSecurities()),
+                toDouble(b.getLoansToCustomers()));
+    }
+
+    private Double computeBankNpl(BankBalanceSheet b) {
+        if (b == null) return null;
+        return sumNullableDoubles(
+                toDouble(b.getSubstandardDebt()),
+                toDouble(b.getDoubtfulDebt()),
+                toDouble(b.getBadDebt()));
     }
 
     private List<InvestmentAnalysisOutput.BankFinancialPoint> applyFinancialLimitsBank(
@@ -121,6 +229,13 @@ public class BankStatementStrategy {
     private InvestmentAnalysisOutput.BankFinancialPoint makeBankPoint(
             Integer year,
             Integer quarter,
+            Integer quarterCount,
+            Double yoyGrowth,
+            Double totalAssets,
+            Double npl,
+            Double yoyCustomerLoan,
+            Double yoyTotalOperatingIncome,
+            Double yoyNpl,
             BankBalanceSheet b,
             FinancialIndicator f,
             Double netInterest,
@@ -136,6 +251,13 @@ public class BankStatementStrategy {
         return pointMapper.toBankFinancialPoint(
                 year,
                 quarter,
+                quarterCount,
+                yoyGrowth,
+                totalAssets,
+                npl,
+                yoyCustomerLoan,
+                yoyTotalOperatingIncome,
+                yoyNpl,
                 // Balance sheet — assets
                 b == null ? null : toDouble(b.getCashAndCashEquivalents()),
                 b == null ? null : toDouble(b.getBalancesWithSbv()),

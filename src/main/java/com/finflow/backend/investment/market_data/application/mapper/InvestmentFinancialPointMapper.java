@@ -10,6 +10,15 @@ public interface InvestmentFinancialPointMapper {
     InvestmentAnalysisOutput.BankFinancialPoint toBankFinancialPoint(
             Integer year,
             Integer quarter,
+            Integer quarterCount,
+            Double yoyGrowth,
+            // Computed aggregates
+            Double totalAssets,
+            Double npl,
+            // Per-metric YoY
+            Double yoyCustomerLoan,
+            Double yoyTotalOperatingIncome,
+            Double yoyNpl,
             // Balance sheet — assets
             Double cashAndEquivalents,
             Double depositsAtSBV,
@@ -72,6 +81,11 @@ public interface InvestmentFinancialPointMapper {
     InvestmentAnalysisOutput.NonBankFinancialPoint toNonBankFinancialPoint(
             Integer year,
             Integer quarter,
+            Integer quarterCount,
+            Double yoyGrowth,
+            // Per-metric YoY
+            Double yoyNetRevenue,
+            Double yoyInventories,
             // Balance sheet — assets
             Double cashAndEquivalents,
             Double shortTermInvestments,

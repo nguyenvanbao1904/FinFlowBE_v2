@@ -43,6 +43,19 @@ public final class InvestmentAnalysisNumberUtils {
         return map;
     }
 
+    public static Double computeYoY(Double current, Double previous) {
+        if (current == null || previous == null || previous == 0) return null;
+        return (current - previous) / Math.abs(previous) * 100;
+    }
+
+    public static Double sumNullableDoubles(Double... values) {
+        Double sum = null;
+        for (Double v : values) {
+            if (v != null) sum = (sum == null) ? v : sum + v;
+        }
+        return sum;
+    }
+
     public static long normalizeLimit(Integer rawLimit) {
         if (rawLimit == null) {
             return Long.MAX_VALUE;

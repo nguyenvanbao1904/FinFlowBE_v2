@@ -27,19 +27,19 @@ public abstract class FinancialIndicator {
     private int quarter;
 
     // Các chỉ số map chính xác từ Python code
-    @Column(precision = 10, scale = 2)
+    @Column(precision = 20, scale = 6)
     private BigDecimal pe; // P/E
-    
-    @Column(precision = 10, scale = 2)
+
+    @Column(precision = 20, scale = 6)
     private BigDecimal pb; // P/B
-    
-    @Column(precision = 10, scale = 2)
+
+    @Column(precision = 20, scale = 6)
     private BigDecimal ps; // P/S
-    
-    @Column(precision = 10, scale = 2)
+
+    @Column(precision = 20, scale = 6)
     private BigDecimal roe; // ROE (%)
-    
-    @Column(precision = 10, scale = 2)
+
+    @Column(precision = 20, scale = 6)
     private BigDecimal roa; // ROA (%)
     
     @Column(precision = 19, scale = 2)
@@ -48,10 +48,10 @@ public abstract class FinancialIndicator {
     @Column(precision = 19, scale = 2)
     private BigDecimal bvps; // BVPS (VND)
     
-    @Column(name = "gross_margin", precision = 10, scale = 2)
+    @Column(name = "gross_margin", precision = 20, scale = 6)
     private BigDecimal lng; // Biên LN gộp (%) - Gross Margin
-    
-    @Column(name = "net_margin", precision = 10, scale = 2)
+
+    @Column(name = "net_margin", precision = 20, scale = 6)
     private BigDecimal lnr; // Biên LN ròng (%) - Net Margin
     
     @Column(name = "shares_outstanding", precision = 19, scale = 2)

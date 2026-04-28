@@ -8,10 +8,7 @@ import com.finflow.backend.investment.market_data.application.dto.InvestmentAnal
 
 import java.util.*;
 
-import static com.finflow.backend.investment.market_data.application.service.InvestmentAnalysisNumberUtils.keepLatestQuarterByYear;
-import static com.finflow.backend.investment.market_data.application.service.InvestmentAnalysisNumberUtils.normalizeLimit;
-import static com.finflow.backend.investment.market_data.application.service.InvestmentAnalysisNumberUtils.sumBigDecimals;
-import static com.finflow.backend.investment.market_data.application.service.InvestmentAnalysisNumberUtils.toDouble;
+import static com.finflow.backend.investment.market_data.application.service.InvestmentAnalysisNumberUtils.*;
 
 public class NonBankStatementStrategy {
     private final InvestmentFinancialPointMapper pointMapper;
@@ -43,11 +40,58 @@ public class NonBankStatementStrategy {
         allYears.addAll(incGrouped.keySet());
         List<Integer> years = allYears.stream().sorted().toList();
 
+        // --- Quarterly lookup maps for per-metric YoY ---
+        Map<String, Double> qProfitMap = new HashMap<>();
+        Map<String, Double> qRevenueMap = new HashMap<>();
+        Map<String, Double> qInventoryMap = new HashMap<>();
+
+        for (NonBankIncomeStatement inc : incomes) {
+            String key = inc.getYear() + "-" + inc.getQuarter();
+            Double pat = toDouble(inc.getProfitAfterTax());
+            if (pat != null) qProfitMap.put(key, pat);
+            Double rev = toDouble(inc.getNetRevenue());
+            if (rev != null) qRevenueMap.put(key, rev);
+        }
+        for (NonBankBalanceSheet bs : balances) {
+            String key = bs.getYear() + "-" + bs.getQuarter();
+            Double inv = toDouble(bs.getInventories());
+            if (inv != null) qInventoryMap.put(key, inv);
+        }
+
+        // --- Annual aggregate maps ---
+        Map<Integer, Double> annualProfitMap = new HashMap<>();
+        Map<Integer, Double> annualRevenueMap = new HashMap<>();
+        Map<Integer, Double> annualInventoryMap = new HashMap<>();
+        Map<Integer, Integer> annualQuarterCountMap = new HashMap<>();
+
+        for (Integer year : years) {
+            List<NonBankIncomeStatement> quarterIncomes = incGrouped.getOrDefault(year, List.of());
+            int qCount = (int) quarterIncomes.stream()
+                    .filter(qi -> qi.getProfitAfterTax() != null)
+                    .count();
+            annualQuarterCountMap.put(year, qCount);
+
+            Double profit = sumBigDecimals(quarterIncomes, NonBankIncomeStatement::getProfitAfterTax);
+            if (profit != null) annualProfitMap.put(year, profit);
+
+            Double revenue = sumBigDecimals(quarterIncomes, NonBankIncomeStatement::getNetRevenue);
+            if (revenue != null) annualRevenueMap.put(year, revenue);
+
+            // Inventories — balance sheet snapshot, use latest quarter
+            NonBankBalanceSheet b = balByYear.get(year);
+            if (b != null) {
+                Double inv = toDouble(b.getInventories());
+                if (inv != null) annualInventoryMap.put(year, inv);
+            }
+        }
+
+        // --- Build points ---
         List<InvestmentAnalysisOutput.NonBankFinancialPoint> points = new ArrayList<>();
         for (Integer year : years) {
             NonBankBalanceSheet b = balByYear.get(year);
             FinancialIndicator f = indByYear.get(year);
             List<NonBankIncomeStatement> quarterIncomes = incGrouped.getOrDefault(year, List.of());
+            int quarterCount = quarterIncomes.size();
 
             Double annualNetRevenue = sumBigDecimals(quarterIncomes, NonBankIncomeStatement::getNetRevenue);
             Double annualProfit = sumBigDecimals(quarterIncomes, NonBankIncomeStatement::getProfitAfterTax);
@@ -60,9 +104,19 @@ public class NonBankStatementStrategy {
             Double grossMargin = f == null ? null : toDouble(f.getLng());
             Double netMargin = f == null ? null : toDouble(f.getLnr());
 
-            points.add(makeNonBankPoint(year, 0, b, f,
-                    annualNetRevenue, annualProfit, grossMargin, netMargin, annualTotalRevenue,
-                    annualGrossProfit, annualCOGS, annualSelling, annualManaging));
+            // Annual YoY — flow metrics require both years have 4 quarters
+            int prevQCount = annualQuarterCountMap.getOrDefault(year - 1, 0);
+            boolean fullBothYears = quarterCount == 4 && prevQCount == 4;
+
+            Double annualYoY = fullBothYears ? computeYoY(annualProfit, annualProfitMap.get(year - 1)) : null;
+            Double annualYoYRevenue = fullBothYears ? computeYoY(annualNetRevenue, annualRevenueMap.get(year - 1)) : null;
+            // Inventories — balance sheet snapshot, no quarterCount guard
+            Double annualYoYInventory = computeYoY(annualInventoryMap.get(year), annualInventoryMap.get(year - 1));
+
+            points.add(makeNonBankPoint(year, 0, quarterCount, annualYoY,
+                    annualYoYRevenue, annualYoYInventory,
+                    b, f, annualNetRevenue, annualProfit, grossMargin, netMargin,
+                    annualTotalRevenue, annualGrossProfit, annualCOGS, annualSelling, annualManaging));
 
             for (NonBankIncomeStatement qi : quarterIncomes) {
                 NonBankBalanceSheet qb = balances.stream()
@@ -78,10 +132,17 @@ public class NonBankStatementStrategy {
                 Double qGross = qf == null ? null : toDouble(qf.getLng());
                 Double qNet = qf == null ? null : toDouble(qf.getLnr());
 
-                points.add(makeNonBankPoint(year, qi.getQuarter(), qb, qf,
-                        qNetRevenue, qProfit, qGross, qNet, toDouble(qi.getTotalRevenue()),
-                        toDouble(qi.getGrossProfit()), toDouble(qi.getCostOfGoodsSold()),
-                        toDouble(qi.getSellingExpense()), toDouble(qi.getManagingExpense())));
+                String prevKey = (year - 1) + "-" + qi.getQuarter();
+                Double qYoY = computeYoY(qProfit, qProfitMap.get(prevKey));
+                Double qYoYRevenue = computeYoY(qNetRevenue, qRevenueMap.get(prevKey));
+                Double qYoYInventory = computeYoY(toDouble(qb.getInventories()), qInventoryMap.get(prevKey));
+
+                points.add(makeNonBankPoint(year, qi.getQuarter(), 1, qYoY,
+                        qYoYRevenue, qYoYInventory,
+                        qb, qf, qNetRevenue, qProfit, qGross, qNet,
+                        toDouble(qi.getTotalRevenue()), toDouble(qi.getGrossProfit()),
+                        toDouble(qi.getCostOfGoodsSold()), toDouble(qi.getSellingExpense()),
+                        toDouble(qi.getManagingExpense())));
             }
         }
 
@@ -121,6 +182,10 @@ public class NonBankStatementStrategy {
     private InvestmentAnalysisOutput.NonBankFinancialPoint makeNonBankPoint(
             Integer year,
             Integer quarter,
+            Integer quarterCount,
+            Double yoyGrowth,
+            Double yoyNetRevenue,
+            Double yoyInventories,
             NonBankBalanceSheet b,
             FinancialIndicator f,
             Double netRevenue,
@@ -136,6 +201,10 @@ public class NonBankStatementStrategy {
         return pointMapper.toNonBankFinancialPoint(
                 year,
                 quarter,
+                quarterCount,
+                yoyGrowth,
+                yoyNetRevenue,
+                yoyInventories,
                 // Balance sheet — assets
                 b == null ? null : toDouble(b.getCashAndCashEquivalents()),
                 b == null ? null : toDouble(b.getShortTermInvestments()),
