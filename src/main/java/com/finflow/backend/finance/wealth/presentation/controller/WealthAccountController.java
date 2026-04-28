@@ -72,32 +72,32 @@ public class WealthAccountController {
     @Operation(summary = "Create a new wealth account")
     @PostMapping
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public ResponseEntity<Map<String, UUID>> createWealthAccount(
+    public ResponseEntity<WealthAccountResponse> createWealthAccount(
             @AuthenticationPrincipal Jwt jwt,
             @Valid @RequestBody CreateWealthAccountRequest request
     ) {
         String userId = jwt.getSubject();
-        var id = createWealthAccountUseCase.execute(
+        var output = createWealthAccountUseCase.execute(
             new CreateWealthAccountCommand(userId, request.getName(), request.getAccountTypeId(),
                 request.getBalance(), request.getIncludeInNetWorth())
-        ).id();
-        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", id));
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toResponse(output));
     }
 
     @Operation(summary = "Update wealth account")
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public ResponseEntity<Map<String, UUID>> updateWealthAccount(
+    public ResponseEntity<WealthAccountResponse> updateWealthAccount(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable UUID id,
             @Valid @RequestBody UpdateWealthAccountRequest request
     ) {
         String userId = jwt.getSubject();
-        var updatedId = updateWealthAccountUseCase.execute(
+        var output = updateWealthAccountUseCase.execute(
             new UpdateWealthAccountCommand(userId, id, request.getName(), request.getAccountTypeId(),
                 request.getBalance(), request.getIncludeInNetWorth())
-        ).id();
-        return ResponseEntity.ok(Map.of("id", updatedId));
+        );
+        return ResponseEntity.ok(mapper.toResponse(output));
     }
 
     @Operation(summary = "Delete wealth account")

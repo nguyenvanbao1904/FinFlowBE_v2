@@ -12,7 +12,7 @@ import com.finflow.backend.investment.portfolio.domain.repository.PortfolioRepos
 import com.finflow.backend.investment.portfolio.exception.PortfolioAssetErrorCode;
 import com.finflow.backend.investment.portfolio.exception.PortfolioErrorCode;
 import com.finflow.backend.investment.portfolio.application.command.CreatePortfolioAssetCommand;
-import com.finflow.backend.common.application.dto.UuidOutput;
+import com.finflow.backend.investment.portfolio.application.dto.PortfolioAssetOutput;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,7 +34,7 @@ public class CreatePortfolioAssetUseCase implements CreatePortfolioAssetPort {
 
     @Transactional
     @Override
-    public UuidOutput execute(CreatePortfolioAssetCommand command) {
+    public PortfolioAssetOutput execute(CreatePortfolioAssetCommand command) {
         String userId = command.userId();
         UUID portfolioId = command.portfolioId();
         String symbol = command.symbol().trim().toUpperCase();
@@ -77,7 +77,11 @@ public class CreatePortfolioAssetUseCase implements CreatePortfolioAssetPort {
                     .build();
 
             PortfolioAsset saved = portfolioAssetRepository.save(created);
-            return new UuidOutput(saved.getId());
+            return PortfolioAssetOutput.builder()
+                    .symbol(saved.getSymbol())
+                    .totalQuantity(saved.getTotalQuantity())
+                    .averagePrice(saved.getAveragePrice())
+                    .build();
         }
 
         BigDecimal oldQty = asset.getTotalQuantity();
@@ -98,7 +102,11 @@ public class CreatePortfolioAssetUseCase implements CreatePortfolioAssetPort {
         asset.setAveragePrice(newAvg);
 
         PortfolioAsset saved = portfolioAssetRepository.save(asset);
-        return new UuidOutput(saved.getId());
+        return PortfolioAssetOutput.builder()
+                .symbol(saved.getSymbol())
+                .totalQuantity(saved.getTotalQuantity())
+                .averagePrice(saved.getAveragePrice())
+                .build();
     }
 }
 

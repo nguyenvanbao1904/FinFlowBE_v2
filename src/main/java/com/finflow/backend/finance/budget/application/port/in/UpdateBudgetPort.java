@@ -1,9 +1,8 @@
 package com.finflow.backend.finance.budget.application.port.in;
 
 import com.finflow.backend.finance.budget.application.command.UpdateBudgetCommand;
-
-import com.finflow.backend.common.application.dto.UuidOutput;
+import com.finflow.backend.finance.budget.application.dto.BudgetOutput;
 
 public interface UpdateBudgetPort {
-    UuidOutput execute(UpdateBudgetCommand command);
+    BudgetOutput execute(UpdateBudgetCommand command);
 }

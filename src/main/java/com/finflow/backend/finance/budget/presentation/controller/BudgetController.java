@@ -32,7 +32,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -59,32 +58,32 @@ public class BudgetController {
     @Operation(summary = "Create a new budget")
     @PostMapping
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public ResponseEntity<Map<String, UUID>> createBudget(
+    public ResponseEntity<BudgetResponse> createBudget(
             @AuthenticationPrincipal Jwt jwt,
             @Valid @RequestBody CreateBudgetRequest request
     ) {
         String userId = jwt.getSubject();
-        var id = createBudgetUseCase.execute(
+        var output = createBudgetUseCase.execute(
             new CreateBudgetCommand(userId, request.getCategoryId(), request.getTargetAmount(),
                 request.getStartDate(), request.getEndDate(), request.getIsRecurring(), request.getRecurringStartDate())
-        ).id();
-        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", id));
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toResponse(output));
     }
 
     @Operation(summary = "Update budget")
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public ResponseEntity<Map<String, UUID>> updateBudget(
+    public ResponseEntity<BudgetResponse> updateBudget(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable UUID id,
             @Valid @RequestBody UpdateBudgetRequest request
     ) {
         String userId = jwt.getSubject();
-        var updatedId = updateBudgetUseCase.execute(
+        var output = updateBudgetUseCase.execute(
             new UpdateBudgetCommand(userId, id, request.getCategoryId(), request.getTargetAmount(),
                 request.getStartDate(), request.getEndDate(), request.getIsRecurring(), request.getRecurringStartDate())
-        ).id();
-        return ResponseEntity.ok(Map.of("id", updatedId));
+        );
+        return ResponseEntity.ok(mapper.toResponse(output));
     }
 
     @Operation(summary = "Delete budget")

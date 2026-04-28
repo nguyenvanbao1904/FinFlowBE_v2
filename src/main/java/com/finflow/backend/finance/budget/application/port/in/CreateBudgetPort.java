@@ -1,9 +1,8 @@
 package com.finflow.backend.finance.budget.application.port.in;
 
 import com.finflow.backend.finance.budget.application.command.CreateBudgetCommand;
-
-import com.finflow.backend.common.application.dto.UuidOutput;
+import com.finflow.backend.finance.budget.application.dto.BudgetOutput;
 
 public interface CreateBudgetPort {
-    UuidOutput execute(CreateBudgetCommand command);
+    BudgetOutput execute(CreateBudgetCommand command);
 }

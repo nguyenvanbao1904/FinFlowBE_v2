@@ -56,28 +56,28 @@ public class CategoryController {
     @Operation(summary = "Create a new category")
     @PostMapping
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public ResponseEntity<java.util.Map<String, UUID>> createCategory(
+    public ResponseEntity<CategoryResponse> createCategory(
             @AuthenticationPrincipal Jwt jwt,
             @Valid @RequestBody CreateCategoryRequest request) {
         String userId = jwt.getSubject();
-        var id = createCategoryUseCase.execute(
+        var output = createCategoryUseCase.execute(
             new CreateCategoryCommand(userId, request.getName(), request.getType(), request.getIcon(), request.getColor())
-        ).id();
-        return ResponseEntity.status(HttpStatus.CREATED).body(java.util.Map.of("id", id));
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toResponse(output));
     }
 
     @Operation(summary = "Update a category (own categories only)")
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public ResponseEntity<java.util.Map<String, UUID>> updateCategory(
+    public ResponseEntity<CategoryResponse> updateCategory(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable UUID id,
             @Valid @RequestBody UpdateCategoryRequest request) {
         String userId = jwt.getSubject();
-        var updatedId = updateCategoryUseCase.execute(
+        var output = updateCategoryUseCase.execute(
             new UpdateCategoryCommand(userId, id, request.getName(), request.getIcon(), request.getColor())
-        ).id();
-        return ResponseEntity.ok(java.util.Map.of("id", updatedId));
+        );
+        return ResponseEntity.ok(mapper.toResponse(output));
     }
 
     @Operation(summary = "Delete a category (own categories only, not in use)")

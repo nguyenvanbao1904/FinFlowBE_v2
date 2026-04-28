@@ -8,7 +8,8 @@ import com.finflow.backend.finance.transaction.domain.entity.Category;
 import com.finflow.backend.finance.transaction.domain.repository.CategoryRepository;
 import com.finflow.backend.finance.transaction.application.command.CreateCategoryCommand;
 import com.finflow.backend.finance.transaction.exception.TransactionErrorCode;
-import com.finflow.backend.common.application.dto.UuidOutput;
+import com.finflow.backend.finance.transaction.application.dto.CategoryOutput;
+import com.finflow.backend.finance.transaction.application.mapper.CategoryMapper;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,11 +22,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class CreateCategoryUseCase implements CreateCategoryPort {
 
     private final CategoryRepository categoryRepository;
-    
+    private final CategoryMapper categoryMapper;
 
     @Transactional
     @Override
-    public UuidOutput execute(CreateCategoryCommand command) {
+    public CategoryOutput execute(CreateCategoryCommand command) {
         String userId = command.userId();
         log.info("Creating category for userId: {}", userId);
 
@@ -57,6 +58,6 @@ public class CreateCategoryUseCase implements CreateCategoryPort {
                 .build();
 
         Category saved = categoryRepository.save(category);
-        return new UuidOutput(saved.getId());
+        return categoryMapper.toCategoryOutput(saved);
     }
 }

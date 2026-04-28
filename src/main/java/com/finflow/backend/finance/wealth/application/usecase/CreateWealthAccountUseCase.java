@@ -10,7 +10,8 @@ import com.finflow.backend.finance.wealth.domain.repository.WealthAccountReposit
 import com.finflow.backend.finance.wealth.domain.repository.WealthAccountTypeRepository;
 import com.finflow.backend.finance.wealth.exception.WealthErrorCode;
 import com.finflow.backend.finance.wealth.application.command.CreateWealthAccountCommand;
-import com.finflow.backend.common.application.dto.UuidOutput;
+import com.finflow.backend.finance.wealth.application.dto.WealthAccountOutput;
+import com.finflow.backend.finance.wealth.application.mapper.WealthAccountMapper;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,11 +27,11 @@ public class CreateWealthAccountUseCase implements CreateWealthAccountPort {
 
     private final WealthAccountRepository wealthAccountRepository;
     private final WealthAccountTypeRepository wealthAccountTypeRepository;
-    
+    private final WealthAccountMapper wealthAccountMapper;
 
     @Transactional
     @Override
-    public UuidOutput execute(CreateWealthAccountCommand command) {
+    public WealthAccountOutput execute(CreateWealthAccountCommand command) {
         String userId = command.userId();
         log.info("Creating wealth account for user: {}", userId);
 
@@ -53,6 +54,6 @@ public class CreateWealthAccountUseCase implements CreateWealthAccountPort {
                 .build();
 
         WealthAccount saved = wealthAccountRepository.save(account);
-        return new UuidOutput(saved.getId());
+        return wealthAccountMapper.toWealthAccountOutput(saved);
     }
 }

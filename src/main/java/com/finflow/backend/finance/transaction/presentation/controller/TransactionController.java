@@ -46,15 +46,15 @@ public class TransactionController {
     @Operation(summary = "Create a new transaction")
     @PostMapping
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public ResponseEntity<java.util.Map<String, UUID>> addTransaction(
+    public ResponseEntity<TransactionResponse> addTransaction(
             @AuthenticationPrincipal Jwt jwt,
             @Valid @RequestBody AddTransactionRequest request) {
         String userId = jwt.getSubject();
-        var id = addTransactionUseCase.execute(
+        var output = addTransactionUseCase.execute(
             new AddTransactionCommand(userId, request.getAmount(), request.getType(),
                 request.getCategoryId(), request.getAccountId(), request.getNote(), request.getTransactionDate())
-        ).id();
-        return ResponseEntity.status(HttpStatus.CREATED).body(java.util.Map.of("id", id));
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toResponse(output));
     }
 
     @Operation(summary = "Get paginated transactions with optional date range and keyword")
@@ -83,16 +83,16 @@ public class TransactionController {
     @Operation(summary = "Update a transaction")
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public ResponseEntity<java.util.Map<String, UUID>> updateTransaction(
+    public ResponseEntity<TransactionResponse> updateTransaction(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable UUID id,
             @Valid @RequestBody UpdateTransactionRequest request) {
         String userId = jwt.getSubject();
-        var updatedId = updateTransactionUseCase.execute(
+        var output = updateTransactionUseCase.execute(
             new UpdateTransactionCommand(userId, id, request.getAmount(), request.getType(),
                 request.getCategoryId(), request.getAccountId(), request.getNote(), request.getTransactionDate())
-        ).id();
-        return ResponseEntity.ok(java.util.Map.of("id", updatedId));
+        );
+        return ResponseEntity.ok(mapper.toResponse(output));
     }
 
     @Operation(summary = "Delete a transaction")

@@ -1,9 +1,8 @@
 package com.finflow.backend.finance.wealth.application.port.in;
 
 import com.finflow.backend.finance.wealth.application.command.CreateWealthAccountCommand;
-
-import com.finflow.backend.common.application.dto.UuidOutput;
+import com.finflow.backend.finance.wealth.application.dto.WealthAccountOutput;
 
 public interface CreateWealthAccountPort {
-    UuidOutput execute(CreateWealthAccountCommand command);
+    WealthAccountOutput execute(CreateWealthAccountCommand command);
 }

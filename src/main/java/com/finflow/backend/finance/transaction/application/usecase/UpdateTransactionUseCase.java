@@ -11,7 +11,8 @@ import com.finflow.backend.finance.transaction.domain.repository.CategoryReposit
 import com.finflow.backend.finance.transaction.domain.repository.TransactionRepository;
 import com.finflow.backend.finance.transaction.exception.TransactionErrorCode;
 import com.finflow.backend.finance.transaction.application.command.UpdateTransactionCommand;
-import com.finflow.backend.common.application.dto.UuidOutput;
+import com.finflow.backend.finance.transaction.application.dto.TransactionOutput;
+import com.finflow.backend.finance.transaction.application.mapper.TransactionMapper;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,12 +35,13 @@ public class UpdateTransactionUseCase implements UpdateTransactionPort {
     private final TransactionRepository transactionRepository;
     private final CategoryRepository categoryRepository;
     private final WealthAccountApi wealthAccountApi;
+    private final TransactionMapper transactionMapper;
 
     private static final ZoneOffset UTC = ZoneOffset.UTC;
 
     @Transactional
     @Override
-    public UuidOutput execute(UpdateTransactionCommand command) {
+    public TransactionOutput execute(UpdateTransactionCommand command) {
         String userId = command.userId();
         UUID transactionId = command.transactionId();
         log.info("Updating transaction {} for userId: {}", transactionId, userId);
@@ -124,6 +126,6 @@ public class UpdateTransactionUseCase implements UpdateTransactionPort {
         transaction.setTransactionDate(transactionDateUTC);
 
         Transaction updatedTransaction = transactionRepository.save(transaction);
-        return new UuidOutput(updatedTransaction.getId());
+        return transactionMapper.toTransactionOutput(updatedTransaction);
     }
 }

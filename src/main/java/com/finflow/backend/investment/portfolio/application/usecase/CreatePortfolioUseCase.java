@@ -6,7 +6,7 @@ import com.finflow.backend.investment.portfolio.application.port.in.CreatePortfo
 import com.finflow.backend.investment.portfolio.domain.entity.Portfolio;
 import com.finflow.backend.investment.portfolio.domain.repository.PortfolioRepository;
 import com.finflow.backend.investment.portfolio.application.command.CreatePortfolioCommand;
-import com.finflow.backend.common.application.dto.UuidOutput;
+import com.finflow.backend.investment.portfolio.application.dto.PortfolioResponseOutput;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,11 +21,10 @@ import java.math.BigDecimal;
 public class CreatePortfolioUseCase implements CreatePortfolioPort {
 
     private final PortfolioRepository portfolioRepository;
-    
 
     @Transactional
     @Override
-    public UuidOutput execute(CreatePortfolioCommand command) {
+    public PortfolioResponseOutput execute(CreatePortfolioCommand command) {
         String userId = command.userId();
         String trimmedName = command.name().trim();
         log.info("Creating portfolio for user: {}", userId);
@@ -37,7 +36,14 @@ public class CreatePortfolioUseCase implements CreatePortfolioPort {
                 .build();
 
         Portfolio saved = portfolioRepository.save(portfolio);
-        return new UuidOutput(saved.getId());
+        return new PortfolioResponseOutput(
+                saved.getId(),
+                saved.getName(),
+                saved.getCashBalance(),
+                null,
+                saved.getCreatedAt(),
+                saved.getUpdatedAt()
+        );
     }
 }
 

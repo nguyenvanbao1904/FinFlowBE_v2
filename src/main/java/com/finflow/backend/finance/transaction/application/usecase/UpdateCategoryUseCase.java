@@ -8,7 +8,8 @@ import com.finflow.backend.finance.transaction.domain.entity.Category;
 import com.finflow.backend.finance.transaction.domain.repository.CategoryRepository;
 import com.finflow.backend.finance.transaction.exception.TransactionErrorCode;
 import com.finflow.backend.finance.transaction.application.command.UpdateCategoryCommand;
-import com.finflow.backend.common.application.dto.UuidOutput;
+import com.finflow.backend.finance.transaction.application.dto.CategoryOutput;
+import com.finflow.backend.finance.transaction.application.mapper.CategoryMapper;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,11 +24,11 @@ import java.util.UUID;
 public class UpdateCategoryUseCase implements UpdateCategoryPort {
 
     private final CategoryRepository categoryRepository;
-    
+    private final CategoryMapper categoryMapper;
 
     @Transactional
     @Override
-    public UuidOutput execute(UpdateCategoryCommand command) {
+    public CategoryOutput execute(UpdateCategoryCommand command) {
         String userId = command.userId();
         UUID categoryId = command.categoryId();
         log.info("Updating category {} for userId: {}", categoryId, userId);
@@ -50,6 +51,6 @@ public class UpdateCategoryUseCase implements UpdateCategoryPort {
         category.setColor(command.color() != null ? command.color().trim() : category.getColor());
 
         Category saved = categoryRepository.save(category);
-        return new UuidOutput(saved.getId());
+        return categoryMapper.toCategoryOutput(saved);
     }
 }
