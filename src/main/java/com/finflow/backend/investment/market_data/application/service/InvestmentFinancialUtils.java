@@ -105,16 +105,16 @@ public final class InvestmentFinancialUtils {
     }
 
     /**
-     * NH không có một dòng “doanh thu thuần” như DN thường; P/S dùng proxy quy mô hoạt động (một quý, VND):
-     * thu nhập lãi thuần + lãi dịch vụ + thu nhập khác.
+     * Revenue proxy cho ngân hàng (một quý, VND) khớp FireAnt P/S:
+     * thu nhập lãi và các khoản tương tự (gộp) + phí dịch vụ ròng + thu nhập khác ròng.
      */
     static double bankQuarterTopLineVnd(BankIncomeStatement b) {
         if (b == null) {
             return 0;
         }
         double s = 0;
-        if (b.getNetInterestIncome() != null) {
-            s += b.getNetInterestIncome().doubleValue();
+        if (b.getInterestAndSimilarIncome() != null) {
+            s += b.getInterestAndSimilarIncome().doubleValue();
         }
         if (b.getNetFeeAndCommissionIncome() != null) {
             s += b.getNetFeeAndCommissionIncome().doubleValue();
@@ -127,7 +127,7 @@ public final class InvestmentFinancialUtils {
 
     static boolean bankQuarterHasTopLine(BankIncomeStatement b) {
         return b != null
-                && (b.getNetInterestIncome() != null
+                && (b.getInterestAndSimilarIncome() != null
                 || b.getNetFeeAndCommissionIncome() != null
                 || b.getNetOtherIncomeOrExpenses() != null);
     }
