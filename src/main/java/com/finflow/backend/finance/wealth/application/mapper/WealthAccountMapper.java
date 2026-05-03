@@ -7,18 +7,25 @@ import com.finflow.backend.finance.wealth.domain.entity.WealthAccount;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
+import java.util.Set;
+
 @Mapper(componentModel = "spring")
-public interface WealthAccountMapper {
+public abstract class WealthAccountMapper {
+
+    private static final Set<String> INVESTMENT_CODES = Set.of("BROKERAGE", "STOCK", "CRYPTO");
 
     @Mapping(target = "wealthAccountType", source = "wealthAccountType")
-    WealthAccountOutput toWealthAccountOutput(WealthAccount wealthAccount);
+    public abstract WealthAccountOutput toWealthAccountOutput(WealthAccount wealthAccount);
 
-    @Mapping(target = "id", source = "id")
-    @Mapping(target = "code", source = "code")
-    @Mapping(target = "displayName", source = "displayName")
-    @Mapping(target = "icon", source = "icon")
-    @Mapping(target = "color", source = "color")
     @Mapping(target = "transactionEligible", source = "isTransactionEligible")
     @Mapping(target = "debt", source = "isDebt")
-    WealthAccountTypeOptionOutput toWealthAccountTypeOptionOutput(WealthAccountType wealthAccountType);
+    @Mapping(target = "group", expression = "java(resolveGroup(wealthAccountType))")
+    public abstract WealthAccountTypeOptionOutput toWealthAccountTypeOptionOutput(WealthAccountType wealthAccountType);
+
+    protected String resolveGroup(WealthAccountType type) {
+        if (Boolean.TRUE.equals(type.getIsDebt())) return "DEBT";
+        if (Boolean.TRUE.equals(type.getIsTransactionEligible())) return "LIQUID";
+        if (INVESTMENT_CODES.contains(type.getCode())) return "INVESTMENT";
+        return "ASSET";
+    }
 }

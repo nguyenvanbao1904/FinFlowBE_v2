@@ -20,4 +20,6 @@ public class WealthAccountTypeOptionResponse {
     Boolean transactionEligible;
     /** True when balance is stored as negative (e.g. LOAN). */
     Boolean debt;
+    /** Grouping key for UI display: LIQUID | INVESTMENT | ASSET | DEBT */
+    String group;
 }

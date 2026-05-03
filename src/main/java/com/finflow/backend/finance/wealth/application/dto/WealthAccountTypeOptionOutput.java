@@ -12,5 +12,6 @@ public record WealthAccountTypeOptionOutput(
         String icon,
         String color,
         Boolean transactionEligible,
-        Boolean debt
+        Boolean debt,
+        String group
 ) {}
