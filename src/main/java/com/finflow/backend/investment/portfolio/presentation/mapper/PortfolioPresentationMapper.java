@@ -4,10 +4,12 @@ import com.finflow.backend.investment.portfolio.application.dto.PortfolioAssetOu
 import com.finflow.backend.investment.portfolio.application.dto.PortfolioHealthOutput;
 import com.finflow.backend.investment.portfolio.application.dto.PortfolioMarketBenchmarkOutput;
 import com.finflow.backend.investment.portfolio.application.dto.PortfolioResponseOutput;
+import com.finflow.backend.investment.portfolio.application.dto.TradeTransactionOutput;
 import com.finflow.backend.investment.portfolio.presentation.response.PortfolioAssetResponse;
 import com.finflow.backend.investment.portfolio.presentation.response.PortfolioHealthResponse;
 import com.finflow.backend.investment.portfolio.presentation.response.PortfolioMarketBenchmarkResponse;
 import com.finflow.backend.investment.portfolio.presentation.response.PortfolioResponse;
+import com.finflow.backend.investment.portfolio.presentation.response.TradeTransactionResponse;
 import org.mapstruct.Mapper;
 
 import java.util.List;
@@ -21,6 +23,8 @@ public interface PortfolioPresentationMapper {
     PortfolioResponse toResponse(PortfolioResponseOutput output);
 
     PortfolioAssetResponse toResponse(PortfolioAssetOutput output);
+
+    TradeTransactionResponse toResponse(TradeTransactionOutput output);
 
     List<PortfolioResponse> toPortfolioResponses(List<PortfolioResponseOutput> outputs);
 

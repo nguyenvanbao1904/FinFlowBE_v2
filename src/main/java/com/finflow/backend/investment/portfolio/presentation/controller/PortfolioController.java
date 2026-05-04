@@ -11,6 +11,7 @@ import com.finflow.backend.investment.portfolio.application.port.in.CreateTradeT
 import com.finflow.backend.investment.portfolio.application.port.in.DeletePortfolioPort;
 import com.finflow.backend.investment.portfolio.application.port.in.GetPortfolioHealthPort;
 import com.finflow.backend.investment.portfolio.application.port.in.GetPortfolioVsMarketPort;
+import com.finflow.backend.investment.portfolio.application.port.in.GetTradeTransactionsPort;
 import com.finflow.backend.investment.portfolio.application.port.in.ImportPortfolioSnapshotPort;
 import com.finflow.backend.investment.portfolio.application.port.in.UpdatePortfolioPort;
 
@@ -22,6 +23,7 @@ import com.finflow.backend.investment.portfolio.application.query.GetPortfolioAs
 import com.finflow.backend.investment.portfolio.application.query.GetPortfolioHealthQuery;
 import com.finflow.backend.investment.portfolio.application.query.GetPortfolioVsMarketQuery;
 import com.finflow.backend.investment.portfolio.application.query.GetPortfoliosQuery;
+import com.finflow.backend.investment.portfolio.application.query.GetTradeTransactionsQuery;
 import com.finflow.backend.investment.portfolio.presentation.mapper.PortfolioPresentationMapper;
 import com.finflow.backend.investment.portfolio.presentation.request.CreatePortfolioRequest;
 import com.finflow.backend.investment.portfolio.presentation.request.CreatePortfolioAssetRequest;
@@ -32,6 +34,7 @@ import com.finflow.backend.investment.portfolio.presentation.response.PortfolioA
 import com.finflow.backend.investment.portfolio.presentation.response.PortfolioHealthResponse;
 import com.finflow.backend.investment.portfolio.presentation.response.PortfolioMarketBenchmarkResponse;
 import com.finflow.backend.investment.portfolio.presentation.response.PortfolioResponse;
+import com.finflow.backend.investment.portfolio.presentation.response.TradeTransactionResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -50,6 +53,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import org.springframework.data.domain.Page;
 
 import java.util.List;
 import java.util.UUID;
@@ -71,6 +76,7 @@ public class PortfolioController {
     private final ImportPortfolioSnapshotPort importPortfolioSnapshotUseCase;
     private final GetPortfolioHealthPort getPortfolioHealthUseCase;
     private final GetPortfolioVsMarketPort getPortfolioVsMarketUseCase;
+    private final GetTradeTransactionsPort getTradeTransactionsUseCase;
     private final PortfolioPresentationMapper mapper;
 
     @Operation(summary = "Get all portfolios of current user")
@@ -122,6 +128,23 @@ public class PortfolioController {
             new CreatePortfolioCommand(userId, request.getName())
         );
         return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toResponse(output));
+    }
+
+    @Operation(summary = "Get paginated trade transaction history of a portfolio")
+    @GetMapping("/{portfolioId}/transactions")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<Page<TradeTransactionResponse>> getTradeTransactions(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID portfolioId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        String userId = jwt.getSubject();
+        int safePage = Math.max(0, page);
+        int safeSize = Math.max(1, Math.min(size, 50));
+        var result = getTradeTransactionsUseCase.execute(
+            new GetTradeTransactionsQuery(userId, portfolioId, safePage, safeSize));
+        return ResponseEntity.ok(result.map(mapper::toResponse));
     }
 
     @Operation(summary = "Create a new trade transaction (BUY/SELL/DEPOSIT/WITHDRAW)")
