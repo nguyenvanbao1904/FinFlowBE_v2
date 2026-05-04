@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Component
 @RequiredArgsConstructor
@@ -24,8 +25,19 @@ public class GetTransactionSummaryUseCase implements GetTransactionSummaryPort {
         String userId = request.userId();
         log.info("Calculating transaction summary for userId: {}", userId);
 
-        BigDecimal totalIncome = transactionRepository.sumIncomeByUserId(userId);
-        BigDecimal totalExpense = transactionRepository.sumExpenseByUserId(userId);
+        BigDecimal totalIncome;
+        BigDecimal totalExpense;
+
+        if (request.startDate() != null && request.endDate() != null) {
+            LocalDateTime start = request.startDate().atStartOfDay();
+            LocalDateTime end = request.endDate().plusDays(1).atStartOfDay();
+            totalIncome = transactionRepository.sumIncomeByUserIdBetween(userId, start, end);
+            totalExpense = transactionRepository.sumExpenseByUserIdBetween(userId, start, end);
+        } else {
+            totalIncome = transactionRepository.sumIncomeByUserId(userId);
+            totalExpense = transactionRepository.sumExpenseByUserId(userId);
+        }
+
         BigDecimal totalBalance = totalIncome.subtract(totalExpense);
 
         return TransactionSummaryOutput.builder()

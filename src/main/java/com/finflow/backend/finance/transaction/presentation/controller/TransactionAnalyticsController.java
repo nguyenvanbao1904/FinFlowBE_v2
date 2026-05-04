@@ -29,6 +29,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.format.DateTimeParseException;
 
 @RestController
@@ -52,6 +53,20 @@ public class TransactionAnalyticsController {
         String userId = jwt.getSubject();
         return ResponseEntity.ok(mapper.toResponse(
                 getTransactionSummaryPort.execute(new GetTransactionSummaryQuery(userId))));
+    }
+
+    @Operation(summary = "Get transaction summary for a specific month (default: current month)")
+    @GetMapping("/summary/monthly")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<TransactionSummaryResponse> getMonthlySummary(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(required = false) String month) {
+        String userId = jwt.getSubject();
+        YearMonth ym = month != null ? YearMonth.parse(month) : YearMonth.now();
+        LocalDate start = ym.atDay(1);
+        LocalDate end = ym.atEndOfMonth();
+        return ResponseEntity.ok(mapper.toResponse(
+                getTransactionSummaryPort.execute(new GetTransactionSummaryQuery(userId, start, end))));
     }
 
     @Operation(summary = "Get transaction chart data by range (MONTH, etc.)")

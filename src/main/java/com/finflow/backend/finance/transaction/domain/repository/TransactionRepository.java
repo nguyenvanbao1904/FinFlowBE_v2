@@ -35,6 +35,20 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.userId = :userId AND t.type = 'EXPENSE'")
     BigDecimal sumExpenseByUserId(@Param("userId") String userId);
 
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.userId = :userId AND t.type = 'INCOME' " +
+           "AND t.transactionDate >= :start AND t.transactionDate < :end")
+    BigDecimal sumIncomeByUserIdBetween(
+            @Param("userId") String userId,
+            @Param("start") java.time.LocalDateTime start,
+            @Param("end") java.time.LocalDateTime end);
+
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.userId = :userId AND t.type = 'EXPENSE' " +
+           "AND t.transactionDate >= :start AND t.transactionDate < :end")
+    BigDecimal sumExpenseByUserIdBetween(
+            @Param("userId") String userId,
+            @Param("start") java.time.LocalDateTime start,
+            @Param("end") java.time.LocalDateTime end);
+
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.userId = :userId AND t.category.id = :categoryId " +
            "AND t.type = 'EXPENSE' AND t.transactionDate >= :startInclusive AND t.transactionDate < :endExclusive")
     BigDecimal sumExpenseByUserIdAndCategoryIdAndTransactionDateBetween(
