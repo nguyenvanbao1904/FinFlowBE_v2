@@ -26,6 +26,8 @@ public enum MarketDataErrorCode implements ErrorCode {
                     + "bankBalanceSheets, nonBankBalanceSheets, bankIncomeStatements, nonBankIncomeStatements, all",
             HttpStatus.BAD_REQUEST),
 
+    FAIR_VALUE_UPSTREAM_ERROR(6008, "Fair value service is temporarily unavailable", HttpStatus.SERVICE_UNAVAILABLE),
+
     // DTO validation / required fields -> 6006-6099 (non-overlapping with existing ones)
     // Chỉ dùng làm "message key" cho Bean Validation mapping trong GlobalExceptionHandler.
     // (xem error-handling-patterns skill A.5: message must equal exact enum name)
