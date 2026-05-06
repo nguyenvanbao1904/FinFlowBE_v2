@@ -9,6 +9,7 @@ import com.finflow.backend.investment.portfolio.application.command.ImportPortfo
 import com.finflow.backend.investment.portfolio.application.command.UpdatePortfolioCommand;
 import com.finflow.backend.investment.portfolio.application.port.in.CreateTradeTransactionPort;
 import com.finflow.backend.investment.portfolio.application.port.in.DeletePortfolioPort;
+import com.finflow.backend.investment.portfolio.application.port.in.GetMonthlyNetBuyPort;
 import com.finflow.backend.investment.portfolio.application.port.in.GetPortfolioHealthPort;
 import com.finflow.backend.investment.portfolio.application.port.in.GetPortfolioVsMarketPort;
 import com.finflow.backend.investment.portfolio.application.port.in.GetTradeTransactionsPort;
@@ -56,7 +57,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import org.springframework.data.domain.Page;
 
+import java.math.BigDecimal;
+import java.time.YearMonth;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -77,6 +81,7 @@ public class PortfolioController {
     private final GetPortfolioHealthPort getPortfolioHealthUseCase;
     private final GetPortfolioVsMarketPort getPortfolioVsMarketUseCase;
     private final GetTradeTransactionsPort getTradeTransactionsUseCase;
+    private final GetMonthlyNetBuyPort getMonthlyNetBuyUseCase;
     private final PortfolioPresentationMapper mapper;
 
     @Operation(summary = "Get all portfolios of current user")
@@ -242,6 +247,21 @@ public class PortfolioController {
         String userId = jwt.getSubject();
         deletePortfolioUseCase.execute(new DeletePortfolioCommand(userId, portfolioId));
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Total BUY trade amount for current user in a given month (default: current month)")
+    @GetMapping("/monthly-net-buy")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<Map<String, BigDecimal>> getMonthlyNetBuy(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(required = false) String month
+    ) {
+        String userId = jwt.getSubject();
+        YearMonth yearMonth = (month != null && !month.isBlank())
+                ? YearMonth.parse(month)
+                : YearMonth.now();
+        BigDecimal amount = getMonthlyNetBuyUseCase.execute(userId, yearMonth);
+        return ResponseEntity.ok(Map.of("monthlyNetBuy", amount));
     }
 
 }

@@ -1,10 +1,12 @@
 package com.finflow.backend.investment.market_data.presentation.controller;
 
 import com.finflow.backend.common.versioning.ApiVersion;
+import com.finflow.backend.investment.market_data.application.port.in.GetFairValuePort;
 import com.finflow.backend.investment.market_data.presentation.response.CompanyMarketDataResponse;
 import com.finflow.backend.investment.market_data.presentation.response.InvestmentAnalysisResponse;
 import com.finflow.backend.investment.market_data.presentation.response.CompanySuggestionResponse;
 import com.finflow.backend.investment.market_data.presentation.response.CompanyIndustryResponse;
+import com.finflow.backend.investment.market_data.presentation.response.FairValueResponse;
 import com.finflow.backend.investment.market_data.presentation.response.IndustryNodeReadResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 public class InvestmentQueryController {
 
     private final InvestmentQueryEndpointDelegate queryDelegate;
+    private final GetFairValuePort getFairValuePort;
 
     @Operation(summary = "Suggest companies by ticker prefix (fallback by companyName)")
     @GetMapping("/companies/suggest")
@@ -134,5 +137,16 @@ public class InvestmentQueryController {
             @RequestParam(required = false) Integer annualLimit
     ) {
         return ResponseEntity.ok(queryDelegate.getCompanyDividends(symbol, annualLimit));
+    }
+
+    @Operation(summary = "Compute AI-powered fair value using industry PE/PB/PS playbook")
+    @GetMapping("/companies/{symbol}/fair-value")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<FairValueResponse> getFairValue(
+            @PathVariable String symbol,
+            @Parameter(description = "Target year for forecast (e.g., 2027). Defaults to current year.")
+            @RequestParam(required = false) Integer targetYear
+    ) {
+        return ResponseEntity.ok(getFairValuePort.execute(symbol.toUpperCase(), targetYear));
     }
 }
