@@ -8,6 +8,8 @@ import com.finflow.backend.finance.transaction.application.result.TransactionPre
 import com.finflow.backend.finance.transaction.application.service.AnalyzeTransactionHelper;
 import com.finflow.backend.finance.transaction.application.service.AnalyzeTransactionLoader;
 import com.finflow.backend.finance.transaction.application.service.AnalyzeTransactionLoader.DbSnapshot;
+import com.finflow.backend.common.exception.AppException;
+import com.finflow.backend.finance.transaction.exception.TransactionErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -40,12 +42,9 @@ public class AnalyzeTransactionUseCase implements AnalyzeTransactionPort {
     public AnalyzeTransactionOutput execute(AnalyzeTransactionQuery request) {
         String userId = request.userId();
         String text = request.text();
-        log.debug("Analyzing transaction text for userId: '{}' text: '{}'", userId, text);
 
-        // Phase 1: load DB data through a properly proxied bean — @Transactional(readOnly=true) is honoured
         DbSnapshot snapshot = loader.load(userId);
 
-        // Phase 2: call AI service (no transaction — DB connection already released)
         try {
             List<Map<String, ?>> categoryPayload = helper.buildCategoryPayload(snapshot.categories());
             List<Map<String, ?>> accountPayload = helper.buildAccountPayload(snapshot.accounts());
@@ -53,10 +52,12 @@ public class AnalyzeTransactionUseCase implements AnalyzeTransactionPort {
 
             TransactionPrefillResult result = analyzeTransactionWithAiPort.analyze(
                     text, categoryPayload, accountPayload, historyPayload);
-            return helper.mapPrefillResultToResponse(result, snapshot.categories(), snapshot.accounts());
+
+            AnalyzeTransactionOutput output = helper.mapPrefillResultToResponse(result, snapshot.categories(), snapshot.accounts());
+            return output;
         } catch (Exception e) {
-            log.warn("AI prefill failed, fallback to local heuristic. reason={}", e.getMessage());
-            return helper.fallbackResponse(snapshot.categories());
+            log.error("[Prefill] AI call failed for userId={}: ", userId, e.getMessage());
+            throw new AppException(TransactionErrorCode.AI_PREFILL_UPSTREAM_ERROR);
         }
     }
 }

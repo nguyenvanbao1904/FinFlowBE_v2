@@ -77,20 +77,22 @@ public class RestAiTransactionPrefillAdapter implements AnalyzeTransactionWithAi
                     .send(builder.build(), HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                log.warn("data_ai_service (prefill) responded with status {}", response.statusCode());
+                log.warn("[Prefill→AI] Non-2xx status={} — body: {}", response.statusCode(), response.body());
                 throw new AppException(TransactionErrorCode.AI_PREFILL_UPSTREAM_ERROR);
             }
 
             Map<String, Object> parsed = objectMapper.readValue(response.body(), new TypeReference<>() {});
-            return mapToPrefillResult(parsed);
+            TransactionPrefillResult result = mapToPrefillResult(parsed);
+            return result;
 
         } catch (AppException e) {
             throw e;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+            log.error("[Prefill→AI] Interrupted", e);
             throw new AppException(TransactionErrorCode.AI_PREFILL_UPSTREAM_ERROR);
         } catch (Exception e) {
-            log.warn("data_ai_service (prefill) call failed: {}", e.getMessage());
+            log.error("[Prefill→AI] Call failed: {}", e.getMessage(), e);
             throw new AppException(TransactionErrorCode.AI_PREFILL_UPSTREAM_ERROR);
         }
     }
