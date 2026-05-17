@@ -2,11 +2,14 @@ package com.finflow.backend.investment.portfolio.presentation.mapper;
 
 import com.finflow.backend.investment.portfolio.application.dto.PortfolioAssetOutput;
 import com.finflow.backend.investment.portfolio.application.dto.PortfolioHealthOutput;
+import com.finflow.backend.investment.portfolio.application.dto.PortfolioInsightItem;
 import com.finflow.backend.investment.portfolio.application.dto.PortfolioMarketBenchmarkOutput;
 import com.finflow.backend.investment.portfolio.application.dto.PortfolioResponseOutput;
 import com.finflow.backend.investment.portfolio.application.dto.TradeTransactionOutput;
 import com.finflow.backend.investment.portfolio.presentation.response.PortfolioAssetResponse;
 import com.finflow.backend.investment.portfolio.presentation.response.PortfolioHealthResponse;
+import com.finflow.backend.investment.portfolio.presentation.response.PortfolioInsightResponse;
+import com.finflow.backend.investment.portfolio.presentation.response.PortfolioInsightsResponse;
 import com.finflow.backend.investment.portfolio.presentation.response.PortfolioMarketBenchmarkResponse;
 import com.finflow.backend.investment.portfolio.presentation.response.PortfolioResponse;
 import com.finflow.backend.investment.portfolio.presentation.response.TradeTransactionResponse;
@@ -38,6 +41,10 @@ public interface PortfolioPresentationMapper {
 
     PortfolioMarketBenchmarkResponse.MetricComparison toMetricComparison(PortfolioMarketBenchmarkOutput.MetricComparisonOutput output);
 
+    PortfolioInsightResponse toInsightResponse(PortfolioInsightItem item);
+
+    List<PortfolioInsightResponse> toInsightResponses(List<PortfolioInsightItem> items);
+
     default PortfolioHealthResponse toHealthResponse(PortfolioHealthOutput output) {
         return new PortfolioHealthResponse(
                 output.latestYear(),
@@ -56,5 +63,11 @@ public interface PortfolioPresentationMapper {
                 toMetricComparison(output.roe()),
                 toMetricComparison(output.roa())
         );
+    }
+
+    default PortfolioInsightsResponse toInsightsResponse(List<PortfolioInsightItem> items) {
+        return PortfolioInsightsResponse.builder()
+                .insights(toInsightResponses(items))
+                .build();
     }
 }

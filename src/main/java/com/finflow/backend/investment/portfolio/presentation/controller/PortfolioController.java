@@ -11,6 +11,7 @@ import com.finflow.backend.investment.portfolio.application.port.in.CreateTradeT
 import com.finflow.backend.investment.portfolio.application.port.in.DeletePortfolioPort;
 import com.finflow.backend.investment.portfolio.application.port.in.GetMonthlyNetBuyPort;
 import com.finflow.backend.investment.portfolio.application.port.in.GetPortfolioHealthPort;
+import com.finflow.backend.investment.portfolio.application.port.in.GetPortfolioInsightsPort;
 import com.finflow.backend.investment.portfolio.application.port.in.GetPortfolioVsMarketPort;
 import com.finflow.backend.investment.portfolio.application.port.in.GetTradeTransactionsPort;
 import com.finflow.backend.investment.portfolio.application.port.in.ImportPortfolioSnapshotPort;
@@ -22,6 +23,7 @@ import com.finflow.backend.investment.portfolio.application.port.in.CreatePortfo
 import com.finflow.backend.investment.portfolio.application.port.in.GetPortfoliosPort;
 import com.finflow.backend.investment.portfolio.application.query.GetPortfolioAssetsQuery;
 import com.finflow.backend.investment.portfolio.application.query.GetPortfolioHealthQuery;
+import com.finflow.backend.investment.portfolio.application.query.GetPortfolioInsightsQuery;
 import com.finflow.backend.investment.portfolio.application.query.GetPortfolioVsMarketQuery;
 import com.finflow.backend.investment.portfolio.application.query.GetPortfoliosQuery;
 import com.finflow.backend.investment.portfolio.application.query.GetTradeTransactionsQuery;
@@ -33,6 +35,7 @@ import com.finflow.backend.investment.portfolio.presentation.request.ImportPortf
 import com.finflow.backend.investment.portfolio.presentation.request.UpdatePortfolioRequest;
 import com.finflow.backend.investment.portfolio.presentation.response.PortfolioAssetResponse;
 import com.finflow.backend.investment.portfolio.presentation.response.PortfolioHealthResponse;
+import com.finflow.backend.investment.portfolio.presentation.response.PortfolioInsightsResponse;
 import com.finflow.backend.investment.portfolio.presentation.response.PortfolioMarketBenchmarkResponse;
 import com.finflow.backend.investment.portfolio.presentation.response.PortfolioResponse;
 import com.finflow.backend.investment.portfolio.presentation.response.TradeTransactionResponse;
@@ -82,6 +85,7 @@ public class PortfolioController {
     private final GetPortfolioVsMarketPort getPortfolioVsMarketUseCase;
     private final GetTradeTransactionsPort getTradeTransactionsUseCase;
     private final GetMonthlyNetBuyPort getMonthlyNetBuyUseCase;
+    private final GetPortfolioInsightsPort getPortfolioInsightsUseCase;
     private final PortfolioPresentationMapper mapper;
 
     @Operation(summary = "Get all portfolios of current user")
@@ -262,6 +266,19 @@ public class PortfolioController {
                 : YearMonth.now();
         BigDecimal amount = getMonthlyNetBuyUseCase.execute(userId, yearMonth);
         return ResponseEntity.ok(Map.of("monthlyNetBuy", amount));
+    }
+
+    @Operation(summary = "Get AI-generated insights for a portfolio")
+    @GetMapping("/{portfolioId}/insights")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<PortfolioInsightsResponse> getPortfolioInsights(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID portfolioId
+    ) {
+        String userId = jwt.getSubject();
+        var insights = getPortfolioInsightsUseCase.execute(
+                new GetPortfolioInsightsQuery(userId, portfolioId.toString()));
+        return ResponseEntity.ok(mapper.toInsightsResponse(insights));
     }
 
 }
