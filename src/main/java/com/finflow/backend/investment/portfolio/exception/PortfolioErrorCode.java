@@ -17,7 +17,10 @@ public enum PortfolioErrorCode implements ErrorCode {
     // Market price errors
     MARKET_PRICE_EMPTY_RESPONSE(5010, "Empty market price response from VPS", HttpStatus.BAD_GATEWAY),
     MARKET_PRICE_PARSE_FAILED(5011, "Failed to parse market price from VPS", HttpStatus.BAD_GATEWAY),
-    MARKET_PRICE_MISSING(5012, "Missing close price in VPS payload", HttpStatus.BAD_GATEWAY);
+    MARKET_PRICE_MISSING(5012, "Missing close price in VPS payload", HttpStatus.BAD_GATEWAY),
+
+    // AI insights errors
+    INSIGHTS_UPSTREAM_ERROR(5020, "Failed to fetch portfolio insights from AI service", HttpStatus.SERVICE_UNAVAILABLE);
 
     private final int code;
     private final String message;
