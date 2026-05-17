@@ -3,6 +3,7 @@ package com.finflow.backend.finance.transaction.infrastructure.adapter;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.finflow.backend.common.exception.AppException;
+import com.finflow.backend.common.infrastructure.AbstractRestDataAiAdapter;
 import com.finflow.backend.finance.transaction.application.port.out.DataAiAnalyticsPort;
 import com.finflow.backend.finance.transaction.application.dto.AnalyticsInsightItem;
 import com.finflow.backend.finance.transaction.exception.TransactionErrorCode;
@@ -10,11 +11,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -25,48 +21,24 @@ import java.util.Map;
  */
 @Component
 @Slf4j
-public class RestDataAiAnalyticsAdapter implements DataAiAnalyticsPort {
-
-    private final ObjectMapper objectMapper;
-    private final String dataAiBaseUrl;
-    private final String dataAiInternalApiKey;
-
-    private final HttpClient httpClient = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(10))
-            .build();
+public class RestDataAiAnalyticsAdapter extends AbstractRestDataAiAdapter implements DataAiAnalyticsPort {
 
     public RestDataAiAnalyticsAdapter(
             ObjectMapper objectMapper,
             @Value("${data.ai.base-url:http://localhost:8001}") String dataAiBaseUrl,
             @Value("${data.ai.internal-api-key:}") String dataAiInternalApiKey
     ) {
-        this.objectMapper = objectMapper;
-        this.dataAiBaseUrl = dataAiBaseUrl;
-        this.dataAiInternalApiKey = dataAiInternalApiKey;
+        super(objectMapper, dataAiBaseUrl, dataAiInternalApiKey);
     }
 
     @Override
     public List<AnalyticsInsightItem> fetchInsights(Map<String, Object> payload) {
         try {
-            HttpRequest.Builder builder = HttpRequest.newBuilder()
-                    .uri(URI.create(dataAiBaseUrl + "/api/v1/ai/analytics-insights"))
-                    .header("Content-Type", "application/json")
-                    .timeout(Duration.ofSeconds(30))
-                    .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(payload)));
+            String jsonBody = objectMapper.writeValueAsString(payload);
+            var request = buildPostRequest("/api/v1/ai/analytics-insights", jsonBody);
+            String responseBody = sendRequest(request, "analytics-insights");
 
-            if (dataAiInternalApiKey != null && !dataAiInternalApiKey.isBlank()) {
-                builder.header("X-Internal-Api-Key", dataAiInternalApiKey);
-            }
-
-            HttpResponse<String> response = httpClient
-                    .send(builder.build(), HttpResponse.BodyHandlers.ofString());
-
-            if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                log.warn("data_ai_service responded with status {}", response.statusCode());
-                throw new AppException(TransactionErrorCode.ANALYTICS_UPSTREAM_ERROR);
-            }
-
-            Map<String, Object> body = objectMapper.readValue(response.body(), new TypeReference<>() {});
+            Map<String, Object> body = objectMapper.readValue(responseBody, new TypeReference<>() {});
             return parseInsights(body);
         } catch (AppException e) {
             throw e;
@@ -102,20 +74,5 @@ public class RestDataAiAnalyticsAdapter implements DataAiAnalyticsPort {
             ));
         }
         return result;
-    }
-
-    private String asString(Object value) {
-        if (value == null) return null;
-        String s = String.valueOf(value).trim();
-        return s.isEmpty() ? null : s;
-    }
-
-    private Double asDouble(Object value) {
-        if (value == null) return null;
-        try {
-            return Double.parseDouble(String.valueOf(value));
-        } catch (Exception e) {
-            return null;
-        }
     }
 }
