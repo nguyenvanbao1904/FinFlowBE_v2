@@ -1,5 +1,6 @@
 package com.finflow.backend.finance.transaction.domain.repository;
 
+import com.finflow.backend.finance.common.enums.CategoryType;
 import com.finflow.backend.finance.transaction.domain.entity.Category;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -14,6 +15,7 @@ import java.util.UUID;
 public interface CategoryRepository extends JpaRepository<Category, UUID> {
     List<Category> findByUserId(String userId);
     Optional<Category> findByIdAndUserId(UUID id, String userId);
+    Optional<Category> findByUserIdAndNameAndType(String userId, String name, CategoryType type);
 
     @Query("SELECT c FROM Category c WHERE c.id = :id AND (c.userId = :userId OR c.userId = 'SYSTEM')")
     Optional<Category> findByIdAndUserIdOrSystem(@Param("id") UUID id, @Param("userId") String userId);

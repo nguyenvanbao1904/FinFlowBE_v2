@@ -62,6 +62,7 @@ public class InternalPortfolioController {
         result.put("portfolioName", portfolio.name());
         result.put("cashBalance", portfolio.cashBalance());
         result.put("totalCostBasis", portfolio.totalCostBasis());
+        result.put("totalMarketValueClose", portfolio.totalMarketValueClose());
         result.put("totalMarketValue", health.current().totalValueClose());
         result.put("stockMarketValue", health.current().stockValueClose());
         result.put("unrealizedPnL", computeTotalPnL(assets));
@@ -137,6 +138,7 @@ public class InternalPortfolioController {
             m.put("id", p.id());
             m.put("name", p.name());
             m.put("totalCostBasis", p.totalCostBasis());
+            m.put("totalMarketValueClose", p.totalMarketValueClose());
             return m;
         }).toList();
     }

@@ -11,6 +11,8 @@ public record CreateTradeTransactionCommand(
         BigDecimal quantity,
         BigDecimal price,
         BigDecimal amount,
+        UUID sourceAccountId,
+        UUID destinationAccountId,
         BigDecimal feePercent,
         BigDecimal taxPercent,
         String transactionDate

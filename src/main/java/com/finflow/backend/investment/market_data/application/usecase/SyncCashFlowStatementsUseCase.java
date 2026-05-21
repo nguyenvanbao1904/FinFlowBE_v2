@@ -35,14 +35,11 @@ public class SyncCashFlowStatementsUseCase implements SyncCashFlowStatementsPort
             throw new IllegalArgumentException("Cash flow sync payload must contain a single companyId");
         }
 
-        log.info("Deleting old cash flow statements for symbol: {}", companyId);
-        repository.deleteByCompanyId(companyId);
-
         List<CashFlowStatement> entities = requestList.stream()
                 .map(mapper::toEntity)
                 .collect(Collectors.toList());
 
-        log.info("Inserting {} new cash flow statements for symbol: {}", entities.size(), companyId);
+        log.info("Upserting {} cash flow statements for symbol: {}", entities.size(), companyId);
         repository.saveAll(entities);
     }
 }

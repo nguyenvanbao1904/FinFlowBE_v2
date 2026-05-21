@@ -20,6 +20,11 @@ public enum TradeTransactionErrorCode implements ErrorCode {
     INVALID_TRADE_PRICE_NEGATIVE(5207, "Trade price must be non-negative", HttpStatus.BAD_REQUEST),
     INVALID_TRADE_AMOUNT_NON_POSITIVE(5208, "Trade amount must be positive", HttpStatus.BAD_REQUEST),
     INVALID_TRADE_QUANTITY_MUST_BE_WHOLE_NUMBER(5211, "Trade quantity must be a whole number", HttpStatus.BAD_REQUEST),
+    TRANSFER_SOURCE_ACCOUNT_REQUIRED(5212, "Source account is required for deposit", HttpStatus.BAD_REQUEST),
+    TRANSFER_DESTINATION_ACCOUNT_REQUIRED(5213, "Destination account is required for withdrawal", HttpStatus.BAD_REQUEST),
+    TRANSFER_SOURCE_ACCOUNT_BALANCE_INSUFFICIENT(5214, "Source account balance is insufficient", HttpStatus.BAD_REQUEST),
+    TRANSFER_ACCOUNT_NOT_FOUND(5215, "Transfer account not found", HttpStatus.NOT_FOUND),
+    TRANSFER_ACCOUNT_NOT_ELIGIBLE(5216, "Transfer account is not eligible for portfolio transfer", HttpStatus.BAD_REQUEST),
 
     PORTFOLIO_CASH_BALANCE_INSUFFICIENT(5209, "Portfolio cash balance is insufficient", HttpStatus.BAD_REQUEST),
     PORTFOLIO_ASSET_QUANTITY_INSUFFICIENT(5210, "Portfolio asset quantity is insufficient", HttpStatus.BAD_REQUEST);
@@ -34,4 +39,3 @@ public enum TradeTransactionErrorCode implements ErrorCode {
         this.statusCode = statusCode;
     }
 }
-

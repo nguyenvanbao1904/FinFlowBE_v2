@@ -5,6 +5,7 @@ import com.finflow.backend.investment.portfolio.application.query.GetPortfoliosQ
 
 import com.finflow.backend.investment.portfolio.application.dto.PortfolioResponseOutput;
 import com.finflow.backend.investment.portfolio.application.mapper.PortfolioMapper;
+import com.finflow.backend.investment.portfolio.application.service.PortfolioWealthSyncService;
 import com.finflow.backend.investment.portfolio.domain.repository.PortfolioAssetRepository;
 import com.finflow.backend.investment.portfolio.domain.repository.PortfolioRepository;
 import com.finflow.backend.investment.portfolio.domain.repository.PortfolioStockCostBasisProjection;
@@ -13,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -26,8 +28,9 @@ public class GetPortfoliosUseCase implements GetPortfoliosPort {
     private final PortfolioRepository portfolioRepository;
     private final PortfolioAssetRepository portfolioAssetRepository;
     private final PortfolioMapper portfolioMapper;
+    private final PortfolioWealthSyncService portfolioWealthSyncService;
 
-    @Transactional(readOnly = true)
+    @Transactional
     @Override
     public List<PortfolioResponseOutput> execute(GetPortfoliosQuery request) {
         String userId = request.userId();
@@ -48,16 +51,19 @@ public class GetPortfoliosUseCase implements GetPortfoliosPort {
 
         return portfolios.stream()
                 .map(portfolio -> {
+                    BigDecimal totalMarketValueClose = portfolioWealthSyncService.ensurePortfolioLinkedAndSynced(portfolio);
                     PortfolioResponseOutput response = portfolioMapper.toPortfolioResponseOutput(portfolio);
-                    java.math.BigDecimal stockCostBasis = stockCostBasisByPortfolioId.getOrDefault(
+                    BigDecimal stockCostBasis = stockCostBasisByPortfolioId.getOrDefault(
                             portfolio.getId(),
-                            java.math.BigDecimal.ZERO
+                            BigDecimal.ZERO
                     );
                     return PortfolioResponseOutput.builder()
                             .id(response.id())
                             .name(response.name())
+                            .wealthAccountId(response.wealthAccountId())
                             .cashBalance(response.cashBalance())
                             .totalCostBasis(portfolio.getCashBalance().add(stockCostBasis))
+                            .totalMarketValueClose(totalMarketValueClose)
                             .createdAt(response.createdAt())
                             .updatedAt(response.updatedAt())
                             .build();
@@ -65,4 +71,3 @@ public class GetPortfoliosUseCase implements GetPortfoliosPort {
                 .toList();
     }
 }
-

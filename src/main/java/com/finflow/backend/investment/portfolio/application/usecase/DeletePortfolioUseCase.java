@@ -8,6 +8,7 @@ import com.finflow.backend.investment.portfolio.domain.repository.PortfolioAsset
 import com.finflow.backend.investment.portfolio.domain.repository.PortfolioRepository;
 import com.finflow.backend.investment.portfolio.domain.repository.TradeTransactionRepository;
 import com.finflow.backend.investment.portfolio.exception.PortfolioErrorCode;
+import com.finflow.backend.investment.portfolio.application.service.PortfolioWealthSyncService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -21,6 +22,7 @@ public class DeletePortfolioUseCase implements DeletePortfolioPort {
     private final PortfolioRepository portfolioRepository;
     private final PortfolioAssetRepository portfolioAssetRepository;
     private final TradeTransactionRepository tradeTransactionRepository;
+    private final PortfolioWealthSyncService portfolioWealthSyncService;
 
     @Transactional
     @Override
@@ -32,6 +34,7 @@ public class DeletePortfolioUseCase implements DeletePortfolioPort {
                 .findByIdAndUserId(command.portfolioId(), userId)
                 .orElseThrow(() -> new AppException(PortfolioErrorCode.PORTFOLIO_NOT_FOUND));
 
+        portfolioWealthSyncService.resetLinkedWealthBalance(portfolio);
         tradeTransactionRepository.deleteByPortfolio_Id(portfolio.getId());
         portfolioAssetRepository.deleteByPortfolio_Id(portfolio.getId());
         portfolioRepository.delete(portfolio);

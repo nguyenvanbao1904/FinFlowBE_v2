@@ -11,6 +11,7 @@ import java.util.UUID;
 @Repository
 public interface CompanyDividendRepository extends JpaRepository<CompanyDividend, UUID> {
     void deleteByCompanyId(String companyId);
+    List<CompanyDividend> findByCompanyId(String companyId);
     List<CompanyDividend> findByCompanyIdOrderByRecordDateAsc(String companyId);
 
     /** Gần nhất trước — dùng với {@link Pageable} để LIMIT ở DB. */

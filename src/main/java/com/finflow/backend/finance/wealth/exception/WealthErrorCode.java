@@ -14,7 +14,8 @@ public enum WealthErrorCode implements ErrorCode {
     WEALTH_ACCOUNT_TYPE_REQUIRED(4005, "Wealth account type is required", HttpStatus.BAD_REQUEST),
     WEALTH_ACCOUNT_BALANCE_REQUIRED(4006, "Balance is required", HttpStatus.BAD_REQUEST),
     BALANCE_NEGATIVE_FOR_NON_DEBT_TYPE(4008, "Negative balance is only allowed for debt wealth account types", HttpStatus.BAD_REQUEST),
-    WEALTH_ACCOUNT_HAS_TRANSACTIONS(4009, "Cannot delete wealth account that has transactions. Reassign or delete the transactions first.", HttpStatus.BAD_REQUEST);
+    WEALTH_ACCOUNT_HAS_TRANSACTIONS(4009, "Cannot delete wealth account that has transactions. Reassign or delete the transactions first.", HttpStatus.BAD_REQUEST),
+    WEALTH_ACCOUNT_NOT_ELIGIBLE(4010, "Wealth account is not eligible for this operation", HttpStatus.BAD_REQUEST);
 
     private final int code;
     private final String message;

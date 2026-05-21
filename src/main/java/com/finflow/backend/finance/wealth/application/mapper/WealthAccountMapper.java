@@ -24,8 +24,8 @@ public abstract class WealthAccountMapper {
 
     protected String resolveGroup(WealthAccountType type) {
         if (Boolean.TRUE.equals(type.getIsDebt())) return "DEBT";
-        if (Boolean.TRUE.equals(type.getIsTransactionEligible())) return "LIQUID";
         if (INVESTMENT_CODES.contains(type.getCode())) return "INVESTMENT";
+        if (Boolean.TRUE.equals(type.getIsTransactionEligible())) return "LIQUID";
         return "ASSET";
     }
 }

@@ -5,5 +5,6 @@ package com.finflow.backend.investment.portfolio.application.command;
  */
 public record CreatePortfolioCommand(
         String userId,
-        String name
+        String name,
+        java.util.UUID wealthAccountId
 ) {}

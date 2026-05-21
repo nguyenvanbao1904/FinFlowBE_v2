@@ -10,8 +10,10 @@ import java.util.UUID;
 public record PortfolioResponseOutput(
         UUID id,
         String name,
+        UUID wealthAccountId,
         BigDecimal cashBalance,
         BigDecimal totalCostBasis,
+        BigDecimal totalMarketValueClose,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {}

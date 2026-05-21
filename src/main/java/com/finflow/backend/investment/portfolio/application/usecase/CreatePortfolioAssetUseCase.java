@@ -13,6 +13,7 @@ import com.finflow.backend.investment.portfolio.exception.PortfolioAssetErrorCod
 import com.finflow.backend.investment.portfolio.exception.PortfolioErrorCode;
 import com.finflow.backend.investment.portfolio.application.command.CreatePortfolioAssetCommand;
 import com.finflow.backend.investment.portfolio.application.dto.PortfolioAssetOutput;
+import com.finflow.backend.investment.portfolio.application.service.PortfolioWealthSyncService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +31,7 @@ public class CreatePortfolioAssetUseCase implements CreatePortfolioAssetPort {
 
     private final PortfolioRepository portfolioRepository;
     private final PortfolioAssetRepository portfolioAssetRepository;
+    private final PortfolioWealthSyncService portfolioWealthSyncService;
     
 
     @Transactional
@@ -77,6 +79,7 @@ public class CreatePortfolioAssetUseCase implements CreatePortfolioAssetPort {
                     .build();
 
             PortfolioAsset saved = portfolioAssetRepository.save(created);
+            portfolioWealthSyncService.syncPortfolioValueToWealth(portfolio);
             return PortfolioAssetOutput.builder()
                     .symbol(saved.getSymbol())
                     .totalQuantity(saved.getTotalQuantity())
@@ -102,6 +105,7 @@ public class CreatePortfolioAssetUseCase implements CreatePortfolioAssetPort {
         asset.setAveragePrice(newAvg);
 
         PortfolioAsset saved = portfolioAssetRepository.save(asset);
+        portfolioWealthSyncService.syncPortfolioValueToWealth(portfolio);
         return PortfolioAssetOutput.builder()
                 .symbol(saved.getSymbol())
                 .totalQuantity(saved.getTotalQuantity())
@@ -109,4 +113,3 @@ public class CreatePortfolioAssetUseCase implements CreatePortfolioAssetPort {
                 .build();
     }
 }
-

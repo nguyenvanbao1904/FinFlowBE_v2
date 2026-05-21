@@ -11,4 +11,5 @@ import java.util.UUID;
 public interface CompanyShareholderRepository extends JpaRepository<CompanyShareholder, UUID> {
     void deleteByCompanyId(String companyId);
     List<CompanyShareholder> findByCompanyIdOrderByShareOwnPercentDesc(String companyId);
+    List<CompanyShareholder> findByCompanyId(String companyId);
 }

@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -74,6 +75,16 @@ public class GlobalExceptionHandler {
                 : errorCode.getMessage();
 
         return toProblemDetail(errorCode, message, request);
+    }
+
+    @ExceptionHandler(value = BadCredentialsException.class)
+    ProblemDetail handlingBadCredentials(BadCredentialsException exception, HttpServletRequest request) {
+        log.warn("Bad credentials");
+        return toProblemDetail(
+                CommonErrorCode.UNAUTHENTICATED,
+                "Invalid username or password",
+                request
+        );
     }
 
     private String mapAttribute(String message, Map<String, Object> attributes) {

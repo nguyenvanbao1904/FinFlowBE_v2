@@ -8,6 +8,7 @@ import com.finflow.backend.investment.portfolio.application.usecase.trade.SellTr
 import com.finflow.backend.investment.portfolio.application.usecase.trade.TradeContext;
 import com.finflow.backend.investment.portfolio.application.usecase.trade.TradeHandler;
 import com.finflow.backend.investment.portfolio.application.usecase.trade.WithdrawTradeHandler;
+import com.finflow.backend.investment.portfolio.application.service.PortfolioWealthSyncService;
 import com.finflow.backend.common.exception.AppException;
 import com.finflow.backend.investment.portfolio.domain.entity.Portfolio;
 import com.finflow.backend.investment.portfolio.domain.entity.TradeType;
@@ -37,6 +38,7 @@ public class CreateTradeTransactionUseCase implements CreateTradeTransactionPort
     private final DepositTradeHandler depositTradeHandler;
     private final WithdrawTradeHandler withdrawTradeHandler;
     private final DividendTradeHandler dividendTradeHandler;
+    private final PortfolioWealthSyncService portfolioWealthSyncService;
 
     private Map<TradeType, TradeHandler> handlerMap;
 
@@ -80,6 +82,7 @@ public class CreateTradeTransactionUseCase implements CreateTradeTransactionPort
         }
 
         handler.handle(new TradeContext(command, portfolio, feePercent, taxPercent));
+        portfolioWealthSyncService.syncPortfolioValueToWealth(portfolio.getId(), command.userId());
     }
 
     private static BigDecimal defaultIfNull(BigDecimal v, BigDecimal defaultValue) {

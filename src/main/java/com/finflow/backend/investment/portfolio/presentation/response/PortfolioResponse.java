@@ -15,9 +15,10 @@ import java.util.UUID;
 public class PortfolioResponse {
     UUID id;
     String name;
+    UUID wealthAccountId;
     BigDecimal cashBalance;
     BigDecimal totalCostBasis;
+    BigDecimal totalMarketValueClose;
     LocalDateTime createdAt;
     LocalDateTime updatedAt;
 }
-

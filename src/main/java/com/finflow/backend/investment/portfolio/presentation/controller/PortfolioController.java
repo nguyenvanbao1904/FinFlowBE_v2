@@ -134,7 +134,7 @@ public class PortfolioController {
     ) {
         String userId = jwt.getSubject();
         var output = createPortfolioUseCase.execute(
-            new CreatePortfolioCommand(userId, request.getName())
+            new CreatePortfolioCommand(userId, request.getName(), request.getWealthAccountId())
         );
         return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toResponse(output));
     }
@@ -173,6 +173,8 @@ public class PortfolioController {
                 request.getQuantity(),
                 request.getPrice(),
                 request.getAmount(),
+                request.getSourceAccountId(),
+                request.getDestinationAccountId(),
                 request.getFeePercent(),
                 request.getTaxPercent(),
                 request.getTransactionDate()

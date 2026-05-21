@@ -35,7 +35,9 @@ public class UpdatePortfolioUseCase implements UpdatePortfolioPort {
         return new PortfolioResponseOutput(
                 saved.getId(),
                 saved.getName(),
+                saved.getWealthAccountId(),
                 saved.getCashBalance(),
+                null,
                 null,
                 saved.getCreatedAt(),
                 saved.getUpdatedAt()

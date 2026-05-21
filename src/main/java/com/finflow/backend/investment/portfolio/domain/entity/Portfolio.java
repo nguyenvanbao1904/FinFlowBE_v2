@@ -41,6 +41,13 @@ public class Portfolio {
     @Column(nullable = false)
     String name; // VD: "Danh mục lướt sóng", "Tích sản hưu trí"
 
+    /**
+     * Wealth account that represents this manual brokerage portfolio in net worth.
+     * Stored as UUID only to keep finance.wealth and investment.portfolio decoupled.
+     */
+    @Column(name = "wealth_account_id")
+    UUID wealthAccountId;
+
     /** Số dư tiền mặt rảnh rỗi trong danh mục, chờ mua chứng khoán */
     @Column(name = "cash_balance", nullable = false, precision = 19, scale = 2)
     @Builder.Default

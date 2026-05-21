@@ -12,6 +12,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -27,15 +30,33 @@ public class SyncCompanyDividendsUseCase implements SyncCompanyDividendsPort {
         String companyId = command.companyId();
         List<CompanyDividendRequestInput> requests = command.request();
         log.info("Syncing {} dividend events for company {}", requests.size(), companyId);
-        
-        repository.deleteByCompanyId(companyId);
+
+        Map<String, CompanyDividend> existingByKey = repository.findByCompanyId(companyId)
+                .stream()
+                .collect(Collectors.toMap(this::naturalKey, Function.identity(), (left, right) -> left));
         
         List<CompanyDividend> entities = requests.stream()
                 .map(mapper::toEntity)
-                .peek(e -> e.setCompanyId(companyId))
+                .peek(entity -> {
+                    entity.setCompanyId(companyId);
+                    CompanyDividend existing = existingByKey.get(naturalKey(entity));
+                    if (existing != null) {
+                        entity.setId(existing.getId());
+                    }
+                })
                 .toList();
 
         repository.saveAll(entities);
         log.info("Successfully synced dividend events for company {}", companyId);
+    }
+
+    private String naturalKey(CompanyDividend entity) {
+        String title = entity.getEventTitle() == null ? "" : entity.getEventTitle().trim().toUpperCase();
+        String type = entity.getEventType() == null ? "" : entity.getEventType().trim().toUpperCase();
+        String ratio = entity.getRatio() == null ? "" : entity.getRatio().trim().toUpperCase();
+        String recordDate = entity.getRecordDate() == null ? "" : entity.getRecordDate().toString();
+        String exrightDate = entity.getExrightDate() == null ? "" : entity.getExrightDate().toString();
+        String issueDate = entity.getIssueDate() == null ? "" : entity.getIssueDate().toString();
+        return title + "|" + type + "|" + ratio + "|" + recordDate + "|" + exrightDate + "|" + issueDate;
     }
 }

@@ -22,7 +22,7 @@ public class WealthSeedAccountTypesUseCase implements WealthSeedAccountTypesPort
     private static final List<WealthAccountType> DEFAULT_TYPES = List.of(
             WealthAccountType.builder().code("CASH").displayName("Tiền mặt").icon("banknote.fill").color("#10B981").isTransactionEligible(true).build(),
             WealthAccountType.builder().code("BANK_ACCOUNT").displayName("Tài khoản ngân hàng").icon("building.columns.fill").color("#3B82F6").isTransactionEligible(true).build(),
-            WealthAccountType.builder().code("CREDIT_CARD").displayName("Thẻ tín dụng").icon("creditcard.fill").color("#F97316").isTransactionEligible(true).build(),
+            WealthAccountType.builder().code("CREDIT_CARD").displayName("Thẻ tín dụng").icon("creditcard.fill").color("#F97316").isTransactionEligible(true).isDebt(true).build(),
             WealthAccountType.builder().code("BROKERAGE").displayName("Tài khoản chứng khoán").icon("chart.line.uptrend.xyaxis").color("#8B5CF6").isTransactionEligible(true).build(),
             WealthAccountType.builder().code("SAVING_BOOK").displayName("Sổ tiết kiệm").icon("book.closed.fill").color("#10B981").isTransactionEligible(false).build(),
             WealthAccountType.builder().code("REAL_ESTATE").displayName("Bất động sản").icon("house.fill").color("#3B82F6").isTransactionEligible(false).build(),

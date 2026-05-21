@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.experimental.FieldDefaults;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
@@ -21,6 +22,8 @@ public class CreateTradeTransactionRequest {
 
     // DEPOSIT/WITHDRAW (nạp/rút)
     BigDecimal amount;
+    UUID sourceAccountId;
+    UUID destinationAccountId;
 
     // percent fields: e.g. 0.1 means 0.1% (tax for SELL defaults to 0.1%)
     BigDecimal feePercent;
@@ -32,4 +35,3 @@ public class CreateTradeTransactionRequest {
      */
     String transactionDate;
 }
-

@@ -13,6 +13,7 @@ public interface WealthAccountApi {
     record AccountSnapshot(
             UUID id,
             String name,
+            String typeCode,
             String typeDisplayName,
             BigDecimal balance,
             boolean transactionEligible,
@@ -24,4 +25,10 @@ public interface WealthAccountApi {
     List<AccountSnapshot> findAllAccountsWithType(String userId);
 
     void updateBalance(UUID accountId, BigDecimal newBalance);
+
+    void updateBalance(String userId, UUID accountId, BigDecimal newBalance);
+
+    AccountSnapshot createBrokerageAccount(String userId, String name);
+
+    AccountSnapshot requireBrokerageAccount(String userId, UUID accountId);
 }

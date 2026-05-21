@@ -12,6 +12,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -27,15 +30,29 @@ public class SyncCompanyShareholdersUseCase implements SyncCompanyShareholdersPo
         String companyId = command.companyId();
         List<CompanyShareholderRequestInput> requests = command.request();
         log.info("Syncing {} shareholders for company {}", requests.size(), companyId);
-        
-        repository.deleteByCompanyId(companyId);
+
+        Map<String, CompanyShareholder> existingByKey = repository.findByCompanyId(companyId)
+                .stream()
+                .collect(Collectors.toMap(this::naturalKey, Function.identity(), (left, right) -> left));
         
         List<CompanyShareholder> entities = requests.stream()
                 .map(mapper::toEntity)
-                .peek(entity -> entity.setCompanyId(companyId))
+                .peek(entity -> {
+                    entity.setCompanyId(companyId);
+                    CompanyShareholder existing = existingByKey.get(naturalKey(entity));
+                    if (existing != null) {
+                        entity.setId(existing.getId());
+                    }
+                })
                 .toList();
 
         repository.saveAll(entities);
         log.info("Successfully synced shareholders for company {}", companyId);
+    }
+
+    private String naturalKey(CompanyShareholder entity) {
+        String name = entity.getShareholderName() == null ? "" : entity.getShareholderName().trim().toUpperCase();
+        String date = entity.getUpdateDate() == null ? "" : entity.getUpdateDate().toString();
+        return name + "|" + date;
     }
 }

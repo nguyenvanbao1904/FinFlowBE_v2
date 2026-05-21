@@ -11,6 +11,7 @@ import com.finflow.backend.investment.portfolio.domain.repository.PortfolioRepos
 import com.finflow.backend.investment.portfolio.exception.ImportPortfolioSnapshotErrorCode;
 import com.finflow.backend.investment.portfolio.exception.PortfolioErrorCode;
 import com.finflow.backend.investment.portfolio.application.command.ImportPortfolioSnapshotCommand;
+import com.finflow.backend.investment.portfolio.application.service.PortfolioWealthSyncService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -33,6 +34,7 @@ public class ImportPortfolioSnapshotUseCase implements ImportPortfolioSnapshotPo
 
     private final PortfolioRepository portfolioRepository;
     private final PortfolioAssetRepository portfolioAssetRepository;
+    private final PortfolioWealthSyncService portfolioWealthSyncService;
 
     @Transactional
     @Override
@@ -134,7 +136,8 @@ public class ImportPortfolioSnapshotUseCase implements ImportPortfolioSnapshotPo
         portfolioAssetRepository.saveAll(assetsToSave);
 
         portfolio.setCashBalance(cashBalance.setScale(2, RoundingMode.HALF_UP));
-        portfolioRepository.save(portfolio);
+        Portfolio savedPortfolio = portfolioRepository.save(portfolio);
+        portfolioWealthSyncService.syncPortfolioValueToWealth(savedPortfolio);
     }
 
     private static class NormalizedHolding {
@@ -147,4 +150,3 @@ public class ImportPortfolioSnapshotUseCase implements ImportPortfolioSnapshotPo
         }
     }
 }
-
