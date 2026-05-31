@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -31,11 +32,17 @@ public class AnalyzeTransactionHelper {
 
     public List<Map<String, ?>> buildAccountPayload(List<WealthAccountApi.AccountSnapshot> accounts) {
         return accounts.stream()
-                .map(a -> Map.of(
-                        "id", a.id().toString(),
-                        "name", a.name(),
-                        "transactionEligible", a.transactionEligible()
-                ))
+                .map(a -> {
+                    Map<String, Object> payload = new LinkedHashMap<>();
+                    payload.put("id", a.id().toString());
+                    payload.put("name", a.name());
+                    payload.put("typeCode", a.typeCode());
+                    payload.put("typeDisplayName", a.typeDisplayName());
+                    payload.put("balance", a.balance());
+                    payload.put("transactionEligible", a.transactionEligible());
+                    payload.put("debt", a.debt());
+                    return payload;
+                })
                 .collect(Collectors.toList());
     }
 
